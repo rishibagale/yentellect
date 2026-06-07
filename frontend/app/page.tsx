@@ -21,14 +21,13 @@ export default function Home() {
     try {
       // Use name as user_id (or generate a new UUID-like id)
       const userId = name.trim() || `user-${Date.now()}`;
-      const session = await startSession(userId, opening.trim());
-
-      // Persist user id for the session
+      // Persist user id and opening message for the session
       sessionStorage.setItem("yentellect_user_id", userId);
       sessionStorage.setItem("yentellect_user_name", name.trim());
+      sessionStorage.setItem("yentellect_opening", opening.trim());
 
-      // Navigate to session page
-      router.push(`/session?session_id=${session.session_id}&user_id=${encodeURIComponent(userId)}`);
+      // Navigate to session page - session page will handle API call
+      router.push(`/session?user_id=${encodeURIComponent(userId)}`);
     } catch (err: any) {
       setError(err?.message || "Failed to start session");
       setLoading(false);

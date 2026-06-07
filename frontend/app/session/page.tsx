@@ -9,9 +9,8 @@ import ModeIndicator from "@/components/ModeIndicator";
 function SessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session_id");
-  const userId = searchParams.get("user_id");
-  const opening = searchParams.get("opening");
+  const userId = searchParams.get("user_id") || sessionStorage.getItem("yentellect_user_id") || "anonymous";
+  const opening = sessionStorage.getItem("yentellect_opening") || "";
 
   const [sessionData, setSessionData] = useState<{
     session_id: string;
@@ -25,32 +24,22 @@ function SessionContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!sessionId && opening && userId) {
-      // If we just came from home page, start the session
-      startSession(userId, opening)
-        .then((data) => {
-          setSessionData({
-            session_id: data.session_id,
-            response: data.response,
-            mode_target: data.mode_target,
-            predicted_mode: data.predicted_mode,
-            confidence: data.confidence,
-          });
-          // Update URL with session_id
-          router.replace(`/session?session_id=${data.session_id}&user_id=${userId}`);
-        })
-        .catch((err) => setError(err.message || "Failed to start session"));
-    } else if (sessionId && userId) {
-      // Existing session - try to recover or just show what we have
-      setSessionData({
-        session_id: sessionId,
-        response: "[Session resumed. Send a message to continue.]",
-        mode_target: "CONVERGENT",
-        predicted_mode: "CONVERGENT",
-        confidence: 0.5,
-      });
-    }
-  }, [sessionId, userId, opening, router]);
+    // Start the session via API call
+    startSession(userId, opening)
+      .then((data) => {
+        setSessionData({
+          session_id: data.session_id,
+          response: data.response,
+          mode_target: data.mode_target,
+          predicted_mode: data.predicted_mode,
+          confidence: data.confidence,
+        });
+        // Update URL with session_id for persistence
+        sessionStorage.setItem("yentellect_session_id", data.session_id);
+        router.replace(`/session?session_id=${data.session_id}&user_id=${encodeURIComponent(userId)}`);
+      })
+      .catch((err) => setError(err.message || "Failed to start session"));
+  }, [userId, opening, router]);
 
   if (error) {
     return (
