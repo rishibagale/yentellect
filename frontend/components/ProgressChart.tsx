@@ -39,53 +39,38 @@ export default function ProgressChart({ metrics }: ProgressChartProps) {
     .filter((d) => d !== null);
 
   const modes: ThinkingMode[] = [
-    "CONVERGENT",
-    "DIVERGENT",
-    "ANALOGICAL",
-    "METACOGNITIVE",
-    "SYSTEMS",
-    "DMN",
+    "CONVERGENT", "DIVERGENT", "ANALOGICAL", "METACOGNITIVE", "SYSTEMS", "DMN",
   ];
-
-  const visibleModes = modes.filter((mode) => {
-    return data.filter((d) => d && (d as any)[mode] > 0).length >= 3;
-  });
+  const visibleModes = modes.filter((mode) =>
+    data.filter((d) => d && (d as any)[mode] > 0).length >= 3
+  );
 
   if (data.length === 0) {
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-12 text-center">
-        <p className="text-slate-500">
-          Complete at least 3 sessions to see your progress chart.
-        </p>
+      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-12 text-center">
+        <p className="text-slate-500 text-sm">Complete at least 3 sessions to see your progress chart.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6">
-      <h3 className="text-lg font-semibold mb-4">Mode Performance Over Time</h3>
+    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+      <h3 className="text-sm font-semibold mb-4 text-slate-200">Mode performance over time</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis
-            dataKey="session"
-            label={{ value: "Session #", position: "insideBottom", offset: -5 }}
-            stroke="#94a3b8"
-          />
-          <YAxis
-            label={{ value: "Score (%)", angle: -90, position: "insideLeft" }}
-            stroke="#94a3b8"
-            domain={[0, 100]}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <XAxis dataKey="session" stroke="#64748b" tick={{ fontSize: 11 }} label={{ value: "Session #", position: "insideBottom", offset: -5, fill: "#64748b", fontSize: 11 }} />
+          <YAxis stroke="#64748b" tick={{ fontSize: 11 }} label={{ value: "Score (%)", angle: -90, position: "insideLeft", fill: "#64748b", fontSize: 11 }} domain={[0, 100]} />
           <Tooltip
             contentStyle={{
               backgroundColor: "rgba(15, 23, 42, 0.95)",
-              border: "none",
-              borderRadius: "6px",
-              color: "white",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "8px",
+              color: "#f1f5f9",
+              fontSize: "12px",
             }}
           />
-          <Legend />
+          <Legend wrapperStyle={{ fontSize: "11px", color: "#94a3b8" }} />
           {visibleModes.map((mode) => (
             <Line
               key={mode}
@@ -93,8 +78,8 @@ export default function ProgressChart({ metrics }: ProgressChartProps) {
               dataKey={mode}
               stroke={getModeColor(mode)}
               strokeWidth={2}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
               name={getModeName(mode)}
             />
           ))}

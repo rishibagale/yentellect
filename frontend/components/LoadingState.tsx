@@ -18,20 +18,14 @@ export default function LoadingState({
     md: "h-8 w-8 border-b-2",
     lg: "h-12 w-12 border-b-4",
   };
-
   const containerClasses = fullScreen
-    ? "min-h-screen flex items-center justify-center"
+    ? "min-h-screen flex items-center justify-center bg-[#0a0a0b]"
     : "flex items-center justify-center py-12";
-
   return (
     <div className={containerClasses}>
       <div className="text-center">
-        <div
-          className={`inline-block rounded-full border-indigo-600 ${sizeClasses[size]} animate-spin mb-3`}
-        />
-        {message && (
-          <p className="text-slate-600 dark:text-slate-300 text-sm">{message}</p>
-        )}
+        <div className={`inline-block rounded-full border-indigo-500 ${sizeClasses[size]} animate-spin mb-3`} />
+        {message && <p className="text-slate-500 text-sm">{message}</p>}
       </div>
     </div>
   );
