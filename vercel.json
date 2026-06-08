@@ -1,7 +1,4 @@
 {
   "rootDirectory": "frontend",
-  "framework": "nextjs",
-  "buildCommand": "npx next build",
-  "installCommand": "npm install --prefer-offline",
-  "outputDirectory": ".next"
+  "framework": "nextjs"
 }
