@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "cd frontend && npm install --no-audit --no-fund && npm run build",
+  "installCommand": "cd frontend && npm install --no-audit --no-fund",
+  "outputDirectory": "frontend/.next",
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_API_URL": "http://localhost:8000"
+    }
+  }
+}
