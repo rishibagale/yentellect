@@ -1,0 +1,18 @@
+# Binaries
+go-watcher
+go-watcher-linux-amd64
+go-watcher-windows-amd64.exe
+
+# Test output
+coverage.out
+coverage.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
