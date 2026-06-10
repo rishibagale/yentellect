@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
+import { motion } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import { startSession, getModeColor, getModeName, ThinkingMode } from "@/lib/api";
 import SessionChat from "@/components/SessionChat";
@@ -119,51 +120,90 @@ function SessionContent() {
         </div>
       </main>
 
+      {/* Summary Modal — Premium */}
       {showSummary && summary && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#131316] border border-white/10 rounded-2xl shadow-2xl p-8 max-w-md w-full animate-slide-up">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="bg-surface-raised border border-white/10 rounded-2xl shadow-2xl p-8 max-w-md w-full"
+          >
+            {/* Success icon */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              className="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4"
+            >
+              <svg className="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-            </div>
-            <h2 className="text-2xl font-bold mb-4 text-center">Session complete</h2>
+            </motion.div>
+
+            <h2 className="text-2xl font-bold mb-1 text-center">Session complete</h2>
+            <p className="text-sm text-slate-500 text-center mb-6">
+              Here's how you performed
+            </p>
+
+            {/* Stats */}
             <div className="space-y-3 mb-6">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Modes activated</span>
-                <span className="font-medium text-right max-w-[60%]">
+              <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/[0.02] border border-white/5">
+                <span className="text-sm text-slate-400">Modes activated</span>
+                <span className="text-sm font-medium text-right max-w-[55%]">
                   {summary.modes_activated?.join(", ") || "None"}
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Duration</span>
-                <span className="font-medium">{Math.round((summary.session_duration || 0) / 60)} min</span>
+              <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/[0.02] border border-white/5">
+                <span className="text-sm text-slate-400">Duration</span>
+                <span className="text-sm font-medium font-mono">
+                  {Math.round((summary.session_duration || 0) / 60)} min
+                </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Overall score</span>
-                <span className="font-medium">
+              <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/[0.02] border border-white/5">
+                <span className="text-sm text-slate-400">Overall score</span>
+                <motion.span
+                  className="text-lg font-bold font-mono"
+                  style={{
+                    color:
+                      (summary.summary?.overall_score || 0) >= 0.7
+                        ? "#34D399"
+                        : (summary.summary?.overall_score || 0) >= 0.4
+                        ? "#FBBF24"
+                        : "#F87171",
+                  }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                >
                   {summary.summary?.overall_score
                     ? Math.round(summary.summary.overall_score * 100)
                     : 0}
                   %
-                </span>
+                </motion.span>
               </div>
             </div>
-            <div className="flex space-x-2">
-              <button
+
+            {/* Actions */}
+            <div className="flex gap-2">
+              <motion.button
                 onClick={() => router.push(`/profile?user_id=${encodeURIComponent(userId)}`)}
-                className="flex-1 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold text-sm hover:opacity-90 transition"
+                className="flex-1 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold text-sm hover:opacity-90 transition shadow-lg shadow-indigo-500/20"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 View profile
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={() => router.push("/")}
                 className="flex-1 py-3 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition text-sm font-medium"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 Done
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

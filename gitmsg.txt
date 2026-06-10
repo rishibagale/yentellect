@@ -1,0 +1,7 @@
+UiDesignTokens - Complete design token system in tailwind.config.ts, 6 mode-specific color palettes (50-900 shades)  
+Inter + JetBrains Mono via next/font with display:swap  
+Grain texture overlay, glass-card utilities, custom scrollbars  
+HomePage - Letter-by-letter headline animation with 3D rotation, animated ambient glow orbs  
+SessionChat - Asymmetric chat bubbles with mode color bars, SVG radial gauge for mode confidence  
+Profile - Animated stat counters with staggered entrance  
+Fixed: design-tokens.ts syntax error, Build: zero errors across all routes  

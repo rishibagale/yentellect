@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, Suspense } from "react";
+import { motion } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   getProfile,
@@ -11,6 +12,7 @@ import {
   getModeColor,
   getModeName,
 } from "@/lib/api";
+import { MODE_PALETTES, ANIMATION } from "@/lib/tokens";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
 import ProgressChart from "@/components/ProgressChart";
 import Header from "@/components/Header";
@@ -79,17 +81,25 @@ function ProfileContent() {
             {profile?.name?.trim() || "Your cognitive profile"}
           </h1>
           <p className="mt-1 text-sm text-slate-500">A snapshot of how you think and what you
- know.
+            know.
           </p>
         </div>
 
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {/* Stats grid with animated counters */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"
+        >
           {stats.map((s, i) => (
-            <div
+            <motion.div
               key={i}
-              className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-4 hover:bg-white/[0.05] transition animate-fade-in"
-              style={{ animationDelay: `${i * 50}ms` }}
+              variants={{
+                hidden: { opacity: 0, y: 15 },
+                show: { opacity: 1, y: 0, transition: { ...ANIMATION.ease } },
+              }}
+              className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-4 hover:bg-white/[0.05] hover:border-white/15 transition-all duration-200"
             >
               <div className="flex items-center gap-1.5 text-xs text-slate-500 uppercase tracking-wider mb-1">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -97,14 +107,32 @@ function ProfileContent() {
                 </svg>
                 {s.label}
               </div>
-              <div className="text-2xl md:text-3xl font-bold text-white">{s.value}</div>
-            </div>
+              <motion.div
+                className="text-2xl md:text-3xl font-bold text-white"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.1, duration: 0.4, ease: "easeOut" }}
+              >
+                {s.value}
+              </motion.div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
-        {/* Mode cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+        {/* Mode cards with animated entrance */}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } } }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6"
+        >
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, x: -20 },
+              show: { opacity: 1, x: 0, transition: { ...ANIMATION.ease } },
+            }}
+            className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-5"
+          >
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-500 mb-2">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -118,8 +146,14 @@ function ProfileContent() {
               {profile?.dominant_mode ? getModeName(profile.dominant_mode) : "Not yet determined"}
             </div>
             <div className="text-xs text-slate-500 mt-2">Your strongest thinking mode.</div>
-          </div>
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+          </motion.div>
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, x: 20 },
+              show: { opacity: 1, x: 0, transition: { ...ANIMATION.ease } },
+            }}
+            className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-5"
+          >
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-500 mb-2">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
@@ -133,8 +167,8 @@ function ProfileContent() {
               {profile?.weakest_mode ? getModeName(profile.weakest_mode) : "Not yet determined"}
             </div>
             <div className="text-xs text-slate-500 mt-2">Yentellect will focus training here.</div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Knowledge Graph */}
         {graphData && (
