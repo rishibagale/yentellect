@@ -55,27 +55,6 @@ frontend/out/
 frontend/*.log
 frontend/.turbo/
 
-# Puter AI playground (not part of the core cognitive architecture)
-puter_test/
-puter_test/node_modules/
-puter_test/watcher.log
-puter_test/index.html
-puter_test/app.js
-puter_test/app_watcher.js
-puter_test/server.js
-puter_test/package.json
-puter_test/package-lock.json
-puter_test/write_index.js
-
-# Go build artifacts
-rebuild/bin/
-rebuild/rebuild.exe
-go_watcher/bin/
-**/*.exe
-**/*.test
-**/*.out
-
-
 # Model weights / large files
 *.bin
 *.pt

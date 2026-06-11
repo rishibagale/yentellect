@@ -12,7 +12,7 @@ Neuroscience reference:
 - Cognitive load theory: limit working memory demands per turn
 """
 
-from typing import Optional, Dict
+from typing import Dict
 
 # ============================================================================
 # SYSTEM_BASE: Core identity — always prepended to mode-specific prompts
@@ -34,6 +34,36 @@ Rules:
 4. Never evaluate performance mid-session. Wait for session end.
 5. Be warm but direct. This is training, not therapy."""
 
+CONVERGENT_RUBRIC = """# Rubric (internal, do not show user):
+# Score 0-10 on precision (elimination of ambiguity)
+# Score 0-10 on completeness (logical step-by-step structure)
+# Score 0-10 on constraint satisfaction (staying within bounds)
+# Final = (precision + completeness + constraints) / 3"""
+
+DIVERGENT_RUBRIC = """# Rubric (internal, do not show user):
+# Score 0-10 on fluency (quantity of distinct ideas)
+# Score 0-10 on flexibility (variety across categories)
+# Score 0-10 on novelty (distance from obvious answers)
+# Final = (fluency + flexibility + novelty) / 3"""
+
+ANALOGICAL_RUBRIC = """# Rubric (internal, do not show user):
+# Score 0-10 on mapping depth (structural vs surface)
+# Score 0-10 on accuracy (isomorphism preservation)
+# Score 0-10 on cross-domain distance (how far apart the domains are)
+# Final = (mapping_depth + accuracy + distance) / 3"""
+
+METACOGNITIVE_RUBRIC = """# Rubric (internal, do not show user):
+# Score 0-10 on calibration accuracy (self-assessment vs actual)
+# Score 0-10 on process depth (describing thinking, not just content)
+# Score 0-10 on adjustment (identifying what to change next time)
+# Final = (calibration + process_depth + adjustment) / 3"""
+
+SYSTEMS_RUBRIC = """# Rubric (internal, do not show user):
+# Score 0-10 on causal depth (how far the chain extends)
+# Score 0-10 on feedback identification (reinforcing/balancing loops)
+# Score 0-10 on emergent property recognition (unexpected system behaviors)
+# Final = (causal_depth + feedback + emergence) / 3"""
+
 # ============================================================================
 # CONVERGENT: Precision under constraint
 # Neural basis: DLPFC — executive control, focused attention
@@ -50,11 +80,7 @@ Strategy:
 - Require elimination of ambiguity, step-by-step logic
 - Evaluate precision and completeness
 
-{"""# Rubric (internal, do not show user):
-# Score 0-10 on precision (elimination of ambiguity)
-# Score 0-10 on completeness (logical step-by-step structure)
-# Score 0-10 on constraint satisfaction (staying within bounds)
-# Final = (precision + completeness + constraints) / 3"""}
+{CONVERGENT_RUBRIC}
 
 Framework: Show your work in three steps:
 1. Define the problem and assumptions
@@ -79,11 +105,7 @@ Strategy:
 - Encourage quantity and variety of ideas
 - Suspend judgment — all ideas are welcome
 
-{"""# Rubric (internal, do not show user):
-# Score 0-10 on fluency (quantity of distinct ideas)
-# Score 0-10 on flexibility (variety across categories)
-# Score 0-10 on novelty (distance from obvious answers)
-# Final = (fluency + flexibility + novelty) / 3"""}
+{DIVERGENT_RUBRIC}
 
 Guidelines:
 - List at least 5 distinct approaches
@@ -108,11 +130,7 @@ Strategy:
 - Ask for structural (not surface) similarities
 - Evaluate mapping depth and cross-domain distance
 
-{"""# Rubric (internal, do not show user):
-# Score 0-10 on mapping depth (structural vs surface)
-# Score 0-10 on accuracy (isomorphism preservation)
-# Score 0-10 on cross-domain distance (how far apart the domains are)
-# Final = (mapping_depth + accuracy + distance) / 3"""}
+{ANALOGICAL_RUBRIC}
 
 Framework:
 1. Describe the structure of concept A (components, relationships, rules)
@@ -137,11 +155,7 @@ Strategy:
 - Then reveal their actual performance and ask for gap analysis
 - Evaluate calibration accuracy (self-assessment vs actual)
 
-{"""# Rubric (internal, do not show user):
-# Score 0-10 on calibration accuracy (self-assessment vs actual)
-# Score 0-10 on process depth (describing thinking, not just content)
-# Score 0-10 on adjustment (identifying what to change next time)
-# Final = (calibration + process_depth + adjustment) / 3"""}
+{METACOGNITIVE_RUBRIC}
 
 Framework:
 1. Think aloud: Describe step by step how you arrived at your answer
@@ -166,11 +180,7 @@ Strategy:
 - Ask for causal chain and feedback loop identification
 - Evaluate completeness and recognition of non-obvious loops
 
-{"""# Rubric (internal, do not show user):
-# Score 0-10 on causal depth (how far the chain extends)
-# Score 0-10 on feedback identification (reinforcing/balancing loops)
-# Score 0-10 on emergent property recognition (unexpected system behaviors)
-# Final = (causal_depth + feedback + emergence) / 3"""}
+{SYSTEMS_RUBRIC}
 
 Framework:
 1. Map the key components and their direct relationships
@@ -185,6 +195,13 @@ Remember: One question. Trace the full causal chain."""
 # Neural basis: PCC + mPFC — default mode network, insight incubation
 # ============================================================================
 
+DMN_GUIDELINES = """Guidelines:
+- Take your time. There's no rush.
+- Let your mind wander between the two concepts
+- Notice what comes up without forcing it
+- It's okay if the connection is vague or emotional
+- There are no wrong answers here"""
+
 DMN_PROMPT = f"""{SYSTEM_BASE}
 
 Mode: DMN — Open Wandering Toward Insight
@@ -197,18 +214,12 @@ Strategy:
 - Let associations flow without judgment
 - Log concepts that emerge for the knowledge graph
 
-{Guidelines:
-- Take your time. There's no rush.
-- Let your mind wander between the two concepts
-- Notice what comes up without forcing it
-- It's okay if the connection is vague or emotional
-- There are no wrong answers here}
+{DMN_GUIDELINES}
 
 Remember: One question. Make it gentle and open. This session is never scored."""
 
 # ============================================================================
 # END-OF-SESSION EXTRACTION PROMPT
-# Used by the LangGraph state machine to extract concepts and connections
 # ============================================================================
 
 EXTRACT_CONCEPTS_PROMPT = """You are analyzing a cognitive training session transcript.

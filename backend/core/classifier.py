@@ -15,9 +15,15 @@ Each thinking mode has a characteristic signal profile:
 """
 
 from typing import List, Tuple, Dict
-import numpy as np
 
 from .models import SignalVector, ThinkingMode
+
+# Optional numpy - fall back to pure Python if not available
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
 
 
 # Characteristic signal profiles for each mode (heuristic weights)
@@ -85,6 +91,18 @@ MODE_PROFILES: Dict[ThinkingMode, Dict[str, float]] = {
     },
 }
 
+# Feature names in order
+_FEATURE_NAMES = [
+    "type_token_ratio", "question_density", "hedge_word_rate",
+    "self_correction_rate", "cross_domain_refs", "first_person_rate",
+    "sentence_complexity", "ideational_fluency"
+]
+
+
+def _dot_product(features: List[float], weights: List[float]) -> float:
+    """Dot product of two vectors, works without numpy."""
+    return sum(f * w for f, w in zip(features, weights))
+
 
 class ThinkingModeClassifier:
     """
@@ -103,11 +121,7 @@ class ThinkingModeClassifier:
                                  Below this, returns None (uncertain).
         """
         self.confidence_threshold = confidence_threshold
-        self._feature_names = [
-            "type_token_ratio", "question_density", "hedge_word_rate",
-            "self_correction_rate", "cross_domain_refs", "first_person_rate",
-            "sentence_complexity", "ideational_fluency"
-        ]
+        self._feature_names = _FEATURE_NAMES
     
     def classify(self, vector: SignalVector) -> Tuple[ThinkingMode, float]:
         """
@@ -119,17 +133,15 @@ class ThinkingModeClassifier:
         Returns:
             Tuple of (predicted_mode, confidence) where confidence is 0.0-1.0
         """
-        # Extract feature values into array
-        features = np.array([
-            getattr(vector, name) for name in self._feature_names
-        ])
+        # Extract feature values into list
+        features = [getattr(vector, name) for name in self._feature_names]
         
         # Compute scores for each mode via weighted heuristic
         scores = {}
         for mode, profile in MODE_PROFILES.items():
-            weights = np.array([profile.get(name, 0.0) for name in self._feature_names])
+            weights = [profile.get(name, 0.0) for name in self._feature_names]
             # Dot product, normalized to [0, 1]
-            score = np.dot(features, weights)
+            score = _dot_product(features, weights)
             # Shift to positive range
             score = (score + 4.0) / 8.0  # Normalize approximately to [0, 1]
             score = max(0.0, min(1.0, score))
@@ -204,14 +216,9 @@ class ThinkingModeClassifier:
         # Find weakest by lowest confidence
         all_scores = {}
         for mode in ThinkingMode:
-            scores = {}
-            for name in self._feature_names:
-                weights = MODE_PROFILES[mode]
-                scores[name] = getattr(avg_vector, name) * weights.get(name, 0.0)
-            
-            mode_features = np.array([getattr(avg_vector, name) for name in self._feature_names])
-            mode_weights = np.array([MODE_PROFILES[mode].get(name, 0.0) for name in self._feature_names])
-            raw_score = np.dot(mode_features, mode_weights)
+            mode_features = [getattr(avg_vector, name) for name in self._feature_names]
+            mode_weights = [MODE_PROFILES[mode].get(name, 0.0) for name in self._feature_names]
+            raw_score = _dot_product(mode_features, mode_weights)
             norm_score = max(0.0, min(1.0, (raw_score + 4.0) / 8.0))
             all_scores[mode.value] = norm_score
         

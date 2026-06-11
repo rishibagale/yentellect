@@ -16,36 +16,44 @@ Neuroscience basis:
 """
 
 import re
-from typing import List, Set
-import spacy
-from spacy.tokens import Doc
-import nltk
-from nltk.tokenize import word_tokenize, sent_tokenize
-from nltk.tag import pos_tag
-
+import math
+from typing import List, Set, Optional
 from .models import SignalVector
 
-
-# Download required NLTK data
+# Optional heavy dependencies - fall back to lightweight implementations
 try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', quiet=True)
-
-try:
-    nltk.data.find('tokenizers/punkt_tab')
-except LookupError:
-    nltk.download('punkt_tab', quiet=True)
+    import spacy
+    from spacy.tokens import Doc
+    SPACY_AVAILABLE = True
+except ImportError:
+    SPACY_AVAILABLE = False
+    Doc = None
 
 try:
-    nltk.data.find('taggers/averaged_perceptron_tagger')
-except LookupError:
-    nltk.download('averaged_perceptron_tagger', quiet=True)
+    import nltk
+    from nltk.tokenize import word_tokenize, sent_tokenize
+    NLTK_AVAILABLE = True
+except ImportError:
+    NLTK_AVAILABLE = False
 
-try:
-    nltk.data.find('taggers/averaged_perceptron_tagger_eng')
-except LookupError:
-    nltk.download('averaged_perceptron_tagger_eng', quiet=True)
+# Download required NLTK data (only if available)
+if NLTK_AVAILABLE:
+    try:
+        nltk.data.find('tokenizers/punkt')
+    except LookupError:
+        nltk.download('punkt', quiet=True)
+    try:
+        nltk.data.find('tokenizers/punkt_tab')
+    except LookupError:
+        nltk.download('punkt_tab', quiet=True)
+    try:
+        nltk.data.find('taggers/averaged_perceptron_tagger')
+    except LookupError:
+        nltk.download('averaged_perceptron_tagger', quiet=True)
+    try:
+        nltk.data.find('taggers/averaged_perceptron_tagger_eng')
+    except LookupError:
+        nltk.download('averaged_perceptron_tagger_eng', quiet=True)
 
 
 # Hedge words indicating uncertainty / metacognitive awareness
@@ -64,6 +72,93 @@ SELF_CORRECTION_MARKERS = {
 }
 
 
+class _LightweightExtractor:
+    """Fallback signal extractor when spaCy/NLTK are not available.
+    
+    Uses regex and simple heuristics instead of full NLP pipelines.
+    """
+    
+    def __init__(self):
+        self._hedge_pattern = re.compile(
+            r'\b(' + '|'.join(re.escape(w) for w in HEDGE_WORDS) + r')\b',
+            re.IGNORECASE
+        )
+        self._correction_pattern = re.compile(
+            r'\b(' + '|'.join(re.escape(w) for w in SELF_CORRECTION_MARKERS) + r')\b',
+            re.IGNORECASE
+        )
+    
+    def extract(self, text: str) -> SignalVector:
+        """Extract signal vector using lightweight methods."""
+        if not text or not text.strip():
+            return SignalVector()
+        
+        words = re.findall(r"[a-zA-Z']+", text)
+        sentences = re.split(r'[.!?]+', text)
+        sentences = [s.strip() for s in sentences if s.strip()]
+        
+        word_count = len(words) if words else 1
+        
+        # Type-token ratio
+        unique_words = len(set(w.lower() for w in words))
+        ttr = min(unique_words / word_count, 1.0) if words else 0.0
+        
+        # Question density
+        question_count = text.count('?')
+        question_density = min((question_count / word_count) * 100, 1.0)
+        
+        # Hedge word rate
+        hedge_count = len(self._hedge_pattern.findall(text.lower()))
+        hedge_rate = min((hedge_count / word_count) * 100, 1.0)
+        
+        # Self-correction rate
+        correction_count = len(self._correction_pattern.findall(text.lower()))
+        correction_rate = min((correction_count / word_count) * 100, 1.0)
+        
+        # Cross-domain refs (simplified: unique capitalized terms / 18 max)
+        capitalized = set(w.lower() for w in words if w[0].isupper() and len(w) > 1)
+        cross_domain = min(len(capitalized) / 18.0, 1.0)
+        
+        # First-person rate
+        first_person = {"i", "me", "my", "mine", "myself"}
+        fp_count = sum(1 for w in words if w.lower() in first_person)
+        fp_rate = min((fp_count / word_count) * 100, 1.0)
+        
+        # Sentence complexity (simplified: avg words per sentence / 30 max)
+        avg_words_per_sent = word_count / len(sentences) if sentences else 0
+        complexity = min(avg_words_per_sent / 30.0, 1.0)
+        
+        # Ideational fluency (simplified: unique nouns via heuristic)
+        # Words longer than 5 chars that aren't common verbs/stopwords
+        stop_words = {
+            "about", "above", "after", "again", "against", "all", "also", "and",
+            "because", "been", "before", "being", "below", "between", "both",
+            "could", "did", "does", "doing", "down", "each", "few", "from",
+            "further", "have", "having", "here", "how", "just", "like", "more",
+            "most", "much", "other", "over", "same", "should", "such", "than",
+            "that", "their", "them", "there", "these", "they", "this", "those",
+            "through", "too", "under", "very", "was", "were", "what", "when",
+            "where", "which", "while", "who", "why", "will", "with", "would",
+            "your",
+        }
+        candidate_concepts = set(
+            w.lower() for w in words
+            if len(w) > 5 and w.lower() not in stop_words
+        )
+        fluency = min(len(candidate_concepts) / word_count, 1.0)
+        
+        return SignalVector(
+            type_token_ratio=ttr,
+            question_density=question_density,
+            hedge_word_rate=hedge_rate,
+            self_correction_rate=correction_rate,
+            cross_domain_refs=cross_domain,
+            first_person_rate=fp_rate,
+            sentence_complexity=complexity,
+            ideational_fluency=fluency,
+        )
+
+
 class BehavioralSignalExtractor:
     """
     Extracts behavioral signals from natural language text.
@@ -71,23 +166,30 @@ class BehavioralSignalExtractor:
     Uses spaCy for linguistic analysis (dependency parsing, NER, POS tagging)
     and NLTK for tokenization fallback.
     
+    Falls back to lightweight regex-based extraction when these are not available.
+    
     All outputs normalized to [0, 1] range for classifier compatibility.
     """
     
     def __init__(self, model_name: str = "en_core_web_sm"):
         """
-        Initialize with spaCy model.
+        Initialize with spaCy model or fallback extractor.
         
         Args:
             model_name: spaCy model to load. Default: en_core_web_sm
         """
-        try:
-            self.nlp = spacy.load(model_name)
-        except OSError:
-            raise RuntimeError(
-                f"spaCy model '{model_name}' not found. "
-                f"Run: python -m spacy download {model_name}"
-            )
+        self._fallback = None
+        self.nlp = None
+        
+        if SPACY_AVAILABLE:
+            try:
+                self.nlp = spacy.load(model_name)
+            except OSError:
+                print(f"spaCy model '{model_name}' not found. Using lightweight fallback.")
+                self._fallback = _LightweightExtractor()
+        else:
+            print("spaCy not installed. Using lightweight signal extraction fallback.")
+            self._fallback = _LightweightExtractor()
         
         # Cache for performance
         self._hedge_pattern = re.compile(
@@ -112,6 +214,10 @@ class BehavioralSignalExtractor:
         if not text or not text.strip():
             return SignalVector()
         
+        # Use fallback if spaCy not available
+        if self._fallback:
+            return self._fallback.extract(text)
+        
         doc = self.nlp(text)
         
         return SignalVector(
@@ -125,7 +231,7 @@ class BehavioralSignalExtractor:
             ideational_fluency=self._ideational_fluency(doc),
         )
     
-    def _type_token_ratio(self, doc: Doc) -> float:
+    def _type_token_ratio(self, doc) -> float:
         """
         Type-token ratio: unique word types / total tokens.
         
@@ -143,7 +249,7 @@ class BehavioralSignalExtractor:
         # Use corrected TTR or just raw ratio capped at 1.0
         return min(unique_types / total_tokens, 1.0)
     
-    def _question_density(self, doc: Doc, text: str) -> float:
+    def _question_density(self, doc, text: str) -> float:
         """
         Question marks per 100 words.
         
@@ -164,7 +270,10 @@ class BehavioralSignalExtractor:
         Hedge words indicate uncertainty calibration / metacognitive awareness.
         Higher = more explicit uncertainty expression.
         """
-        words = word_tokenize(text.lower())
+        if NLTK_AVAILABLE:
+            words = word_tokenize(text.lower())
+        else:
+            words = re.findall(r"[a-zA-Z']+", text.lower())
         if not words:
             return 0.0
         
@@ -182,7 +291,10 @@ class BehavioralSignalExtractor:
         Indicates online monitoring / executive function engagement.
         Higher = more self-monitoring during generation.
         """
-        words = word_tokenize(text.lower())
+        if NLTK_AVAILABLE:
+            words = word_tokenize(text.lower())
+        else:
+            words = re.findall(r"[a-zA-Z']+", text.lower())
         if not words:
             return 0.0
         
@@ -193,7 +305,7 @@ class BehavioralSignalExtractor:
         correction_count = len(self._correction_pattern.findall(text.lower()))
         return min((correction_count / word_count) * 100, 1.0)
     
-    def _cross_domain_refs(self, doc: Doc) -> float:
+    def _cross_domain_refs(self, doc) -> float:
         """
         Named entity type diversity.
         
@@ -209,13 +321,16 @@ class BehavioralSignalExtractor:
         # Normalize by max possible entity types (~18 in spaCy)
         return min(len(entity_types) / 18.0, 1.0)
     
-    def _first_person_rate(self, doc: Doc, text: str) -> float:
+    def _first_person_rate(self, doc, text: str) -> float:
         """
         First-person pronouns (I/me/my/mine/myself) per 100 words.
         
         Higher = more self-referential processing → DMN engagement.
         """
-        words = word_tokenize(text.lower())
+        if NLTK_AVAILABLE:
+            words = word_tokenize(text.lower())
+        else:
+            words = re.findall(r"[a-zA-Z']+", text.lower())
         if not words:
             return 0.0
         
@@ -228,7 +343,7 @@ class BehavioralSignalExtractor:
         
         return min((fp_count / word_count) * 100, 1.0)
     
-    def _sentence_complexity(self, doc: Doc) -> float:
+    def _sentence_complexity(self, doc) -> float:
         """
         Average dependency tree depth per sentence.
         
@@ -263,7 +378,7 @@ class BehavioralSignalExtractor:
         # Normalize: typical max depth ~12, cap at 1.0
         return min(avg_depth / 12.0, 1.0)
     
-    def _ideational_fluency(self, doc: Doc) -> float:
+    def _ideational_fluency(self, doc) -> float:
         """
         Unique noun concept density.
         
