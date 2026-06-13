@@ -18,11 +18,14 @@ import ProgressChart from "@/components/ProgressChart";
 import Header from "@/components/Header";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
+import { useSupabase } from "@/utils/supabase/provider";
 
 function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useSupabase();
   const userId =
+    user?.id ||
     searchParams.get("user_id") ||
     (typeof window !== "undefined" ? sessionStorage.getItem("yentellect_user_id") : null) ||
     "demo-user";
@@ -74,7 +77,7 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0b] text-slate-100">
-      <Header userId={userId} />
+      <Header />
       <main className="flex-1 px-4 md:px-6 py-6 max-w-7xl w-full mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">

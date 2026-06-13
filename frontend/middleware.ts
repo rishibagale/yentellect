@@ -1,35 +1,48 @@
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { createClient } from "./utils/supabase/middleware";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const publicRoutes = [
+  "/auth/login",
+  "/auth/signup",
+  "/auth/callback",
+  "/auth/reset-password",
+  "/_next/static",
+  "/_next/image",
+  "/favicon.ico",
+];
+
+const publicRoutePatterns = [
+  /\.(?:svg|png|jpg|jpeg|gif|webp)$/,
+];
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request: { headers: request.headers } });
+  const { supabase, supabaseResponse } = createClient(request);
+  const { pathname } = request.nextUrl;
 
-  const supabase = createServerClient(
-    supabaseUrl!,
-    supabaseKey!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    },
-  );
+  // Allow public assets and auth pages through
+  const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isPublicPattern = publicRoutePatterns.some((pattern) => pattern.test(pathname));
+  const isRoot = pathname === "/";
 
-  // Refresh session if expired
-  const { data: { user } } = await supabase.auth.getUser()
+  if (isPublicRoute || isPublicPattern || isRoot) {
+    // Still refresh the session even on public pages
+    const { data } = await supabase.auth.getUser();
+    // The root page is public but shows different UI based on auth state
+    return supabaseResponse;
+  }
 
-  return response
+  // For protected routes, check authentication
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    // No valid session — redirect to login
+    const redirectUrl = new URL("/auth/login", request.url);
+    redirectUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // User is authenticated, proceed
+  return supabaseResponse;
 }
 
 export const config = {
@@ -39,8 +52,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
-}
+};

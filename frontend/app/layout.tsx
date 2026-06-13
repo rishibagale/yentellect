@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { SupabaseProvider } from "@/utils/supabase/provider";
+import { AuthGuard } from "@/components/AuthGuard";
 
 /* ============================================================
    🔤 FONTS — Inter (sans) + JetBrains Mono (mono)
@@ -76,7 +78,11 @@ export default function RootLayout({
       <body className="min-h-screen bg-surface text-slate-100 antialiased font-sans">
         {/* Grain texture overlay */}
         <div className="grain" aria-hidden="true" />
-        {children}
+        <SupabaseProvider>
+          <AuthGuard>
+            {children}
+          </AuthGuard>
+        </SupabaseProvider>
       </body>
     </html>
   );

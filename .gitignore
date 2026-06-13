@@ -20,6 +20,7 @@ ENV/
 *.swp
 *.swo
 *~
+*~
 
 # OS
 .DS_Store
@@ -65,3 +66,8 @@ frontend/.turbo/
 tmp/
 temp/
 *.tmp
+
+# Root level accidental node_modules installs
+node_modules/
+package.json
+package-lock.json

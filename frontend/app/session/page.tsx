@@ -9,10 +9,12 @@ import ModeIndicator from "@/components/ModeIndicator";
 import Header from "@/components/Header";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
+import { useSupabase } from "@/utils/supabase/provider";
 
 function SessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useSupabase();
   const [userId, setUserId] = useState<string | null>(null);
   const [opening, setOpening] = useState("");
   const [sessionData, setSessionData] = useState<{
@@ -29,13 +31,15 @@ function SessionContent() {
   const startInitiatedRef = useRef(false);
 
   useEffect(() => {
-    const paramUserId = searchParams.get("user_id");
-    const storedUserId = typeof window !== "undefined" ? sessionStorage.getItem("yentellect_user_id") : null;
-    const finalUserId = paramUserId || storedUserId || `user-${Date.now()}`;
+    // Use Supabase auth user if available, fallback to sessionStorage for backward compat
+    const finalUserId = user?.id || 
+      searchParams.get("user_id") ||
+      (typeof window !== "undefined" ? sessionStorage.getItem("yentellect_user_id") : null) ||
+      `user-${Date.now()}`;
     const storedOpening = typeof window !== "undefined" ? sessionStorage.getItem("yentellect_opening") || "" : "";
     setUserId(finalUserId);
     setOpening(storedOpening);
-  }, [searchParams]);
+  }, [searchParams, user]);
 
   useEffect(() => {
     if (!userId) return;
@@ -81,7 +85,7 @@ function SessionContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0b] text-slate-100">
-      <Header userId={userId} />
+      <Header />
       <main className="flex-1 px-4 md:px-6 py-4 max-w-7xl w-full mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 h-[calc(100vh-7rem)]">
           <SessionChat

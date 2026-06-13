@@ -4,14 +4,12 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useSupabase } from "@/utils/supabase/provider";
 
-interface HeaderProps {
-  userId?: string;
-}
-
-export default function Header({ userId }: HeaderProps) {
+export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useSupabase();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -19,6 +17,13 @@ export default function Header({ userId }: HeaderProps) {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleSignOut = async () => {
+    const { signOut } = await import("@/lib/auth-types");
+    await signOut();
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <motion.header
@@ -54,9 +59,9 @@ export default function Header({ userId }: HeaderProps) {
           >
             Home
           </Link>
-          {userId && (
+          {user && (
             <Link
-              href={`/profile?user_id=${encodeURIComponent(userId)}`}
+              href="/profile"
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
                 pathname?.startsWith("/profile")
                   ? "bg-white/10 text-white"
@@ -65,6 +70,14 @@ export default function Header({ userId }: HeaderProps) {
             >
               Profile
             </Link>
+          )}
+          {user && (
+            <button
+              onClick={handleSignOut}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-all duration-200"
+            >
+              Sign out
+            </button>
           )}
           <motion.button
             onClick={() => router.push("/")}
