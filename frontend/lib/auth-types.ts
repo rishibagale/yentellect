@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/client";
+import type { Provider } from "@supabase/supabase-js";
 
 export interface AuthUser {
   id: string;
@@ -18,6 +19,22 @@ export interface SignInData {
   password: string;
 }
 
+async function createBackendUser(userId: string, displayName: string) {
+  try {
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    await fetch(`${API_BASE}/profile/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: userId,
+        name: displayName,
+      }),
+    });
+  } catch {
+    console.warn("Could not create user in backend, auth succeeded");
+  }
+}
+
 export async function signUp(data: SignUpData): Promise<AuthUser> {
   const supabase = createClient();
   const { data: authData, error } = await supabase.auth.signUp({
@@ -33,21 +50,7 @@ export async function signUp(data: SignUpData): Promise<AuthUser> {
   if (error) throw new Error(error.message);
   if (!authData.user) throw new Error("Sign up failed: no user returned");
 
-  // Create user in backend
-  try {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    await fetch(`${API_BASE}/profile/create`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: authData.user.id,
-        name: data.displayName,
-      }),
-    });
-  } catch {
-    // Backend user creation is optional - auth comes first
-    console.warn("Could not create user in backend, auth succeeded");
-  }
+  await createBackendUser(authData.user.id, data.displayName);
 
   return {
     id: authData.user.id,
@@ -75,6 +78,20 @@ export async function signIn(data: SignInData): Promise<AuthUser> {
   };
 }
 
+export async function signInWithOAuth(provider: Provider) {
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
+
+  if (error) throw new Error(error.message);
+  // OAuth redirect happens automatically — the page will navigate away
+  return data;
+}
+
 export async function signOut(): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase.auth.signOut();
@@ -87,3 +104,5 @@ export async function getSession() {
   if (error) throw new Error(error.message);
   return data.session;
 }
+
+export { createBackendUser };

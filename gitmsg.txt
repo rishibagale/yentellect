@@ -1,1 +1,1 @@
-Add Supabase auth, PostgreSQL migration, and backend deployment config
+Add Google and GitHub OAuth sign-in buttons  
