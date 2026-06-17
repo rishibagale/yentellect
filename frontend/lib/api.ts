@@ -2,7 +2,7 @@
  * Typed API client for Yentellect backend.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com";
 
 export type ThinkingMode =
   | "CONVERGENT"
