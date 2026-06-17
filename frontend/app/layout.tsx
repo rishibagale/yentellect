@@ -71,9 +71,9 @@ export default function RootLayout({
     >
       <head>
         {/* Preconnect to API backend */}
-        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"} />
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com"} />
         {/* DNS prefetch */}
-        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"} />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com"} />
       </head>
       <body className="min-h-screen bg-surface text-slate-100 antialiased font-sans">
         {/* Grain texture overlay */}

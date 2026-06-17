@@ -1,1 +1,1 @@
-Fix API base URL to use deployed Render backend  
+Fix all URL references to use live Render backend + add SKILLS_REFERENCE.md  

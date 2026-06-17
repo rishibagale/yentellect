@@ -51,6 +51,7 @@ app.add_middleware(
         FRONTEND_URL,
         "http://localhost:3000",
         "https://localhost:3000",
+        "https://yentellect.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],

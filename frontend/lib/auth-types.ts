@@ -1,6 +1,8 @@
 import { createClient } from "@/utils/supabase/client";
 import type { Provider } from "@supabase/supabase-js";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com";
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -21,8 +23,7 @@ export interface SignInData {
 
 async function createBackendUser(userId: string, displayName: string) {
   try {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    await fetch(`${API_BASE}/profile/create`, {
+    await fetch(`${BACKEND_URL}/profile/create`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -88,7 +89,6 @@ export async function signInWithOAuth(provider: Provider) {
   });
 
   if (error) throw new Error(error.message);
-  // OAuth redirect happens automatically — the page will navigate away
   return data;
 }
 

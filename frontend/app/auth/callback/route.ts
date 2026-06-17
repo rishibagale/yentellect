@@ -24,7 +24,7 @@ export async function GET(request: Request) {
           "User";
 
         try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com";
           await fetch(`${apiBase}/profile/create`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
