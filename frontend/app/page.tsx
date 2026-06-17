@@ -5,16 +5,13 @@ import { useRouter } from "next/navigation";
 import {
   motion,
   AnimatePresence,
-  useInView,
   useScroll,
   useTransform,
 } from "framer-motion";
-import { MODE_PALETTES, MODES, ANIMATION } from "@/lib/tokens";
-import { ThinkingMode } from "@/lib/api";
+import { useSupabase } from "@/utils/supabase/provider";
+import { MODES, ANIMATION } from "@/lib/tokens";
+import Link from "next/link";
 
-/* ============================================================
-   CONSTANTS
-   ============================================================ */
 const PROMPTS = [
   "What assumption am I making that might not hold?",
   "How would someone from a totally different field solve this?",
@@ -32,9 +29,6 @@ const ROTATING_PROMPTS = [
   "See the system.",
 ];
 
-/* ============================================================
-   ANIMATION VARIANTS
-   ============================================================ */
 const container = {
   hidden: { opacity: 0 },
   show: {
@@ -61,11 +55,9 @@ const letterVariant = {
   show: { opacity: 1, y: 0, rotateX: 0, transition: { ...ANIMATION.ease } },
 };
 
-/* ============================================================
-   HOME PAGE
-   ============================================================ */
 export default function Home() {
   const router = useRouter();
+  const { user, isLoading } = useSupabase();
   const [name, setName] = useState("");
   const [opening, setOpening] = useState("");
   const [loading, setLoading] = useState(false);
@@ -79,13 +71,19 @@ export default function Home() {
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 100]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
+  // Redirect logged-in users to dashboard
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, isLoading, router]);
+
   // Rotating prompt interval
   useEffect(() => {
     const t = setInterval(() => setPromptIdx((i) => (i + 1) % PROMPTS.length), 4000);
     return () => clearInterval(t);
   }, []);
 
-  // Rotating tagline interval
   useEffect(() => {
     const t = setInterval(() => setRotatingIdx((i) => (i + 1) % ROTATING_PROMPTS.length), 3000);
     return () => clearInterval(t);
@@ -94,6 +92,12 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!opening.trim()) return;
+    if (user) {
+      // Logged in — redirect to session page
+      sessionStorage.setItem("yentellect_opening", opening.trim());
+      router.push("/session");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -108,51 +112,50 @@ export default function Home() {
     }
   };
 
-  const getTimeGreeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 18) return "Good afternoon";
-    return "Good evening";
-  };
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+          <p className="text-sm text-slate-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render the hero if redirecting (user is logged in)
+  if (user) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+          <p className="text-sm text-slate-500">Taking you to your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen flex flex-col bg-surface text-slate-100 overflow-hidden">
-      {/* ============================================================
-          ANIMATED BACKGROUND
-          ============================================================ */}
+      {/* Animated background */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        {/* Ambient glow orbs */}
         <motion.div
           className="absolute top-1/4 -left-48 w-[500px] h-[500px] rounded-full blur-3xl"
           style={{ backgroundColor: "rgba(99, 102, 241, 0.12)" }}
-          animate={{
-            x: [0, 30, 0],
-            y: [0, -20, 0],
-          }}
+          animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
           className="absolute bottom-1/4 -right-48 w-[500px] h-[500px] rounded-full blur-3xl"
           style={{ backgroundColor: "rgba(139, 92, 246, 0.12)" }}
-          animate={{
-            x: [0, -30, 0],
-            y: [0, 20, 0],
-          }}
+          animate={{ x: [0, -30, 0], y: [0, 20, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-3xl"
-          style={{ backgroundColor: "rgba(236, 72, 153, 0.06)" }}
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Subtle radial gradient overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_80%,rgba(99,102,241,0.08),transparent_60%)]" />
       </div>
 
-      {/* ============================================================
-          HEADER
-          ============================================================ */}
+      {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -160,11 +163,7 @@ export default function Home() {
         className="sticky top-0 z-40 bg-surface/70 backdrop-blur-xl border-b border-white/5"
       >
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
-          <motion.div
-            className="flex items-center gap-2.5"
-            whileHover={{ scale: 1.02 }}
-          >
-            {/* Logo */}
+          <motion.div className="flex items-center gap-2.5" whileHover={{ scale: 1.02 }}>
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -173,20 +172,24 @@ export default function Home() {
             <span className="font-semibold text-base tracking-tight">Yentellect</span>
           </motion.div>
 
-          <motion.button
-            onClick={() => router.push("/")}
-            className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-medium hover:opacity-90 transition shadow-lg shadow-indigo-500/20"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            + New Session
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/auth/login"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-white/5 transition"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/auth/signup"
+              className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-medium hover:opacity-90 transition shadow-lg shadow-indigo-500/20"
+            >
+              Sign up
+            </Link>
+          </div>
         </div>
       </motion.header>
 
-      {/* ============================================================
-          HERO SECTION
-          ============================================================ */}
+      {/* Hero section */}
       <section ref={heroRef} className="relative flex-1 flex items-center justify-center px-4 py-8 md:py-12">
         <motion.div style={{ y: heroY, opacity: heroOpacity }} className="max-w-4xl w-full">
           <motion.div
@@ -195,7 +198,6 @@ export default function Home() {
             animate="show"
             className="text-center mb-8 md:mb-10"
           >
-            {/* Tagline */}
             <motion.div variants={item} className="flex items-center justify-center gap-2 mb-4">
               <div className="h-px w-8 bg-gradient-to-r from-transparent to-slate-600" />
               <span className="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-medium">
@@ -204,7 +206,6 @@ export default function Home() {
               <div className="h-px w-8 bg-gradient-to-l from-transparent to-slate-600" />
             </motion.div>
 
-            {/* Main headline with letter-by-letter animation */}
             <motion.h1
               variants={item}
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-4"
@@ -242,7 +243,6 @@ export default function Home() {
               <span className="gradient-text">not just smarter.</span>
             </motion.h1>
 
-            {/* Subtitle */}
             <motion.p
               variants={item}
               className="text-base md:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed"
@@ -251,7 +251,6 @@ export default function Home() {
               and runs adaptive Socratic sessions that train it.
             </motion.p>
 
-            {/* Rotating tagline */}
             <motion.div variants={item} className="mt-3 h-6">
               <AnimatePresence mode="wait">
                 <motion.span
@@ -268,9 +267,7 @@ export default function Home() {
             </motion.div>
           </motion.div>
 
-          {/* ============================================================
-              FORM — Glass Card
-              ============================================================ */}
+          {/* Form */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -282,7 +279,6 @@ export default function Home() {
               className="glass-card-strong p-5 md:p-6 space-y-4 mx-auto max-w-2xl"
             >
               <div className="space-y-3">
-                {/* Name + Textarea row */}
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="sm:w-1/3">
                     <label className="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">
@@ -314,7 +310,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Rotating prompt suggestion */}
               <div className="text-center h-5">
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -330,7 +325,6 @@ export default function Home() {
                 </AnimatePresence>
               </div>
 
-              {/* Error */}
               {error && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -341,7 +335,6 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {/* Submit button */}
               <motion.button
                 type="submit"
                 disabled={loading || !opening.trim()}
@@ -370,9 +363,7 @@ export default function Home() {
             </form>
           </motion.div>
 
-          {/* ============================================================
-              MODE EXPLORER — Interactive Radial Grid
-              ============================================================ */}
+          {/* Mode explorer */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -405,7 +396,6 @@ export default function Home() {
                       : {}
                   }
                 >
-                  {/* Mode dot */}
                   <div
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0 transition-transform duration-200"
                     style={{
@@ -413,14 +403,11 @@ export default function Home() {
                       transform: hoveredMode === mode.mode ? "scale(1.3)" : "scale(1)",
                     }}
                   />
-
-                  {/* Text */}
                   <div className="flex-1 min-w-0">
                     <div
                       className="text-sm font-medium transition-colors"
                       style={{
-                        color:
-                          hoveredMode === mode.mode ? mode.color : "rgb(226 232 240)",
+                        color: hoveredMode === mode.mode ? mode.color : "rgb(226 232 240)",
                       }}
                     >
                       {mode.name}
@@ -429,8 +416,6 @@ export default function Home() {
                       {mode.tagline}
                     </div>
                   </div>
-
-                  {/* Emoji — visible on hover */}
                   <motion.span
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{

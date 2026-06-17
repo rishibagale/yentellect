@@ -1,1 +1,1 @@
-Fix all URL references to use live Render backend + add SKILLS_REFERENCE.md  
+Fix home page redirect + session repeat dedup + auth routing  

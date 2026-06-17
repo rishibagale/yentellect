@@ -5,9 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ThinkingMode, sendTurn, getModeColor, getModeName } from "@/lib/api";
 import { MODE_PALETTES, ANIMATION } from "@/lib/tokens";
 
-/* ============================================================
-   TYPES
-   ============================================================ */
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -26,12 +23,8 @@ interface SessionChatProps {
   onEndSession: (summary: any) => void;
 }
 
-/* ============================================================
-   MESSAGE BUBBLE COMPONENT
-   ============================================================ */
 function MessageBubble({ msg, index }: { msg: Message; index: number }) {
   const isUser = msg.role === "user";
-  const palette = msg.mode ? MODE_PALETTES[msg.mode] : null;
 
   return (
     <motion.div
@@ -59,7 +52,6 @@ function MessageBubble({ msg, index }: { msg: Message; index: number }) {
           />
         )}
         <div className="p-3">
-          {/* Mode badge for AI messages */}
           {!isUser && msg.mode && (
             <div className="flex items-center gap-1.5 mb-1.5">
               <div
@@ -80,7 +72,6 @@ function MessageBubble({ msg, index }: { msg: Message; index: number }) {
             </div>
           )}
 
-          {/* Message content */}
           <div
             className={`whitespace-pre-wrap text-sm leading-relaxed break-words ${
               isUser ? "text-white/90" : "text-slate-100"
@@ -89,7 +80,6 @@ function MessageBubble({ msg, index }: { msg: Message; index: number }) {
             {msg.content}
           </div>
 
-          {/* Timestamp */}
           {msg.timestamp && (
             <div
               className={`text-[10px] mt-1 ${
@@ -108,9 +98,6 @@ function MessageBubble({ msg, index }: { msg: Message; index: number }) {
   );
 }
 
-/* ============================================================
-   SESSION CHAT MAIN COMPONENT
-   ============================================================ */
 export default function SessionChat({
   sessionId,
   userId,
@@ -140,12 +127,13 @@ export default function SessionChat({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const sendingRef = useRef(false); // Guard against duplicate sends
 
   // Auto-scroll on new messages
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 300;
     if (isNearBottom || sending) {
       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     }
@@ -160,19 +148,25 @@ export default function SessionChat({
   }, [input]);
 
   const sendMessage = async () => {
-    if (!input.trim() || sending) return;
+    if (!input.trim() || sending || sendingRef.current) return;
     const userMsg = input.trim();
     setInput("");
+    setError(null);
+
     if (/^(exit|done|bye|end|quit)$/i.test(userMsg)) {
       await handleEnd();
       return;
     }
+
+    sendingRef.current = true;
+    setSending(true);
+
+    // Add user message
     setMessages((prev) => [
       ...prev,
       { role: "user", content: userMsg, timestamp: Date.now() },
     ]);
-    setSending(true);
-    setError(null);
+
     try {
       const response = await sendTurn(sessionId, userMsg);
       setMessages((prev) => [
@@ -186,17 +180,10 @@ export default function SessionChat({
         },
       ]);
     } catch (err: any) {
-      setError(err?.message || "Failed to get response");
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "[Error: failed to get response. Please try again.]",
-          timestamp: Date.now(),
-        },
-      ]);
+      setError(err?.message || "Failed to get response. Please try again.");
     } finally {
       setSending(false);
+      sendingRef.current = false;
     }
   };
 
@@ -222,13 +209,10 @@ export default function SessionChat({
 
   return (
     <div className="flex flex-col h-full glass-card overflow-hidden">
-      {/* Chat header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 bg-black/10">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-medium text-slate-400">
-            Session active
-          </span>
+          <span className="text-xs font-medium text-slate-400">Session active</span>
         </div>
         <button
           onClick={handleEnd}
@@ -239,11 +223,7 @@ export default function SessionChat({
         </button>
       </div>
 
-      {/* Messages area */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 md:p-5 scrollbar-thin"
-      >
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-5 scrollbar-thin">
         {messages.length === 0 && (
           <div className="text-center text-slate-500 py-12 text-sm">
             Waiting for first message...
@@ -256,7 +236,6 @@ export default function SessionChat({
           ))}
         </AnimatePresence>
 
-        {/* Typing indicator */}
         {sending && (
           <motion.div
             initial={{ opacity: 0, y: 5 }}
@@ -265,7 +244,6 @@ export default function SessionChat({
           >
             <div className="glass-card" style={{ borderRadius: "16px 16px 16px 4px", padding: "12px 16px" }}>
               <div className="flex items-center gap-2">
-                {/* Animated brain pulse */}
                 <div className="relative w-6 h-6">
                   <motion.div
                     className="absolute inset-0 rounded-full bg-indigo-500/30"
@@ -285,7 +263,6 @@ export default function SessionChat({
         )}
       </div>
 
-      {/* Error banner */}
       <AnimatePresence>
         {error && (
           <motion.div
@@ -295,17 +272,13 @@ export default function SessionChat({
             className="mx-3 mb-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 p-2 rounded-lg flex items-center justify-between"
           >
             <span>{error}</span>
-            <button
-              onClick={() => setError(null)}
-              className="ml-2 text-red-400 hover:text-red-300"
-            >
+            <button onClick={() => setError(null)} className="ml-2 text-red-400 hover:text-red-300">
               ✕
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Input area */}
       <div className="border-t border-white/5 p-3 md:p-4 bg-black/20">
         <div className="flex gap-2">
           <div className="flex-1 relative">
