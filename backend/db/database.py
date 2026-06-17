@@ -29,9 +29,6 @@ class DatabaseManager:
     
     Provides context managers for sync and async access.
     Thread-safe via SQLite's WAL mode.
-    
-    In production (Render), set SUPABASE_DB_URL env var to use
-    SupabasePostgreSQL instead. Falls back to SQLite if not set.
     """
     
     def __init__(self, db_path: str = None):
@@ -41,29 +38,11 @@ class DatabaseManager:
         Args:
             db_path: Path to SQLite database file. Defaults to project root.
         """
-        # Auto-detect production database
-        supabase_url = os.getenv("SUPABASE_DB_URL", "")
-        if supabase_url:
-            # Production: use Supabase PostgreSQL via database_supabase.py
-            from .database_supabase import SupabaseDatabaseManager
-            self._impl = SupabaseDatabaseManager(db_url=supabase_url)
-            self._using_supabase = True
-        else:
-            # Local dev: use SQLite
-            import warnings
-            warnings.warn(
-                "SUPABASE_DB_URL not set. Using ephemeral SQLite. "
-                "Data will reset on every Render deploy. "
-                "See RENDER_ENV_SETUP.md for setup.",
-                RuntimeWarning
-            )
-            self.db_path = db_path or DEFAULT_DB_PATH
-            self._schema_path = os.path.join(
-                os.path.dirname(__file__),
-                "schema.sql"
-            )
-            self._using_supabase = False
-            self._impl = None
+        self.db_path = db_path or DEFAULT_DB_PATH
+        self._schema_path = os.path.join(
+            os.path.dirname(__file__),
+            "schema.sql"
+        )
         
     def get_connection(self) -> sqlite3.Connection:
         """
