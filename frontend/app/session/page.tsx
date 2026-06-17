@@ -31,14 +31,16 @@ function SessionContent() {
   const startInitiatedRef = useRef(false);
 
   useEffect(() => {
-    // Use Supabase auth user if available, fallback to sessionStorage for backward compat
     const finalUserId = user?.id || 
       searchParams.get("user_id") ||
-      (typeof window !== "undefined" ? sessionStorage.getItem("yentellect_user_id") : null) ||
-      `user-${Date.now()}`;
-    const storedOpening = typeof window !== "undefined" ? sessionStorage.getItem("yentellect_opening") || "" : "";
-    setUserId(finalUserId);
-    setOpening(storedOpening);
+      (typeof window !== "undefined" ? sessionStorage.getItem("yentellect_user_id") : null);
+    // Fresh session — do NOT reuse previous session's opening message
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("yentellect_opening");
+      sessionStorage.removeItem("yentellect_session_id");
+    }
+    setUserId(finalUserId || `user-${Date.now()}`);
+    setOpening("");
   }, [searchParams, user]);
 
   useEffect(() => {
@@ -124,7 +126,6 @@ function SessionContent() {
         </div>
       </main>
 
-      {/* Summary Modal — Premium */}
       {showSummary && summary && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <motion.div
@@ -133,7 +134,6 @@ function SessionContent() {
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className="bg-surface-raised border border-white/10 rounded-2xl shadow-2xl p-8 max-w-md w-full"
           >
-            {/* Success icon */}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -150,7 +150,6 @@ function SessionContent() {
               Here's how you performed
             </p>
 
-            {/* Stats */}
             <div className="space-y-3 mb-6">
               <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/[0.02] border border-white/5">
                 <span className="text-sm text-slate-400">Modes activated</span>
@@ -188,7 +187,6 @@ function SessionContent() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-2">
               <motion.button
                 onClick={() => router.push("/dashboard")}

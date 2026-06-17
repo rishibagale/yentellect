@@ -1,1 +1,1 @@
-Enable groq in requirements.txt for real LLM responses  
+Fix session reuse + redesign dashboard for scientist-native UX  
