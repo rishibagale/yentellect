@@ -1,1 +1,1 @@
-Add OAuth buttons to signup page too  
+Add dashboard, history, settings pages with AppShell and CognitiveFingerprint  

@@ -191,20 +191,20 @@ function SessionContent() {
             {/* Actions */}
             <div className="flex gap-2">
               <motion.button
-                onClick={() => router.push(`/profile?user_id=${encodeURIComponent(userId)}`)}
+                onClick={() => router.push("/dashboard")}
                 className="flex-1 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold text-sm hover:opacity-90 transition shadow-lg shadow-indigo-500/20"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                View profile
+                Go to dashboard
               </motion.button>
               <motion.button
-                onClick={() => router.push("/")}
+                onClick={() => router.push("/profile")}
                 className="flex-1 py-3 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition text-sm font-medium"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Done
+                View profile
               </motion.button>
             </div>
           </motion.div>

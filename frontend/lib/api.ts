@@ -122,6 +122,57 @@ export interface SessionMetrics {
   }>;
 }
 
+export interface ModeScore {
+  mode: ThinkingMode;
+  label: string;
+  score: number;
+  color: string;
+  sessions: number;
+}
+
+export interface CognitiveFingerprint {
+  user_id: string;
+  scores: ModeScore[];
+  dominant: ThinkingMode | null;
+  weakest: ThinkingMode | null;
+  improvement_rate: number;
+  total_sessions: number;
+  total_concepts: number;
+  total_connections: number;
+  domains: string[];
+}
+
+export interface SessionSummary {
+  session_id: string;
+  created_at: string;
+  mode_target: ThinkingMode;
+  modes_activated: string[];
+  overall_score: number;
+  concepts_added: number;
+  bridges_formed: number;
+  duration_minutes: number;
+  turn_count: number;
+}
+
+export interface DashboardData {
+  fingerprint: CognitiveFingerprint | null;
+  recent_sessions: SessionSummary[];
+  daily_suggestion: {
+    suggested_mode: ThinkingMode;
+    reason: string;
+  };
+  streak_days: number;
+  last_session_date: string | null;
+}
+
+export interface SessionHistoryResponse {
+  sessions: SessionSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  has_more: boolean;
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {
     headers: {
@@ -183,6 +234,24 @@ export async function getProfileMetrics(
 
 export async function getGraph(userId: string): Promise<D3GraphData> {
   return fetchJson<D3GraphData>(`/graph/${userId}`);
+}
+
+export async function getDashboard(userId: string): Promise<DashboardData> {
+  return fetchJson<DashboardData>(`/dashboard/${userId}`);
+}
+
+export async function getFingerprint(userId: string): Promise<CognitiveFingerprint> {
+  return fetchJson<CognitiveFingerprint>(`/dashboard/fingerprint/${userId}`);
+}
+
+export async function getSessionHistory(
+  userId: string,
+  page = 1,
+  limit = 20
+): Promise<SessionHistoryResponse> {
+  return fetchJson<SessionHistoryResponse>(
+    `/dashboard/history/${userId}?page=${page}&limit=${limit}`
+  );
 }
 
 export function getModeColor(mode: ThinkingMode): string {

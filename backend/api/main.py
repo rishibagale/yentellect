@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..db.database import init_db
-from .routes import sessions, profile, graph
+from .routes import sessions, profile, graph, dashboard
 
 
 @asynccontextmanager
@@ -61,6 +61,7 @@ app.add_middleware(
 app.include_router(sessions.router)
 app.include_router(profile.router)
 app.include_router(graph.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/")
