@@ -1,1 +1,1 @@
-Fix home page redirect + session repeat dedup + auth routing  
+Enable groq in requirements.txt for real LLM responses  
