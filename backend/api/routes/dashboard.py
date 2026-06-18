@@ -7,6 +7,14 @@ from ...db.database import DatabaseManager
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 db = DatabaseManager()
+_async_db = None
+
+
+def _get_async_db():
+    global _async_db
+    if getattr(db, "_using_supabase", False) and getattr(db, "_impl", None) is not None:
+        _async_db = db._impl
+    return _async_db
 
 MODE_COLORS = {
     "CONVERGENT": "#3B82F6",
@@ -36,8 +44,13 @@ async def get_dashboard(user_id: str):
                 "last_session_date": None,
             }
 
-        sessions = db.get_user_sessions(user_id, limit=50)
-        metrics = db.get_session_metrics(user_id, limit=20)
+        adb = _get_async_db()
+        if adb is not None:
+            sessions = await adb.get_user_sessions(user_id, limit=50)
+            metrics = await adb.get_session_metrics(user_id, limit=20)
+        else:
+            sessions = db.get_user_sessions(user_id, limit=50)
+            metrics = db.get_session_metrics(user_id, limit=20)
 
         # Build fingerprint from metrics
         all_scores = _compute_mode_scores(sessions, metrics)
@@ -78,13 +91,18 @@ async def get_fingerprint(user_id: str):
                 "domains": [],
             }
 
-        sessions = db.get_user_sessions(user_id, limit=50)
-        metrics = db.get_session_metrics(user_id, limit=20)
+        adb = _get_async_db()
+        if adb is not None:
+            sessions = await adb.get_user_sessions(user_id, limit=50)
+            metrics = await adb.get_session_metrics(user_id, limit=20)
+            concepts = await adb.get_user_concepts(user_id)
+            edges = await adb.get_user_edges(user_id)
+        else:
+            sessions = db.get_user_sessions(user_id, limit=50)
+            metrics = db.get_session_metrics(user_id, limit=20)
+            concepts = db.get_user_concepts(user_id)
+            edges = db.get_user_edges(user_id)
         all_scores = _compute_mode_scores(sessions, metrics)
-
-        # Get concepts for domain info
-        concepts = db.get_user_concepts(user_id)
-        edges = db.get_user_edges(user_id)
         domains = list(set(c["domain"] for c in concepts)) if concepts else []
 
         # Determine dominant/weakest
@@ -127,8 +145,13 @@ async def get_session_history(
 ):
     """Paginated session history."""
     try:
-        sessions = db.get_user_sessions(user_id, limit=limit * page)
-        metrics = db.get_session_metrics(user_id, limit=limit * page)
+        adb = _get_async_db()
+        if adb is not None:
+            sessions = await adb.get_user_sessions(user_id, limit=limit * page)
+            metrics = await adb.get_session_metrics(user_id, limit=limit * page)
+        else:
+            sessions = db.get_user_sessions(user_id, limit=limit * page)
+            metrics = db.get_session_metrics(user_id, limit=limit * page)
 
         # Build session list
         session_list = _build_recent_sessions(sessions, metrics)
