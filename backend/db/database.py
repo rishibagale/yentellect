@@ -59,6 +59,8 @@ class DatabaseManager:
         Returns:
             sqlite3.Connection with WAL mode and foreign keys enabled.
         """
+        if self._using_supabase:
+            raise RuntimeError("Supabase is enabled. Use the Supabase adapter instead of SQLite.")
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
@@ -91,6 +93,9 @@ class DatabaseManager:
         Runs schema.sql to create all tables and indexes.
         Safe to call multiple times (uses IF NOT EXISTS).
         """
+        if self._using_supabase and self._impl is not None:
+            self._impl.init_db()
+            return
         schema_path = self._schema_path
         if not os.path.exists(schema_path):
             raise FileNotFoundError(f"Schema file not found: {schema_path}")
@@ -111,6 +116,8 @@ class DatabaseManager:
         Returns:
             Dict with user data or None
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.get_user(user_id)
         with self.get_db() as conn:
             cursor = conn.execute(
                 "SELECT * FROM users WHERE user_id = ?",
@@ -130,6 +137,8 @@ class DatabaseManager:
         Returns:
             Dict with created user data
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.create_user(user_id, name)
         now = datetime.utcnow().isoformat()
         with self.get_db() as conn:
             conn.execute(
@@ -154,6 +163,8 @@ class DatabaseManager:
         Returns:
             Updated user dict or None
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.update_user_profile(user_id, **kwargs)
         allowed_fields = {"name", "dominant_mode", "weakest_mode", "session_count"}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         if not updates:
@@ -187,6 +198,8 @@ class DatabaseManager:
         Returns:
             Dict with created session data
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.create_session(session_id, user_id, mode_target)
         now = datetime.utcnow().isoformat()
         with self.get_db() as conn:
             conn.execute(
@@ -211,6 +224,8 @@ class DatabaseManager:
         Returns:
             Updated session dict or None
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.update_session(session_id, **kwargs)
         allowed_fields = {"turn_count", "status", "summary", "ended_at"}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         if not updates:
@@ -242,6 +257,8 @@ class DatabaseManager:
         Returns:
             List of session dicts
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.get_user_sessions(user_id, limit)
         with self.get_db() as conn:
             cursor = conn.execute(
                 """SELECT * FROM sessions WHERE user_id = ?
@@ -268,6 +285,8 @@ class DatabaseManager:
         Returns:
             Dict with created turn data
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.save_turn(turn_id, session_id, turn_number, user_input, response, predicted_mode, confidence)
         now = datetime.utcnow().isoformat()
         with self.get_db() as conn:
             conn.execute(
@@ -295,6 +314,8 @@ class DatabaseManager:
         Returns:
             Dict with created signal vector data
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.save_signal_vector(signal_id, turn_id, **signals)
         columns = ["signal_id", "turn_id"]
         values = [signal_id, turn_id]
         
@@ -334,6 +355,8 @@ class DatabaseManager:
         Returns:
             Dict with created concept node data
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.save_concept_node(concept_id, user_id, name, domain, thinking_mode_association)
         now = datetime.utcnow().isoformat()
         with self.get_db() as conn:
             conn.execute(
@@ -360,6 +383,8 @@ class DatabaseManager:
         Returns:
             Updated concept node dict or None
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.update_concept_node(concept_id, **kwargs)
         allowed_fields = {"confidence_score", "last_reinforced", "session_count",
                          "thinking_mode_association"}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
@@ -391,6 +416,8 @@ class DatabaseManager:
         Returns:
             List of concept node dicts
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.get_user_concepts(user_id)
         with self.get_db() as conn:
             cursor = conn.execute(
                 "SELECT * FROM concept_nodes WHERE user_id = ? ORDER BY name",
@@ -408,6 +435,8 @@ class DatabaseManager:
         Returns:
             List of edge dicts
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.get_user_edges(user_id)
         with self.get_db() as conn:
             cursor = conn.execute(
                 "SELECT * FROM graph_edges WHERE user_id = ?",
@@ -437,6 +466,8 @@ class DatabaseManager:
         Returns:
             Dict with created metrics
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.save_session_metrics(metric_id, session_id, modes_activated, concepts_added, bridges_formed, session_duration_seconds, mode_scores, overall_score)
         now = datetime.utcnow().isoformat()
         with self.get_db() as conn:
             conn.execute(
@@ -449,7 +480,7 @@ class DatabaseManager:
                  session_duration_seconds, json.dumps(mode_scores),
                  overall_score, now)
             )
-            cursor = conn.execute(
+           cursor = conn.execute(
                 "SELECT * FROM session_metrics WHERE metric_id = ?",
                 (metric_id,)
             )
@@ -466,6 +497,8 @@ class DatabaseManager:
         Returns:
             List of metrics dicts
         """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.get_session_metrics(user_id, limit)
         with self.get_db() as conn:
             cursor = conn.execute(
                 """SELECT sm.* FROM session_metrics sm
