@@ -36,13 +36,21 @@ class DatabaseManager:
         Initialize database manager.
         
         Args:
-            db_path: Path to SQLite database file. Defaults to project root.
+            db_path: Path to SQLite database file.
         """
         self.db_path = db_path or DEFAULT_DB_PATH
         self._schema_path = os.path.join(
             os.path.dirname(__file__),
             "schema.sql"
         )
+        supabase_url = os.getenv("SUPABASE_DB_URL", "")
+        if supabase_url:
+            from .database_supabase import SupabaseDatabaseManager
+            self._impl = SupabaseDatabaseManager(db_url=supabase_url)
+            self._using_supabase = True
+        else:
+            self._using_supabase = False
+            self._impl = None
         
     def get_connection(self) -> sqlite3.Connection:
         """
