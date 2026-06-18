@@ -480,7 +480,7 @@ class DatabaseManager:
                  session_duration_seconds, json.dumps(mode_scores),
                  overall_score, now)
             )
-           cursor = conn.execute(
+            cursor = conn.execute(
                 "SELECT * FROM session_metrics WHERE metric_id = ?",
                 (metric_id,)
             )
