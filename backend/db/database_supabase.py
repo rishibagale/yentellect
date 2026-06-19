@@ -15,7 +15,7 @@ from datetime import datetime
 import httpx
 
 
-_SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+_SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 _SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
 _HEADERS = {
@@ -29,7 +29,8 @@ _HEADERS = {
 def _base() -> str:
     if not _SUPABASE_URL:
         raise ValueError("SUPABASE_URL is required")
-    return _SUPABASE_URL.rstrip("/") + "/rest/v1"
+    base = _SUPABASE_URL.replace("/rest/v1", "").replace("/rest/v1/", "")
+    return base + "/rest/v1"
 
 
 def _headers(extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
@@ -65,8 +66,10 @@ class SupabaseDatabaseManager:
             rows = r.json()
             return rows[0] if rows else None
 
-    def create_user(self, user_id: str, name: str = "") -> Dict[str, Any]:
+    def create_user(self, user_id: str, name: str = "", *, provided_id: bool = False) -> Dict[str, Any]:
         now = datetime.utcnow().isoformat()
+        if not provided_id:
+            user_id = str(uuid.uuid4())
         payload = {"user_id": user_id, "name": name, "created_at": now, "updated_at": now}
         with httpx.Client() as client:
             r = client.post(
@@ -75,7 +78,6 @@ class SupabaseDatabaseManager:
                 json=payload,
             )
             r.raise_for_status()
-            # return the created row
             row = r.json()
             if isinstance(row, list) and row:
                 return row[0]
