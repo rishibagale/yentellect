@@ -45,6 +45,7 @@ class DatabaseManager:
         )
         supabase_url = os.getenv("SUPABASE_URL", "")
         service_key = os.getenv("SUPABASE_SERVICE_KEY", "")
+        # Prefer new REST env vars; ignore old SUPABASE_DB_URL to avoid conflicts.
         if supabase_url and service_key:
             from .database_supabase import SupabaseDatabaseManager
             self._impl = SupabaseDatabaseManager(db_url="")
