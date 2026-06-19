@@ -22,9 +22,21 @@ class SupabaseDatabaseManager:
         self.db_url = db_url or os.getenv("SUPABASE_DB_URL", "")
         if not self.db_url:
             raise ValueError("SUPABASE_DB_URL is required for SupabaseDatabaseManager")
+        if "db@" in self.db_url or self.db_url.count("@") != 1:
+            raise ValueError(
+                "Malformed SUPABASE_DB_URL. It must look like: "
+                "postgresql://postgres:<password>@<host>:5432/postgres. "
+                f"Got: {self.db_url}"
+            )
 
     def get_connection(self):
-        return psycopg2.connect(self.db_url)
+        try:
+            return psycopg2.connect(self.db_url)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to connect to Supabase with SUPABASE_DB_URL={self.db_url!r}. "
+                f"Error: {e}"
+            ) from e
 
     def init_db(self) -> None:
         schema_path = os.path.join(
