@@ -197,10 +197,7 @@ class SessionManager:
         }
         
         # Persist started_at to DB so end_session can compute duration reliably
-        try:
-            self.db.update_session(session_id, started_at=started_at)
-        except Exception:
-            pass
+        self.db.update_session(session_id, started_at=started_at, turn_count=session_data.get("turn_count", 1))
         self._sessions[session_id] = session_data
         
         # Get prompt for selected mode
@@ -249,7 +246,14 @@ class SessionManager:
         """
         session = self._sessions.get(session_id)
         if not session:
-            raise ValueError(f"Session not found: {session_id}")
+            # Fallback: load session from DB so Render restarts dont break ended sessions
+            user_sessions = self.db.get_user_sessions(user_id, limit=100)
+            for s in user_sessions:
+                if s.get("session_id") == session_id:
+                    session = s
+                    break
+            if not session:
+                raise ValueError(f"Session not found: {session_id}")
         
         if session.get("status") != "active":
             raise ValueError(f"Session {session_id} is not active")
@@ -313,7 +317,14 @@ class SessionManager:
         """
         session = self._sessions.get(session_id)
         if not session:
-            raise ValueError(f"Session not found: {session_id}")
+            # Fallback: load session from DB so Render restarts dont break ended sessions
+            user_sessions = self.db.get_user_sessions(user_id, limit=100)
+            for s in user_sessions:
+                if s.get("session_id") == session_id:
+                    session = s
+                    break
+            if not session:
+                raise ValueError(f"Session not found: {session_id}")
         
         user_id = session["user_id"]
         mode_target = session["mode_target"]
