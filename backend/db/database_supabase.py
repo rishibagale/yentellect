@@ -165,7 +165,7 @@ class SupabaseDatabaseManager:
                 params={"user_id": f"eq.{user_id}", "order": "created_at.desc", "limit": str(limit)},
             )
             self._check_response(r, "get_user_sessions")
-            return r.json() or []
+            return self._json_or_none(r) or []
 
     def save_turn(self, turn_id: str, session_id: str, turn_number: int,
                   user_input: str, response: str, predicted_mode: str,
@@ -256,7 +256,7 @@ class SupabaseDatabaseManager:
                 params={"user_id": f"eq.{user_id}", "order": "name"},
             )
             self._check_response(r, "get_user_concepts")
-            return r.json() or []
+            return self._json_or_none(r) or []
 
     def get_user_edges(self, user_id: str) -> List[Dict[str, Any]]:
         with httpx.Client() as client:
@@ -266,7 +266,7 @@ class SupabaseDatabaseManager:
                 params={"user_id": f"eq.{user_id}"},
             )
             self._check_response(r, "get_user_edges")
-            return r.json() or []
+            return self._json_or_none(r) or []
 
     def save_session_metrics(self, metric_id: str, session_id: str,
                              modes_activated: List[str],
@@ -288,7 +288,7 @@ class SupabaseDatabaseManager:
                 json=payload,
             )
             self._check_response(r, "save_session_metrics")
-            row = r.json()
+            row = self._json_or_none(r)
             return row[0] if isinstance(row, list) and row else payload
 
     def get_session_metrics(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
@@ -306,7 +306,7 @@ class SupabaseDatabaseManager:
                 if "relation" in msg and "does not exist" in msg:
                     return []
                 raise
-            sessions = s_r.json() or []
+            sessions = self._json_or_none(s_r) or []
             session_ids = [s["session_id"] for s in sessions if s.get("session_id")]
             if not session_ids:
                 return []
