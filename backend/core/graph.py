@@ -57,12 +57,16 @@ class KnowledgeGraph:
         """Load existing nodes and edges from database."""
         rows = self.db.get_user_concepts(self.user_id)
         for row in rows:
+            try:
+                last_reinforced = datetime.fromisoformat(row["last_reinforced"])
+            except Exception:
+                last_reinforced = datetime.utcnow()
             node = ConceptNode(
                 id=uuid.UUID(row["concept_id"]),
                 name=row["name"],
                 domain=row["domain"],
                 confidence_score=row["confidence_score"],
-                last_reinforced=datetime.fromisoformat(row["last_reinforced"]),
+                last_reinforced=last_reinforced,
                 session_count=row["session_count"],
                 thinking_mode_association=ThinkingMode(row["thinking_mode_association"])
             )
@@ -70,12 +74,16 @@ class KnowledgeGraph:
         
         edge_rows = self.db.get_user_edges(self.user_id)
         for row in edge_rows:
+            try:
+                last_activated = datetime.fromisoformat(row["last_activated"])
+            except Exception:
+                last_activated = datetime.utcnow()
             edge = GraphEdge(
                 source_id=uuid.UUID(row["source_id"]),
                 target_id=uuid.UUID(row["target_id"]),
                 weight=row["weight"],
                 connection_count=row["connection_count"],
-                last_activated=datetime.fromisoformat(row["last_activated"])
+                last_activated=last_activated
             )
             key = (row["source_id"], row["target_id"])
             self._edges[key] = edge
@@ -404,6 +412,14 @@ class KnowledgeGraph:
             dominant = ThinkingMode(dominant_str)
             weakest = ThinkingMode(weakest_str)
         
+        try:
+            created_at = datetime.fromisoformat(user_data["created_at"])
+        except Exception:
+            created_at = datetime.utcnow()
+        try:
+            updated_at = datetime.fromisoformat(user_data["updated_at"])
+        except Exception:
+            updated_at = datetime.utcnow()
         profile = CognitiveProfile(
             user_id=self.user_id,
             name=user_data.get("name", ""),
@@ -416,8 +432,8 @@ class KnowledgeGraph:
                 ThinkingMode(wk) if (wk := user_data.get("weakest_mode")) else None
             ),
             session_count=user_data.get("session_count", 0),
-            created_at=datetime.fromisoformat(user_data["created_at"]),
-            updated_at=datetime.fromisoformat(user_data["updated_at"])
+            created_at=created_at,
+            updated_at=updated_at
         )
         
         return profile
