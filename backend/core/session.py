@@ -317,14 +317,7 @@ class SessionManager:
         """
         session = self._sessions.get(session_id)
         if not session:
-            # Fallback: load session from DB so Render restarts dont break ended sessions
-            user_sessions = self.db.get_user_sessions(user_id, limit=100)
-            for s in user_sessions:
-                if s.get("session_id") == session_id:
-                    session = s
-                    break
-            if not session:
-                raise ValueError(f"Session not found: {session_id}")
+            raise ValueError(f"Session not found: {session_id}")
         
         user_id = session["user_id"]
         mode_target = session["mode_target"]
@@ -361,10 +354,11 @@ class SessionManager:
         
         # Calculate session duration
         duration = 0
-        started_at = session.get("started_at")
-        if started_at:
+        # Try started_at first, then fall back to created_at
+        ts = session.get("started_at") or session.get("created_at")
+        if ts:
             try:
-                start = datetime.fromisoformat(started_at)
+                start = datetime.fromisoformat(ts)
                 duration = int((end_time - start).total_seconds())
             except Exception:
                 duration = 0
