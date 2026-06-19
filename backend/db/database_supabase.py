@@ -49,6 +49,10 @@ class SupabaseDatabaseManager:
     # init_db cannot run SQL via REST; user should run backend/db/schema_supabase.sql once.
     def init_db(self) -> None:
         print("Supabase REST adapter: schema must be initialized via Supabase SQL Editor using backend/db/schema_supabase.sql")
+        print("To initialize:")
+        print("1. Open Supabase Dashboard -> SQL Editor")
+        print("2. Paste contents of backend/db/schema_supabase.sql")
+        print("3. Run it once to create tables")
 
     def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
         with httpx.Client() as client:
