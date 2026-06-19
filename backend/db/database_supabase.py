@@ -55,6 +55,15 @@ class SupabaseDatabaseManager:
         print("2. Paste contents of backend/db/schema_supabase.sql")
         print("3. Run it once to create tables")
 
+    def _json_or_none(self, r: httpx.Response):
+        try:
+            text = r.text
+            if not text.strip():
+                return None
+            return r.json()
+        except Exception:
+            return None
+
     def _check_response(self, r: httpx.Response, context: str) -> None:
         if r.is_success:
             return
@@ -72,8 +81,10 @@ class SupabaseDatabaseManager:
                 params={"user_id": f"eq.{user_id}", "select": "*"},
             )
             self._check_response(r, "get_user")
-            rows = r.json()
-            return rows[0] if rows else None
+            rows = self._json_or_none(r)
+            if isinstance(rows, list):
+                return rows[0] if rows else None
+            return None
 
     def create_user(self, user_id: str, name: str = "", *, provided_id: bool = False) -> Dict[str, Any]:
         now = datetime.utcnow().isoformat()
@@ -87,7 +98,7 @@ class SupabaseDatabaseManager:
                 json=payload,
             )
             self._check_response(r, "create_user")
-            row = r.json()
+            row = self._json_or_none(r)
             if isinstance(row, list) and row:
                 return row[0]
             return payload
@@ -106,8 +117,10 @@ class SupabaseDatabaseManager:
                 json=updates,
             )
             self._check_response(r, "update_user_profile")
-            rows = r.json()
-            return rows[0] if rows else None
+            rows = self._json_or_none(r)
+            if isinstance(rows, list):
+                return rows[0] if rows else None
+            return None
 
     def create_session(self, session_id: str, user_id: str, mode_target: str) -> Dict[str, Any]:
         now = datetime.utcnow().isoformat()
@@ -119,8 +132,10 @@ class SupabaseDatabaseManager:
                 json=payload,
             )
             self._check_response(r, "create_session")
-            row = r.json()
-            return row[0] if isinstance(row, list) and row else payload
+            row = self._json_or_none(r)
+            if isinstance(row, list) and row:
+                return row[0]
+            return payload
 
     def update_session(self, session_id: str, **kwargs) -> Optional[Dict[str, Any]]:
         allowed_fields = {"turn_count", "status", "summary", "ended_at", "started_at"}
@@ -137,8 +152,10 @@ class SupabaseDatabaseManager:
                 json=updates,
             )
             self._check_response(r, "update_session")
-            rows = r.json()
-            return rows[0] if rows else None
+            rows = self._json_or_none(r)
+            if isinstance(rows, list):
+                return rows[0] if rows else None
+            return None
 
     def get_user_sessions(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         with httpx.Client() as client:
@@ -166,8 +183,10 @@ class SupabaseDatabaseManager:
                 json=payload,
             )
             self._check_response(r, "save_turn")
-            row = r.json()
-            return row[0] if isinstance(row, list) and row else payload
+            row = self._json_or_none(r)
+            if isinstance(row, list) and row:
+                return row[0]
+            return payload
 
     def save_signal_vector(self, signal_id: str, turn_id: str, **signals) -> Dict[str, Any]:
         allowed = {"type_token_ratio", "question_density", "hedge_word_rate",
@@ -184,8 +203,10 @@ class SupabaseDatabaseManager:
                 json=payload,
             )
             self._check_response(r, "save_signal_vector")
-            row = r.json()
-            return row[0] if isinstance(row, list) and row else payload
+            row = self._json_or_none(r)
+            if isinstance(row, list) and row:
+                return row[0]
+            return payload
 
     def save_concept_node(self, concept_id: str, user_id: str, name: str,
                           domain: str, thinking_mode_association: str) -> Dict[str, Any]:
@@ -202,8 +223,10 @@ class SupabaseDatabaseManager:
                 json=payload,
             )
             self._check_response(r, "save_concept_node")
-            row = r.json()
-            return row[0] if isinstance(row, list) and row else payload
+            row = self._json_or_none(r)
+            if isinstance(row, list) and row:
+                return row[0]
+            return payload
 
     def update_concept_node(self, concept_id: str, **kwargs) -> Optional[Dict[str, Any]]:
         allowed = {"confidence_score", "last_reinforced", "session_count", "thinking_mode_association"}
@@ -220,8 +243,10 @@ class SupabaseDatabaseManager:
                 json=updates,
             )
             self._check_response(r, "update_concept_node")
-            rows = r.json()
-            return rows[0] if rows else None
+            rows = self._json_or_none(r)
+            if isinstance(rows, list):
+                return rows[0] if rows else None
+            return None
 
     def get_user_concepts(self, user_id: str) -> List[Dict[str, Any]]:
         with httpx.Client() as client:
@@ -292,5 +317,7 @@ class SupabaseDatabaseManager:
                 params={"session_id": in_clause, "order": "created_at.desc"},
             )
             self._check_response(r, "get_session_metrics")
-            data = r.json() or []
-            return data[:limit]
+            data = self._json_or_none(r)
+            if isinstance(data, list):
+                return data[:limit]
+            return []
