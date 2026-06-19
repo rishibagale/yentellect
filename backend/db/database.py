@@ -522,5 +522,4 @@ def get_db() -> DatabaseManager:
 
 
 def init_db() -> None:
-    """Initialize the database schema using the global manager."""
     db.init_db()
