@@ -43,10 +43,11 @@ class DatabaseManager:
             os.path.dirname(__file__),
             "schema.sql"
         )
-        supabase_url = os.getenv("SUPABASE_DB_URL", "")
-        if supabase_url:
+        supabase_url = os.getenv("SUPABASE_URL", "")
+        service_key = os.getenv("SUPABASE_SERVICE_KEY", "")
+        if supabase_url and service_key:
             from .database_supabase import SupabaseDatabaseManager
-            self._impl = SupabaseDatabaseManager(db_url=supabase_url)
+            self._impl = SupabaseDatabaseManager(db_url="")
             self._using_supabase = True
         else:
             self._using_supabase = False
