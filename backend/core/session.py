@@ -246,14 +246,7 @@ class SessionManager:
         """
         session = self._sessions.get(session_id)
         if not session:
-            # Fallback: load session from DB so Render restarts dont break ended sessions
-            user_sessions = self.db.get_user_sessions(user_id, limit=100)
-            for s in user_sessions:
-                if s.get("session_id") == session_id:
-                    session = s
-                    break
-            if not session:
-                raise ValueError(f"Session not found: {session_id}")
+            raise ValueError(f"Session not found: {session_id}")
         
         if session.get("status") != "active":
             raise ValueError(f"Session {session_id} is not active")
@@ -380,7 +373,7 @@ class SessionManager:
         )
         
         # Clean up session cache
-        del self._sessions[session_id]
+        self._sessions.pop(session_id, None)
         
         return {
             "session_id": session_id,

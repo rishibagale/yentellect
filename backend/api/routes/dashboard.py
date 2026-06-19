@@ -222,26 +222,28 @@ def _build_recent_sessions(sessions: list, metrics: list) -> list:
     result = []
     for s in sessions[:20]:  # Last 20
         m = metric_map.get(s["session_id"])
-        if not m:
-            continue
 
         import json
-        modes_raw = m.get("modes_activated", "[]")
-        if isinstance(modes_raw, str):
-            try:
-                modes_raw = json.loads(modes_raw)
-            except (json.JSONDecodeError, TypeError):
-                modes_raw = []
+        if m:
+            modes_raw = m.get("modes_activated", "[]")
+            if isinstance(modes_raw, str):
+                try:
+                    modes_raw = json.loads(modes_raw)
+                except (json.JSONDecodeError, TypeError):
+                    modes_raw = []
+            modes_activated = modes_raw if isinstance(modes_raw, list) else []
+        else:
+            modes_activated = []
 
         result.append({
             "session_id": s["session_id"],
             "created_at": s.get("created_at", ""),
             "mode_target": s.get("mode_target", ""),
-            "modes_activated": modes_raw if isinstance(modes_raw, list) else [],
-            "overall_score": m.get("overall_score", 0) or 0,
-            "concepts_added": m.get("concepts_added", 0) or 0,
-            "bridges_formed": m.get("bridges_formed", 0) or 0,
-            "duration_minutes": (m.get("session_duration_seconds", 0) or 0) // 60,
+            "modes_activated": modes_activated,
+            "overall_score": (m.get("overall_score", 0) or 0) if m else 0,
+            "concepts_added": (m.get("concepts_added", 0) or 0) if m else 0,
+            "bridges_formed": (m.get("bridges_formed", 0) or 0) if m else 0,
+            "duration_minutes": ((m.get("session_duration_seconds", 0) or 0) // 60) if m else 0,
             "turn_count": s.get("turn_count", 0),
         })
 
