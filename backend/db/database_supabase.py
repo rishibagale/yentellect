@@ -259,14 +259,24 @@ class SupabaseDatabaseManager:
 
     def get_session_metrics(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         with httpx.Client() as client:
+            # session_metrics does not have user_id; resolve via sessions first.
+            s_r = client.get(
+                f"{_base()}/sessions",
+                headers=_headers(),
+                params={"user_id": f"eq.{user_id}", "order": "created_at.desc", "limit": str(limit), "select": "session_id"},
+            )
+            s_r.raise_for_status()
+            sessions = s_r.json() or []
+            session_ids = [s["session_id"] for s in sessions if s.get("session_id")]
+            if not session_ids:
+                return []
+            in_clause = "in.(" + ",".join(session_ids) + ")"
             r = client.get(
                 f"{_base()}/session_metrics",
                 headers=_headers(),
-                params={
-                    "user_id": f"eq.{user_id}",
-                    "order": "created_at.desc",
-                    "limit": str(limit),
-                },
+                params={"session_id": in_clause, "order": "created_at.desc"},
             )
             r.raise_for_status()
-            return r.json() or []
+            data = r.json() or []
+            # Respect limit defensively
+            return data[:limit]
