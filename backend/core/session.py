@@ -197,7 +197,7 @@ class SessionManager:
         }
         
         # Persist started_at to DB so end_session can compute duration reliably
-        self.db.update_session(session_id, started_at=started_at, turn_count=session_data.get("turn_count", 1))
+        self.db.update_session(session_id, turn_count=session_data.get("turn_count", 1))
         self._sessions[session_id] = session_data
         
         # Get prompt for selected mode
