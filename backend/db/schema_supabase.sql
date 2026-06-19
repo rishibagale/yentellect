@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     turn_count INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'active',       -- 'active', 'completed', 'abandoned'
     summary JSONB,                               -- JSON summary from state machine
+    started_at TIMESTAMPTZ,                      -- When the session began
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     ended_at TIMESTAMPTZ
 );
