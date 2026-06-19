@@ -55,6 +55,15 @@ class SupabaseDatabaseManager:
         print("2. Paste contents of backend/db/schema_supabase.sql")
         print("3. Run it once to create tables")
 
+    def _check_response(self, r: httpx.Response, context: str) -> None:
+        if r.is_success:
+            return
+        try:
+            body = r.text
+        except Exception:
+            body = ""
+        raise RuntimeError(f"{context} failed: {r.status_code} {r.reason_phrase} for {r.url}. Body: {body}")
+
     def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
         with httpx.Client() as client:
             r = client.get(
@@ -62,7 +71,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 params={"user_id": f"eq.{user_id}", "select": "*"},
             )
-            r.raise_for_status()
+            self._check_response(r, "get_user")
             rows = r.json()
             return rows[0] if rows else None
 
@@ -77,7 +86,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 json=payload,
             )
-            r.raise_for_status()
+            self._check_response(r, "create_user")
             row = r.json()
             if isinstance(row, list) and row:
                 return row[0]
@@ -96,7 +105,7 @@ class SupabaseDatabaseManager:
                 params={"user_id": f"eq.{user_id}"},
                 json=updates,
             )
-            r.raise_for_status()
+            self._check_response(r, "update_user_profile")
             rows = r.json()
             return rows[0] if rows else None
 
@@ -109,7 +118,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 json=payload,
             )
-            r.raise_for_status()
+            self._check_response(r, "create_session")
             row = r.json()
             return row[0] if isinstance(row, list) and row else payload
 
@@ -127,7 +136,7 @@ class SupabaseDatabaseManager:
                 params={"session_id": f"eq.{session_id}"},
                 json=updates,
             )
-            r.raise_for_status()
+            self._check_response(r, "update_session")
             rows = r.json()
             return rows[0] if rows else None
 
@@ -138,7 +147,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 params={"user_id": f"eq.{user_id}", "order": "created_at.desc", "limit": str(limit)},
             )
-            r.raise_for_status()
+            self._check_response(r, "get_user_sessions")
             return r.json() or []
 
     def save_turn(self, turn_id: str, session_id: str, turn_number: int,
@@ -156,7 +165,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 json=payload,
             )
-            r.raise_for_status()
+            self._check_response(r, "save_turn")
             row = r.json()
             return row[0] if isinstance(row, list) and row else payload
 
@@ -174,7 +183,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 json=payload,
             )
-            r.raise_for_status()
+            self._check_response(r, "save_signal_vector")
             row = r.json()
             return row[0] if isinstance(row, list) and row else payload
 
@@ -192,7 +201,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 json=payload,
             )
-            r.raise_for_status()
+            self._check_response(r, "save_concept_node")
             row = r.json()
             return row[0] if isinstance(row, list) and row else payload
 
@@ -210,7 +219,7 @@ class SupabaseDatabaseManager:
                 params={"concept_id": f"eq.{concept_id}"},
                 json=updates,
             )
-            r.raise_for_status()
+            self._check_response(r, "update_concept_node")
             rows = r.json()
             return rows[0] if rows else None
 
@@ -221,7 +230,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 params={"user_id": f"eq.{user_id}", "order": "name"},
             )
-            r.raise_for_status()
+            self._check_response(r, "get_user_concepts")
             return r.json() or []
 
     def get_user_edges(self, user_id: str) -> List[Dict[str, Any]]:
@@ -231,7 +240,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 params={"user_id": f"eq.{user_id}"},
             )
-            r.raise_for_status()
+            self._check_response(r, "get_user_edges")
             return r.json() or []
 
     def save_session_metrics(self, metric_id: str, session_id: str,
@@ -253,7 +262,7 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 json=payload,
             )
-            r.raise_for_status()
+            self._check_response(r, "save_session_metrics")
             row = r.json()
             return row[0] if isinstance(row, list) and row else payload
 
@@ -265,7 +274,13 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 params={"user_id": f"eq.{user_id}", "order": "created_at.desc", "limit": str(limit), "select": "session_id"},
             )
-            s_r.raise_for_status()
+            try:
+                self._check_response(s_r, "get_session_metrics(sessions)")
+            except RuntimeError as e:
+                msg = str(e)
+                if "relation" in msg and "does not exist" in msg:
+                    return []
+                raise
             sessions = s_r.json() or []
             session_ids = [s["session_id"] for s in sessions if s.get("session_id")]
             if not session_ids:
@@ -276,7 +291,6 @@ class SupabaseDatabaseManager:
                 headers=_headers(),
                 params={"session_id": in_clause, "order": "created_at.desc"},
             )
-            r.raise_for_status()
+            self._check_response(r, "get_session_metrics")
             data = r.json() or []
-            # Respect limit defensively
             return data[:limit]
