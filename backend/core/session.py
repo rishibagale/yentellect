@@ -184,6 +184,7 @@ class SessionManager:
         self.db.create_session(session_id, user_id, mode_target.value)
         
         # Initialize session state
+        started_at = datetime.utcnow().isoformat()
         session_data = {
             "session_id": session_id,
             "user_id": user_id,
@@ -192,8 +193,14 @@ class SessionManager:
             "signal_history": [signal_vector],
             "graph_updates_pending": [],
             "status": "active",
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": started_at,
         }
+        
+        # Persist started_at to DB so end_session can compute duration reliably
+        try:
+            self.db.update_session(session_id, started_at=started_at)
+        except Exception:
+            pass
         self._sessions[session_id] = session_data
         
         # Get prompt for selected mode
@@ -343,9 +350,13 @@ class SessionManager:
         
         # Calculate session duration
         duration = 0
-        if "started_at" in session:
-            start = datetime.fromisoformat(session["started_at"])
-            duration = int((end_time - start).total_seconds())
+        started_at = session.get("started_at")
+        if started_at:
+            try:
+                start = datetime.fromisoformat(started_at)
+                duration = int((end_time - start).total_seconds())
+            except Exception:
+                duration = 0
         
         # Save session metrics
         metric_id = str(uuid.uuid4())
