@@ -82,7 +82,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-4">
-                  {fp && fp.scores.length > 0 && (
+                  {(fp && fp.scores && fp.scores.length>0) ? (
                     <>
                       <div className="px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10">
                         <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Streak</div>
