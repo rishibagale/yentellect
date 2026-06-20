@@ -361,12 +361,29 @@ class SessionManager:
         modes_activated = [mode.value for mode in distribution.keys() 
                           if distribution[mode] > 0.1]
         overall_score = sum(mode_scores.values()) / len(mode_scores) if mode_scores else 0.5
+
+        concepts_added = 0
+        bridges_formed = 0
+        # Minimal fallback: create one concept so the knowledge graph has content
+        try:
+            concept_id = str(uuid.uuid4())
+            concept_name = f"Session {session_id[:8]} ({mode_target.value})"
+            self.db.save_concept_node(
+                concept_id=concept_id,
+                user_id=user_id,
+                name=concept_name,
+                domain="general",
+                thinking_mode_association=mode_target.value,
+            )
+            concepts_added = 1
+        except Exception:
+            pass
         
         self.db.save_session_metrics(
             metric_id, session_id,
             modes_activated=modes_activated,
-            concepts_added=0,  # Would come from EXTRACT_UPDATES
-            bridges_formed=0,   # Would come from EXTRACT_UPDATES
+            concepts_added=concepts_added,
+            bridges_formed=bridges_formed,
             session_duration_seconds=duration,
             mode_scores=mode_scores,
             overall_score=overall_score
