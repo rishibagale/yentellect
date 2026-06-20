@@ -92,14 +92,14 @@ export default function DashboardPage() {
                       </div>
                       <div className="px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10">
                         <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Dominant</div>
-                        <div className="text-xl font-bold font-mono" style={{ color: getModeColor(fp.dominant as ThinkingMode) }}>
-                          {getModeName(fp.dominant as ThinkingMode)}
+                        <div className="text-xl font-bold font-mono" style={{ color: getModeColor((fp.dominant || "CONVERGENT") as ThinkingMode) }}>
+                          {getModeName((fp.dominant || "CONVERGENT") as ThinkingMode)}
                         </div>
                       </div>
                       <div className="px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10">
                         <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Score</div>
                         <div className="text-xl font-bold font-mono text-emerald-400">
-                          {Math.round(fp.scores.reduce((a, b) => a + b.score, 0) / fp.scores.length)}%
+                          {fp.scores.length > 0 ? Math.round(fp.scores.reduce((a, b) => a + b.score, 0) / fp.scores.length) + '%' : '—'}
                         </div>
                       </div>
                     </>
