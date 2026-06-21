@@ -58,7 +58,7 @@ class KnowledgeGraph:
         rows = self.db.get_user_concepts(self.user_id)
         for row in rows:
             try:
-                last_reinforced = datetime.fromisoformat(row["last_reinforced"])
+                last_reinforced = datetime.fromisoformat(row["last_reinforced"]).replace(tzinfo=None)
             except Exception:
                 last_reinforced = datetime.utcnow()
             node = ConceptNode(
@@ -75,7 +75,7 @@ class KnowledgeGraph:
         edge_rows = self.db.get_user_edges(self.user_id)
         for row in edge_rows:
             try:
-                last_activated = datetime.fromisoformat(row["last_activated"])
+                last_activated = datetime.fromisoformat(row["last_activated"]).replace(tzinfo=None)
             except Exception:
                 last_activated = datetime.utcnow()
             edge = GraphEdge(
