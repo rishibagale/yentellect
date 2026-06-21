@@ -140,9 +140,9 @@ export default function DashboardPage() {
                           Score
                         </div>
                         <div className="text-xl font-bold font-mono text-emerald-400">
-                          {fp.scores.length > 0
+                          {fp.scores?.length > 0
                             ? `${Math.round(
-                                fp.scores.reduce((a, b) => a + b.score, 0) /
+                                (fp.scores||[]).reduce((a, b) => a + b.score, 0) /
                                   fp.scores.length
                               )}%`
                             : "—"}
