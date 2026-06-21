@@ -18,7 +18,7 @@ interface CognitiveFingerprintProps {
 }
 
 export default function CognitiveFingerprint({ scores, size = 400 }: CognitiveFingerprintProps) {
-  if (!scores.length) {
+  if (!scores || !scores.length) {
     return (
       <div className="flex items-center justify-center h-64 text-sm text-slate-500">
         No data yet. Start a session to see your fingerprint.

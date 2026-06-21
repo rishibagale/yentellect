@@ -99,7 +99,7 @@ export default function DashboardPage() {
                   </h1>
                   <p className="text-sm text-slate-400 mt-2 max-w-lg">
                     {hasData
-                      ? `${fp.total_sessions} sessions recorded across ${fp.domains.length} domains`
+                      ? `${fp.total_sessions} sessions recorded across ${(fp.domains||[]).length} domains`
                       : "Begin training to visualize your thinking profile."}
                   </p>
                 </div>
@@ -143,7 +143,7 @@ export default function DashboardPage() {
                           {fp.scores?.length > 0
                             ? `${Math.round(
                                 (fp.scores||[]).reduce((a, b) => a + b.score, 0) /
-                                  fp.scores.length
+                                  (fp.scores||[]).length
                               )}%`
                             : "—"}
                         </div>
