@@ -488,6 +488,18 @@ class DatabaseManager:
             )
             return dict(cursor.fetchone())
     
+    def get_session_turns(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get turns for session history (proxied to impl)."""
+        if self._using_supabase and self._impl is not None:
+            return self._impl.get_session_turns(session_id, limit)
+        with self.get_db() as conn:
+            cursor = conn.execute(
+                "SELECT user_input, response FROM turns WHERE session_id = ? ORDER BY turn_number ASC LIMIT ?",
+                (session_id, limit)
+            )
+            rows = cursor.fetchall()
+            return [dict(r) for r in rows]
+
     def get_session_metrics(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         """
         Get session metrics for a user.

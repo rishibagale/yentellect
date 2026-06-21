@@ -291,6 +291,21 @@ class SupabaseDatabaseManager:
             row = self._json_or_none(r)
             return row[0] if isinstance(row, list) and row else payload
 
+    def get_session_turns(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get recent turns for a session to build conversation history."""
+        with httpx.Client() as client:
+            r = client.get(
+                f"{_base()}/turns",
+                headers=_headers(),
+                params={"session_id": f"eq.{session_id}", "order": "turn_number.asc", "limit": str(limit)},
+            )
+            self._check_response(r, "get_session_turns")
+            rows = self._json_or_none(r) or []
+            return [
+                {"user_input": row.get("user_input", ""), "response": row.get("response", "")}
+                for row in rows
+            ]
+
     def get_session_metrics(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         with httpx.Client() as client:
             # session_metrics does not have user_id; resolve via sessions first.

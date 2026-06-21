@@ -272,9 +272,11 @@ class SessionManager:
         # Build message history
         messages = [{"role": "system", "content": full_prompt}]
         
-        # Add recent conversation history (last 4 turns max)
-        recent_turns = self.db.get_user_sessions(user_id, limit=1)
-        # In a real implementation, we'd load turn history here
+        # Load conversation history (last 6 turns)
+        history_turns = self.db.get_session_turns(session_id, limit=6)
+        for ht in history_turns:
+            messages.append({"role": "user", "content": ht["user_input"]})
+            messages.append({"role": "assistant", "content": ht["response"]})
         
         messages.append({"role": "user", "content": user_input})
         
@@ -360,6 +362,8 @@ class SessionManager:
         metric_id = str(uuid.uuid4())
         modes_activated = [mode.value for mode in distribution.keys() 
                           if distribution[mode] > 0.1]
+        if not mode_scores:
+            mode_scores = {m: 0.5 for m in ["CONVERGENT","DIVERGENT","ANALOGICAL","METACOGNITIVE","SYSTEMS","DMN"]}
         overall_score = sum(mode_scores.values()) / len(mode_scores) if mode_scores else 0.5
 
         concepts_added = 0
