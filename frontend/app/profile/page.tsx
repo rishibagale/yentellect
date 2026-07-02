@@ -16,9 +16,31 @@ import { MODE_PALETTES, ANIMATION } from "@/lib/tokens";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
 import ProgressChart from "@/components/ProgressChart";
 import Header from "@/components/Header";
-import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import { useSupabase } from "@/utils/supabase/provider";
+
+function ProfileSkeleton() {
+  return (
+    <div className="min-h-screen flex flex-col bg-[#0a0a0b] text-slate-100">
+      <Header />
+      <main className="flex-1 px-4 md:px-6 py-6 max-w-7xl w-full mx-auto">
+        <div className="animate-pulse">
+          <div className="w-64 h-8 bg-white/5 rounded mb-2" />
+          <div className="w-40 h-4 bg-white/5 rounded mb-6" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-white/5 rounded-2xl p-4 h-24" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white/5 rounded-2xl h-80" />
+            <div className="bg-white/5 rounded-2xl h-80" />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
 
 function ProfileContent() {
   const router = useRouter();
@@ -58,7 +80,7 @@ function ProfileContent() {
 
   useEffect(() => { load(); }, [load, retryKey]);
 
-  if (loading) return <LoadingState message="Loading profile…" />;
+  if (loading) return <ProfileSkeleton />;
   if (error)
     return (
       <ErrorState
@@ -217,7 +239,7 @@ function ProfileContent() {
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<LoadingState message="Loading profile…" />}>
+    <Suspense fallback={<ProfileSkeleton />}>
       <ProfileContent />
     </Suspense>
   );

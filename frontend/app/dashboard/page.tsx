@@ -14,8 +14,24 @@ import {
 import AppShell from "@/components/AppShell";
 import CognitiveFingerprint from "@/components/CognitiveFingerprint";
 import SessionCard from "@/components/SessionCard";
-import LoadingState from "@/components/LoadingState";
 import ModeBadge from "@/components/ModeBadge";
+
+function DashboardSkeleton() {
+  return (
+    <AppShell>
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-8 pb-10 animate-pulse">
+        <div className="w-20 h-3 bg-white/5 rounded mb-4" />
+        <div className="w-64 h-8 bg-white/5 rounded mb-3" />
+        <div className="w-48 h-4 bg-white/5 rounded mb-6" />
+        <div className="flex gap-4">
+          <div className="w-28 h-16 bg-white/5 rounded-xl" />
+          <div className="w-28 h-16 bg-white/5 rounded-xl" />
+          <div className="w-28 h-16 bg-white/5 rounded-xl" />
+        </div>
+      </div>
+    </AppShell>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -33,12 +49,7 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  if (loading)
-    return (
-      <AppShell>
-        <LoadingState message="Loading your cognitive dashboard…" />
-      </AppShell>
-    );
+  if (loading) return <DashboardSkeleton />;
 
   if (error)
     return (

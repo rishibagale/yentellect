@@ -306,6 +306,79 @@ class SupabaseDatabaseManager:
                 for row in rows
             ]
 
+    def get_dashboard_batch(self, user_id: str, limit: int = 20) -> Dict[str, Any]:
+        """Fetch dashboard data in 2 REST calls instead of 5+."""
+        import httpx
+        with httpx.Client() as client:
+            # 1) Get user
+            r_user = client.get(
+                f"{_base()}/users",
+                headers=_headers(),
+                params={"user_id": f"eq.{user_id}", "select": "*"},
+            )
+            self._check_response(r_user, "get_dashboard_batch(user)")
+            users = self._json_or_none(r_user) or []
+            user = users[0] if users else None
+
+            # 2) Get sessions + metrics in one pass
+            r_sessions = client.get(
+                f"{_base()}/sessions",
+                headers=_headers(),
+                params={"user_id": f"eq.{user_id}", "order": "created_at.desc", "limit": str(limit), "select": "session_id"},
+            )
+            self._check_response(r_sessions, "get_dashboard_batch(sessions)")
+            sessions = self._json_or_none(r_sessions) or []
+            session_ids = [s["session_id"] for s in sessions if s.get("session_id")]
+
+            metrics = []
+            concepts = []
+            edges = []
+
+            if session_ids:
+                in_clause = "in.(" + ",".join(session_ids) + ")"
+                # Fetch metrics for all sessions in one call
+                r_metrics = client.get(
+                    f"{_base()}/session_metrics",
+                    headers=_headers(),
+                    params={"session_id": in_clause, "order": "created_at.desc"},
+                )
+                try:
+                    self._check_response(r_metrics, "get_dashboard_batch(metrics)")
+                    metrics = self._json_or_none(r_metrics) or []
+                except RuntimeError:
+                    pass
+
+            # 3) Fetch concepts + edges in parallel (single connection, sequential fine)
+            r_concepts = client.get(
+                f"{_base()}/concept_nodes",
+                headers=_headers(),
+                params={"user_id": f"eq.{user_id}", "order": "name"},
+            )
+            try:
+                self._check_response(r_concepts, "get_dashboard_batch(concepts)")
+                concepts = self._json_or_none(r_concepts) or []
+            except RuntimeError:
+                pass
+
+            r_edges = client.get(
+                f"{_base()}/graph_edges",
+                headers=_headers(),
+                params={"user_id": f"eq.{user_id}"},
+            )
+            try:
+                self._check_response(r_edges, "get_dashboard_batch(edges)")
+                edges = self._json_or_none(r_edges) or []
+            except RuntimeError:
+                pass
+
+            return {
+                "user": user,
+                "sessions": sessions,
+                "metrics": metrics[:limit],
+                "concepts": concepts,
+                "edges": edges,
+            }
+
     def get_session_metrics(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         with httpx.Client() as client:
             # session_metrics does not have user_id; resolve via sessions first.

@@ -42,6 +42,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.get("/health")
+async def health():
+    """Lightweight health-check endpoint for uptime monitoring."""
+    return {"status": "ok"}
+
 # CORS configuration
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
@@ -75,7 +81,3 @@ async def root():
     }
 
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy"}

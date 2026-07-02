@@ -43,8 +43,10 @@ def get_dashboard(user_id: str):
             }
 
         impl = _impl()
-        sessions = impl.get_user_sessions(user_id, limit=50)
-        metrics = impl.get_session_metrics(user_id, limit=20)
+        # Use batch query to reduce REST calls
+        batch = impl.get_dashboard_batch(user_id, limit=50)
+        sessions = batch.get("sessions", [])
+        metrics = batch.get("metrics", [])
 
         # Build fingerprint from metrics
         all_scores = _compute_mode_scores(sessions, metrics)

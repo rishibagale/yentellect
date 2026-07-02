@@ -488,6 +488,17 @@ class DatabaseManager:
             )
             return dict(cursor.fetchone())
     
+    def get_dashboard_batch(self, user_id: str, limit: int = 20) -> Dict[str, Any]:
+        """Fetch dashboard data in fewer calls (proxied to impl)."""
+        if self._using_supabase and self._impl is not None:
+            return self._impl.get_dashboard_batch(user_id, limit)
+        user = self.get_user(user_id)
+        sessions = self.get_user_sessions(user_id, limit=limit)
+        metrics = self.get_session_metrics(user_id, limit=limit)
+        concepts = self.get_user_concepts(user_id)
+        edges = self.get_user_edges(user_id)
+        return {"user": user, "sessions": sessions, "metrics": metrics, "concepts": concepts, "edges": edges}
+
     def get_session_turns(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Get turns for session history (proxied to impl)."""
         if self._using_supabase and self._impl is not None:
