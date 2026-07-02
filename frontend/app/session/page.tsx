@@ -11,6 +11,35 @@ import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import { useSupabase } from "@/utils/supabase/provider";
 
+function SessionSkeleton() {
+  return (
+    <div className="min-h-screen flex flex-col bg-[#0a0a0b] text-slate-100">
+      <Header />
+      <main className="flex-1 flex flex-col">
+        <div className="max-w-3xl w-full mx-auto px-4 py-6 flex-1">
+          <div className="animate-pulse space-y-4">
+            <div className="w-40 h-4 bg-white/5 rounded" />
+            <div className="flex justify-end">
+              <div className="w-64 h-16 bg-white/5 rounded-2xl" />
+            </div>
+            <div className="flex justify-start">
+              <div className="w-72 h-24 bg-white/5 rounded-2xl" />
+            </div>
+            <div className="flex justify-end">
+              <div className="w-56 h-12 bg-white/5 rounded-2xl" />
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-white/5 p-4">
+          <div className="max-w-3xl w-full mx-auto">
+            <div className="h-12 bg-white/5 rounded-xl animate-pulse" />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 function SessionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
