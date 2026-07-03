@@ -21,7 +21,7 @@ import { useSupabase } from "@/utils/supabase/provider";
 
 function ProfileSkeleton() {
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0a0b] text-slate-100">
+    <div className="min-h-screen flex flex-col bg-[#080B11] text-[#F0F4FF]">
       <Header />
       <main className="flex-1 px-4 md:px-6 py-6 max-w-7xl w-full mx-auto">
         <div className="animate-pulse">
@@ -29,12 +29,12 @@ function ProfileSkeleton() {
           <div className="w-40 h-4 bg-white/5 rounded mb-6" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
             {[1,2,3].map(i => (
-              <div key={i} className="bg-white/5 rounded-2xl p-4 h-24" />
+              <div key={i} className="bg-[#0F1420] rounded-[16px] p-4 h-24" />
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white/5 rounded-2xl h-80" />
-            <div className="bg-white/5 rounded-2xl h-80" />
+            <div className="bg-[#0F1420] rounded-[16px] h-80" />
+            <div className="bg-[#0F1420] rounded-[16px] h-80" />
           </div>
         </div>
       </main>
@@ -98,16 +98,14 @@ function ProfileContent() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0a0b] text-slate-100">
+    <div className="min-h-screen flex flex-col bg-[#080B11] text-[#F0F4FF]">
       <Header />
       <main className="flex-1 px-4 md:px-6 py-6 max-w-7xl w-full mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#6C63FF] to-[#00E5FF] bg-clip-text text-transparent font-space">
             {profile?.name?.trim() || "Your cognitive profile"}
           </h1>
-          <p className="mt-1 text-sm text-slate-500">A snapshot of how you think and what you
-            know.
-          </p>
+          <p className="mt-1 text-sm text-[#5A6480]">A snapshot of how you think and what you know.</p>
         </div>
 
         {/* Stats grid with animated counters */}
@@ -130,16 +128,16 @@ function ProfileContent() {
                 hidden: { opacity: 0, y: 15 },
                 show: { opacity: 1, y: 0, transition: { ...ANIMATION.ease } },
               }}
-              className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-4 hover:bg-white/[0.05] hover:border-white/15 transition-all duration-200"
+              className="bg-[#0F1420] backdrop-blur-xl border border-[#1E2535] rounded-[16px] p-4 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200"
             >
-              <div className="flex items-center gap-1.5 text-xs text-slate-500 uppercase tracking-wider mb-1">
+              <div className="flex items-center gap-1.5 text-xs text-[#5A6480] uppercase tracking-wider mb-1 font-mono">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d={s.icon} />
                 </svg>
                 {s.label}
               </div>
               <motion.div
-                className="text-2xl md:text-3xl font-bold text-white"
+                className="text-2xl md:text-3xl font-bold text-[#F0F4FF]"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + i * 0.1, duration: 0.4, ease: "easeOut" }}
@@ -162,21 +160,21 @@ function ProfileContent() {
               hidden: { opacity: 0, x: -20 },
               show: { opacity: 1, x: 0, transition: { ...ANIMATION.ease } },
             }}
-            className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-5"
+            className="bg-[#0F1420] backdrop-blur-xl border border-[#1E2535] rounded-[16px] p-5 shadow-card"
           >
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-500 mb-2">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#5A6480] mb-2 font-mono">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
               Dominant mode
             </div>
             <div
-              className="text-xl md:text-2xl font-bold mb-1"
-              style={{ color: profile?.dominant_mode ? getModeColor(profile.dominant_mode) : "#94a3b8" }}
+              className="text-xl md:text-2xl font-bold mb-1 font-space"
+              style={{ color: profile?.dominant_mode ? getModeColor(profile.dominant_mode) : "#5A6480" }}
             >
               {profile?.dominant_mode ? getModeName(profile.dominant_mode) : "Not yet determined"}
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-[#5A6480]">
               {profile?.dominant_mode ? MODE_DESCRIPTIONS[profile.dominant_mode] || "" : "Complete sessions to discover your dominant mode."}
             </div>
           </motion.div>
@@ -185,21 +183,21 @@ function ProfileContent() {
               hidden: { opacity: 0, x: 20 },
               show: { opacity: 1, x: 0, transition: { ...ANIMATION.ease } },
             }}
-            className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-5"
+            className="bg-[#0F1420] backdrop-blur-xl border border-[#1E2535] rounded-[16px] p-5 shadow-card"
           >
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-500 mb-2">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#5A6480] mb-2 font-mono">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
               </svg>
               Weakest mode (target)
             </div>
             <div
-              className="text-xl md:text-2xl font-bold mb-1"
-              style={{ color: profile?.weakest_mode ? getModeColor(profile.weakest_mode) : "#94a3b8" }}
+              className="text-xl md:text-2xl font-bold mb-1 font-space"
+              style={{ color: profile?.weakest_mode ? getModeColor(profile.weakest_mode) : "#5A6480" }}
             >
               {profile?.weakest_mode ? getModeName(profile.weakest_mode) : "Not yet determined"}
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-[#5A6480]">
               {profile?.weakest_mode ? `Training focus: ${MODE_DESCRIPTIONS[profile.weakest_mode] || ""}` : "Complete sessions to identify a training target."}
             </div>
           </motion.div>
@@ -209,16 +207,16 @@ function ProfileContent() {
         {graphData && graphData.nodes.length > 0 ? (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-white">Knowledge graph</h2>
-              <span className="text-xs text-slate-500">{graphData.nodes.length} concepts</span>
+              <h2 className="text-lg font-semibold text-[#F0F4FF] font-space">Knowledge graph</h2>
+              <span className="text-xs text-[#5A6480]">{graphData.nodes.length} concepts</span>
             </div>
             <KnowledgeGraph data={graphData} height={500} />
           </div>
         ) : (
           <div className="mb-6">
-            <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-center">
-              <div className="text-sm text-slate-400 mb-1">Your knowledge graph builds as you think.</div>
-              <div className="text-xs text-slate-500">Start a session to add your first concept.</div>
+            <div className="bg-[#0F1420] border border-[#1E2535] rounded-[16px] p-6 text-center shadow-card">
+              <div className="text-sm text-[#5A6480] mb-1">Your knowledge graph builds as you think.</div>
+              <div className="text-xs text-[#5A6480]">Start a session to add your first concept.</div>
             </div>
           </div>
         )}
@@ -226,13 +224,13 @@ function ProfileContent() {
         {/* Progress Chart */}
         {metrics.length > 0 ? (
           <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3 text-white">Progress</h2>
+            <h2 className="text-lg font-semibold mb-3 text-[#F0F4FF] font-space">Progress</h2>
             <ProgressChart metrics={metrics} />
           </div>
         ) : (
           <div className="mb-6">
-            <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-center">
-              <div className="text-xs text-slate-500">Progress will appear after your first session.</div>
+            <div className="bg-[#0F1420] border border-[#1E2535] rounded-[16px] p-6 text-center shadow-card">
+              <div className="text-xs text-[#5A6480]">Progress will appear after your first session.</div>
             </div>
           </div>
         )}

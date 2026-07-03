@@ -99,7 +99,7 @@ export default function KnowledgeGraph({
       .selectAll("line")
       .data(links)
       .join("line")
-      .attr("stroke", "#6C63FF")
+      .attr("stroke", "#00E5FF")
       .attr("stroke-opacity", 0.6)
       .attr("stroke-width", 1.5)
       .attr("stroke-dasharray", (d: any) => (d.weight === "weak" ? "6,4" : "none"));
@@ -163,6 +163,13 @@ export default function KnowledgeGraph({
       .attr("attributeName", "stroke-opacity")
       .attr("values", "1;0.4;1")
       .attr("dur", "2s")
+      .attr("repeatCount", "indefinite");
+    node
+      .filter((d) => !d.isolated && (!d.connections || d.connections < 2))
+      .append("animate")
+      .attr("attributeName", "opacity")
+      .attr("values", "0.8;1;0.8")
+      .attr("dur", "3s")
       .attr("repeatCount", "indefinite");
 
     simulation.on("tick", () => {

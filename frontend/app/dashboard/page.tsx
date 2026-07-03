@@ -180,11 +180,11 @@ export default function DashboardPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-white mb-2">Could not load dashboard</h2>
-            <p className="text-sm text-slate-400 mb-4">{error}</p>
+            <h2 className="text-lg font-semibold text-[#F0F4FF] mb-2">Could not load dashboard</h2>
+            <p className="text-sm text-[#5A6480] mb-4">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-400 transition"
+              className="px-4 py-2 rounded-[10px] bg-[#6C63FF] text-[#F0F4FF] text-sm font-medium hover:opacity-90 transition shadow-active"
             >
               Retry
             </button>
@@ -199,7 +199,7 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="min-h-screen">
-        <section className="relative border-b border-white/5 bg-gradient-to-b from-indigo-500/[0.03] to-transparent">
+        <section className="relative border-b border-[#1E2535] bg-gradient-to-b from-[#6C63FF]/[0.03] to-transparent">
           <div className="max-w-7xl mx-auto px-4 md:px-6 pt-8 pb-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -209,11 +209,11 @@ export default function DashboardPage() {
             >
               <div className="flex-1 space-y-5">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500 font-medium mb-2">Dashboard</p>
-                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[#5A6480] font-medium mb-2 font-space">Dashboard</p>
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#F0F4FF] tracking-tight font-space">
                     {hasData ? "Your cognitive fingerprint" : "Welcome to Yentellect"}
                   </h1>
-                  <p className="text-sm text-slate-400 mt-2 max-w-lg">
+                  <p className="text-sm text-[#5A6480] mt-2 max-w-lg">
                     {hasData ? `${fp.total_sessions} sessions recorded across ${(fp.domains || []).length} domains` : "Begin training to visualize your thinking profile."}
                   </p>
                 </div>
@@ -221,23 +221,23 @@ export default function DashboardPage() {
                 <div className="flex flex-wrap gap-4">
                   {hasData && (
                     <>
-                      <div className="px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Streak</div>
-                        <div className="text-xl font-bold font-mono text-white">{data?.streak_days || 0} <span className="text-sm text-slate-500 font-sans">days</span></div>
-                        <div className="text-[11px] text-slate-500 mt-1">{(data?.streak_days || 0) >= 2 ? "🔥 Keep going" : "Start a new streak today"}</div>
+                      <div className="px-4 py-2.5 rounded-[16px] bg-[#0F1420] border border-[#1E2535] shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition">
+                        <div className="text-[10px] uppercase tracking-wider text-[#5A6480] mb-0.5 font-mono">Streak</div>
+                        <div className="text-xl font-bold font-mono text-[#F0F4FF]">{data?.streak_days || 0} <span className="text-sm text-[#5A6480] font-sans">days</span></div>
+                        <div className="text-[11px] text-[#5A6480] mt-1">{(data?.streak_days || 0) >= 2 ? "🔥 Keep going" : "Start a new streak today"}</div>
                       </div>
-                      <div className="px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Dominant</div>
+                      <div className="px-4 py-2.5 rounded-[16px] bg-[#0F1420] border border-[#1E2535] shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition">
+                        <div className="text-[10px] uppercase tracking-wider text-[#5A6480] mb-0.5 font-mono">Dominant</div>
                         <div className="text-xl font-bold font-mono" style={{ color: getModeColor((fp.dominant || "CONVERGENT") as ThinkingMode) }}>
                           {getModeName((fp.dominant || "CONVERGENT") as ThinkingMode)}
                         </div>
                       </div>
-                      <div className="px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10">
-                        <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">Score</div>
-                        <div className="text-xl font-bold font-mono text-emerald-400">
+                      <div className="px-4 py-2.5 rounded-[16px] bg-[#0F1420] border border-[#1E2535] shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition">
+                        <div className="text-[10px] uppercase tracking-wider text-[#5A6480] mb-0.5 font-mono">Score</div>
+                        <div className="text-xl font-bold font-mono text-[#00FFB2]">
                           {fp.scores?.length ? `${Math.round((fp.scores || []).reduce((a, b) => a + b.score, 0) / (fp.scores || []).length)}%` : "—"}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-1">
+                        <div className="text-[11px] text-[#5A6480] mt-1">
                           {fp.scores?.length ? (fp.total_sessions || 0) <= 1 ? "Your baseline. It grows from here." : "Above average for now" : "Complete a session to see your score"}
                         </div>
                       </div>
@@ -272,10 +272,10 @@ export default function DashboardPage() {
           >
             <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-8 text-center max-w-2xl mx-auto">
               <div className="text-sm text-slate-400 mb-4">Begin training to visualize your thinking profile.</div>
-              <button
-                onClick={() => router.push("/")}
-                className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium text-sm hover:opacity-90 transition shadow-lg shadow-indigo-500/20"
-              >
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-[10px] bg-[#6C63FF] text-white text-sm font-medium hover:opacity-90 transition shadow-active"
+            >
                 Start your first session
               </button>
             </div>
