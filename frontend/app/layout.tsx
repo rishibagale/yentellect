@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { SupabaseProvider } from "@/utils/supabase/provider";
 import { AuthGuard } from "@/components/AuthGuard";
 
 /* ============================================================
-   🔤 FONTS — Inter (sans) + JetBrains Mono (mono)
+   🔤 FONTS — Space Grotesk (display), Inter (sans), JetBrains Mono (mono)
    ============================================================ */
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+  preload: true,
+  weight: ["400", "500", "600", "700"],
+});
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -67,17 +75,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
       <head>
-        {/* Preconnect to API backend */}
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com"} />
-        {/* DNS prefetch */}
         <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com"} />
       </head>
-      <body className="min-h-screen bg-surface text-slate-100 antialiased font-sans">
-        {/* Grain texture overlay */}
-        <div className="grain" aria-hidden="true" />
+      <body className="min-h-screen bg-[#080B11] text-[#F0F4FF] antialiased font-sans">
         <SupabaseProvider>
           <AuthGuard>
             {children}
