@@ -222,6 +222,15 @@ export const MODE_DESCRIPTIONS: Record<string, string> = {
   DMN: "Default Mode — You draw on memory and self-reflection.",
 };
 
+export const SOCRATIC_QUESTIONS: Record<string, string> = {
+  CONVERGENT: "What's the most efficient path to solve this?",
+  DIVERGENT: "What's something you believe that most people in your field would disagree with?",
+  ANALOGICAL: "What pattern from another domain could explain this?",
+  METACOGNITIVE: "What assumption am I making that might not hold?",
+  SYSTEMS: "What's the weakest link in this system?",
+  DMN: "What memory or experience is shaping how I see this right now?",
+};
+
 export const SHADOWS = {
   card: "0 0 0 0.5px rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.2)",
   cardHover:
