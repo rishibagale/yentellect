@@ -203,23 +203,16 @@ function ProfileContent() {
           </motion.div>
         </motion.div>
 
-        {/* Knowledge Graph */}
-        {graphData && graphData.nodes.length > 0 ? (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-[#F0F4FF] font-space">Knowledge graph</h2>
+        {/* Knowledge Graph — always rendered so empty states show demo/constellation */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-[#F0F4FF] font-space">Knowledge graph</h2>
+            {graphData && graphData.nodes.length > 0 && (
               <span className="text-xs text-[#5A6480]">{graphData.nodes.length} concepts</span>
-            </div>
-            <KnowledgeGraph data={graphData} height={500} />
+            )}
           </div>
-        ) : (
-          <div className="mb-6">
-            <div className="bg-[#0F1420] border border-[#1E2535] rounded-[16px] p-6 text-center shadow-card">
-              <div className="text-sm text-[#5A6480] mb-1">Your knowledge graph builds as you think.</div>
-              <div className="text-xs text-[#5A6480]">Start a session to add your first concept.</div>
-            </div>
-          </div>
-        )}
+          <KnowledgeGraph data={graphData || null} height={500} onStartSession={() => router.push("/")} />
+        </div>
 
         {/* Progress Chart */}
         {metrics.length > 0 ? (
