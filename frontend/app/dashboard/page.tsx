@@ -15,6 +15,7 @@ import AppShell from "@/components/AppShell";
 import CognitiveFingerprint from "@/components/CognitiveFingerprint";
 import SessionCard from "@/components/SessionCard";
 import ModeBadge from "@/components/ModeBadge";
+import { MODE_DESCRIPTIONS } from "@/lib/tokens";
 
 function DashboardSkeleton() {
   return (
@@ -128,6 +129,11 @@ export default function DashboardPage() {
                             days
                           </span>
                         </div>
+                        <div className="text-[11px] text-slate-500 mt-1">
+                          {(data?.streak_days || 0) >= 2
+                            ? "🔥 Keep going"
+                            : "Start a new streak today"}
+                        </div>
                       </div>
                       <div className="px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10">
                         <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-0.5">
@@ -157,6 +163,13 @@ export default function DashboardPage() {
                                   (fp.scores||[]).length
                               )}%`
                             : "—"}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-1">
+                          {fp.scores?.length > 0
+                            ? (fp.total_sessions || 0) <= 1
+                              ? "Your baseline. It grows from here."
+                              : "Above average for now"
+                            : "Complete a session to see your score"}
                         </div>
                       </div>
                     </>

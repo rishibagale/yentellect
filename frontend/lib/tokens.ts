@@ -213,6 +213,15 @@ export const ANIMATION = {
 // ============================================================
 // 🧩 SHADOWS
 // ============================================================
+export const MODE_DESCRIPTIONS: Record<string, string> = {
+  CONVERGENT: "Convergent — You tighten ideas into clear, decisive answers.",
+  DIVERGENT: "Divergent — You generate ideas across wide possibility spaces.",
+  ANALOGICAL: "Analogical — You map patterns across distant domains.",
+  METACOGNITIVE: "Metacognitive — You monitor and adjust your own thinking.",
+  SYSTEMS: "Systems — You see how parts connect into larger wholes.",
+  DMN: "Default Mode — You draw on memory and self-reflection.",
+};
+
 export const SHADOWS = {
   card: "0 0 0 0.5px rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.2)",
   cardHover:

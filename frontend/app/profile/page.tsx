@@ -12,7 +12,7 @@ import {
   getModeColor,
   getModeName,
 } from "@/lib/api";
-import { MODE_PALETTES, ANIMATION } from "@/lib/tokens";
+import { MODE_PALETTES, ANIMATION, MODE_DESCRIPTIONS } from "@/lib/tokens";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
 import ProgressChart from "@/components/ProgressChart";
 import Header from "@/components/Header";
@@ -27,8 +27,8 @@ function ProfileSkeleton() {
         <div className="animate-pulse">
           <div className="w-64 h-8 bg-white/5 rounded mb-2" />
           <div className="w-40 h-4 bg-white/5 rounded mb-6" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            {[1,2,3,4].map(i => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+            {[1,2,3].map(i => (
               <div key={i} className="bg-white/5 rounded-2xl p-4 h-24" />
             ))}
           </div>
@@ -115,11 +115,17 @@ function ProfileContent() {
           initial="hidden"
           animate="show"
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-6"
         >
-          {stats.map((s, i) => (
+          {stats
+            .filter((s) => {
+              if (s.label === "Connections") return (s.value || 0) > 0;
+              if (s.label === "Domains") return (s.value || 0) > 0;
+              return true;
+            })
+            .map((s, i) => (
             <motion.div
-              key={i}
+              key={s.label}
               variants={{
                 hidden: { opacity: 0, y: 15 },
                 show: { opacity: 1, y: 0, transition: { ...ANIMATION.ease } },
@@ -165,12 +171,14 @@ function ProfileContent() {
               Dominant mode
             </div>
             <div
-              className="text-xl md:text-2xl font-bold"
+              className="text-xl md:text-2xl font-bold mb-1"
               style={{ color: profile?.dominant_mode ? getModeColor(profile.dominant_mode) : "#94a3b8" }}
             >
               {profile?.dominant_mode ? getModeName(profile.dominant_mode) : "Not yet determined"}
             </div>
-            <div className="text-xs text-slate-500 mt-2">Your strongest thinking mode.</div>
+            <div className="text-xs text-slate-500">
+              {profile?.dominant_mode ? MODE_DESCRIPTIONS[profile.dominant_mode] || "" : "Complete sessions to discover your dominant mode."}
+            </div>
           </motion.div>
           <motion.div
             variants={{
@@ -186,12 +194,14 @@ function ProfileContent() {
               Weakest mode (target)
             </div>
             <div
-              className="text-xl md:text-2xl font-bold"
+              className="text-xl md:text-2xl font-bold mb-1"
               style={{ color: profile?.weakest_mode ? getModeColor(profile.weakest_mode) : "#94a3b8" }}
             >
               {profile?.weakest_mode ? getModeName(profile.weakest_mode) : "Not yet determined"}
             </div>
-            <div className="text-xs text-slate-500 mt-2">Yentellect will focus training here.</div>
+            <div className="text-xs text-slate-500">
+              {profile?.weakest_mode ? `Training focus: ${MODE_DESCRIPTIONS[profile.weakest_mode] || ""}` : "Complete sessions to identify a training target."}
+            </div>
           </motion.div>
         </motion.div>
 
