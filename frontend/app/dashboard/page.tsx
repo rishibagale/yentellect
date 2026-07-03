@@ -249,15 +249,37 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {hasData && (
-          <section className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-6">
+        {hasData ? (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-7xl mx-auto px-4 md:px-6 py-8 space-y-6"
+          >
             <ModeBreakdown scores={fp.scores} />
             <ThinkingToday dominant={fp.dominant as ThinkingMode | null} onStart={() => router.push("/")} />
             <div>
               <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Recent sessions</div>
               <RecentFeed sessions={data?.recent_sessions} />
             </div>
-          </section>
+          </motion.section>
+        ) : (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-7xl mx-auto px-4 md:px-6 py-10"
+          >
+            <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-8 text-center max-w-2xl mx-auto">
+              <div className="text-sm text-slate-400 mb-4">Begin training to visualize your thinking profile.</div>
+              <button
+                onClick={() => router.push("/")}
+                className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium text-sm hover:opacity-90 transition shadow-lg shadow-indigo-500/20"
+              >
+                Start your first session
+              </button>
+            </div>
+          </motion.section>
         )}
       </div>
     </AppShell>

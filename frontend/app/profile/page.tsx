@@ -206,7 +206,7 @@ function ProfileContent() {
         </motion.div>
 
         {/* Knowledge Graph */}
-        {graphData && (
+        {graphData && graphData.nodes.length > 0 ? (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-white">Knowledge graph</h2>
@@ -214,32 +214,26 @@ function ProfileContent() {
             </div>
             <KnowledgeGraph data={graphData} height={500} />
           </div>
+        ) : (
+          <div className="mb-6">
+            <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-center">
+              <div className="text-sm text-slate-400 mb-1">Your knowledge graph builds as you think.</div>
+              <div className="text-xs text-slate-500">Start a session to add your first concept.</div>
+            </div>
+          </div>
         )}
 
         {/* Progress Chart */}
-        {metrics.length > 0 && (
+        {metrics.length > 0 ? (
           <div className="mb-6">
             <h2 className="text-lg font-semibold mb-3 text-white">Progress</h2>
             <ProgressChart metrics={metrics} />
           </div>
-        )}
-
-        {/* Empty state */}
-        {(!profile?.nodes || profile.nodes.length === 0) && (
-          <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-white/10 rounded-2xl p-8 text-center">
-            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+        ) : (
+          <div className="mb-6">
+            <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-center">
+              <div className="text-xs text-slate-500">Progress will appear after your first session.</div>
             </div>
-            <h3 className="font-semibold text-white mb-1">No data yet</h3>
-            <p className="text-sm text-slate-400 mb-4">Start a session to begin training your weakest mode.</p>
-            <button
-              onClick={() => router.push("/")}
-              className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium text-sm hover:opacity-90 transition shadow-lg shadow-indigo-500/25"
-            >
-              Start a session
-            </button>
           </div>
         )}
       </main>
