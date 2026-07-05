@@ -17,6 +17,8 @@ States:
 """
 
 import json
+import logging
+import time
 import uuid
 import os
 from typing import Dict, Any, Optional, List
@@ -32,6 +34,9 @@ from .classifier import ThinkingModeClassifier
 from .graph import KnowledgeGraph
 from .prompts import get_prompt, EXTRACT_CONCEPTS_PROMPT
 from ..db.database import DatabaseManager, init_db
+
+
+logger = logging.getLogger(__name__)
 
 
 # Session state names
@@ -53,6 +58,8 @@ class GroqClient:
     
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("GROQ_API_KEY", "")
+        if self.api_key and len(self.api_key) > 512:
+            raise ValueError("Invalid API key format")
         self._client = None
         
     def _ensure_client(self):
@@ -83,8 +90,9 @@ class GroqClient:
                     max_tokens=max_tokens,
                 )
                 return response.choices[0].message.content
-            except Exception as e:
-                return f"[Groq API error: {str(e)}. Using fallback response.]\n\n"
+            except Exception:
+                logger.warning("Groq API call failed; using fallback response", exc_info=True)
+                return self._mock_response(messages)
         
         # Mock response for development without API key
         return self._mock_response(messages)
@@ -148,8 +156,27 @@ class SessionManager:
         self.classifier = ThinkingModeClassifier()
         self.llm = GroqClient()
         
-        # Active sessions cache
+        # Active sessions cache with TTL tracking
         self._sessions: Dict[str, Dict[str, Any]] = {}
+        self._session_ttl: Dict[str, float] = {}  # session_id -> expiry timestamp
+        self._max_sessions = 1000  # Hard limit to prevent memory exhaustion
+    
+    def _cleanup_expired_sessions(self) -> None:
+        """Remove expired sessions from cache to prevent memory exhaustion."""
+        now = time.monotonic()
+        expired = [sid for sid, expiry in self._session_ttl.items() if now > expiry]
+        for sid in expired:
+            self._sessions.pop(sid, None)
+            self._session_ttl.pop(sid, None)
+        
+        # If still over limit, evict oldest
+        if len(self._sessions) > self._max_sessions:
+            # Sort by TTL (oldest expiry first) and remove excess
+            sorted_sessions = sorted(self._session_ttl.items(), key=lambda x: x[1])
+            to_remove = len(self._sessions) - self._max_sessions
+            for sid, _ in sorted_sessions[:to_remove]:
+                self._sessions.pop(sid, None)
+                self._session_ttl.pop(sid, None)
     
     def start_session(self, user_id: str, opening_message: str) -> Dict[str, Any]:
         """
@@ -199,6 +226,12 @@ class SessionManager:
         # Persist started_at to DB so end_session can compute duration reliably
         self.db.update_session(session_id, turn_count=session_data.get("turn_count", 1))
         self._sessions[session_id] = session_data
+        # Set TTL: sessions expire after 30 minutes of inactivity
+        self._session_ttl[session_id] = time.monotonic() + 1800
+        
+        # Cleanup expired sessions periodically
+        if len(self._sessions) % 50 == 0:
+            self._cleanup_expired_sessions()
         
         # Get prompt for selected mode
         system_prompt = get_prompt(mode_target.value)

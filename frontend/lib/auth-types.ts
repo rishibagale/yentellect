@@ -21,18 +21,22 @@ export interface SignInData {
   password: string;
 }
 
-async function createBackendUser(userId: string, displayName: string) {
+async function createBackendUser(userId: string, displayName: string, accessToken?: string | null) {
+  if (!accessToken) return;
   try {
     await fetch(`${BACKEND_URL}/profile/create`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({
         user_id: userId,
         name: displayName,
       }),
     });
   } catch {
-    console.warn("Could not create user in backend, auth succeeded");
+    // Non-critical: the backend also creates the user profile on first session.
   }
 }
 
@@ -51,7 +55,7 @@ export async function signUp(data: SignUpData): Promise<AuthUser> {
   if (error) throw new Error(error.message);
   if (!authData.user) throw new Error("Sign up failed: no user returned");
 
-  await createBackendUser(authData.user.id, data.displayName);
+  await createBackendUser(authData.user.id, data.displayName, authData.session?.access_token);
 
   return {
     id: authData.user.id,
@@ -71,10 +75,13 @@ export async function signIn(data: SignInData): Promise<AuthUser> {
   if (error) throw new Error(error.message);
   if (!authData.user) throw new Error("Sign in failed: no user returned");
 
+  const displayName = authData.user.user_metadata?.display_name || authData.user.email!.split("@")[0];
+  await createBackendUser(authData.user.id, displayName, authData.session?.access_token);
+
   return {
     id: authData.user.id,
     email: authData.user.email!,
-    displayName: authData.user.user_metadata?.display_name || authData.user.email!.split("@")[0],
+    displayName,
     avatarUrl: authData.user.user_metadata?.avatar_url,
   };
 }

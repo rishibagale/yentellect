@@ -5,10 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn, signInWithOAuth } from "@/lib/auth-types";
 
+function safeRedirect(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || /[\r\n]/.test(value)) {
+    return "/";
+  }
+  return value;
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
+  const redirectTo = safeRedirect(searchParams.get("redirect"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

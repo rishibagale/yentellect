@@ -1,12 +1,17 @@
 """Dashboard and analytics API routes for the cognitive profile."""
 
-from fastapi import APIRouter, HTTPException, Query
+import logging
 from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from ...db.database import DatabaseManager
+from ..security import CurrentUser, get_current_user, require_user_id
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 db = DatabaseManager()
+logger = logging.getLogger(__name__)
 
 
 def _impl():
@@ -25,11 +30,15 @@ MODE_COLORS = {
 
 
 @router.get("/{user_id}")
-def get_dashboard(user_id: str):
+def get_dashboard(
+    user_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Aggregated dashboard: fingerprint + recent sessions + training suggestion."""
+    safe_user_id = require_user_id(user_id, current_user)
     try:
         # Get user and sessions
-        user = db.get_user(user_id)
+        user = db.get_user(safe_user_id)
         if not user:
             return {
                 "fingerprint": None,
@@ -44,7 +53,7 @@ def get_dashboard(user_id: str):
 
         impl = _impl()
         # Use batch query to reduce REST calls
-        batch = impl.get_dashboard_batch(user_id, limit=50)
+        batch = impl.get_dashboard_batch(safe_user_id, limit=50)
         sessions = batch.get("sessions", [])
         metrics = batch.get("metrics", [])
 
@@ -65,18 +74,28 @@ def get_dashboard(user_id: str):
             "streak_days": _compute_streak(metrics),
             "last_session_date": _get_last_session_date(metrics),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to get dashboard")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not load dashboard.",
+        )
 
 
 @router.get("/fingerprint/{user_id}")
-def get_fingerprint(user_id: str):
+def get_fingerprint(
+    user_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Get the cognitive fingerprint (6 mode scores)."""
+    safe_user_id = require_user_id(user_id, current_user)
     try:
-        user = db.get_user(user_id)
+        user = db.get_user(safe_user_id)
         if not user:
             return {
-                "user_id": user_id,
+                "user_id": safe_user_id,
                 "scores": [],
                 "dominant": None,
                 "weakest": None,
@@ -88,10 +107,10 @@ def get_fingerprint(user_id: str):
             }
 
         impl = _impl()
-        sessions = impl.get_user_sessions(user_id, limit=50)
-        metrics = impl.get_session_metrics(user_id, limit=20)
-        concepts = impl.get_user_concepts(user_id)
-        edges = impl.get_user_edges(user_id)
+        sessions = impl.get_user_sessions(safe_user_id, limit=50)
+        metrics = impl.get_session_metrics(safe_user_id, limit=20)
+        concepts = impl.get_user_concepts(safe_user_id)
+        edges = impl.get_user_edges(safe_user_id)
         all_scores = _compute_mode_scores(sessions, metrics)
         domains = list(set(c["domain"] for c in concepts)) if concepts else []
 
@@ -104,7 +123,7 @@ def get_fingerprint(user_id: str):
         improvement_rate = _compute_improvement_rate(metrics)
 
         return {
-            "user_id": user_id,
+            "user_id": safe_user_id,
             "scores": [
                 {
                     "mode": mode,
@@ -123,21 +142,29 @@ def get_fingerprint(user_id: str):
             "total_connections": len(edges) if edges else 0,
             "domains": domains[:10],  # Top 10 domains
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to get fingerprint")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not load fingerprint.",
+        )
 
 
 @router.get("/history/{user_id}")
 def get_session_history(
-    user_id: str,
+    user_id: UUID,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     """Paginated session history."""
+    safe_user_id = require_user_id(user_id, current_user)
     try:
         impl = _impl()
-        sessions = impl.get_user_sessions(user_id, limit=limit * page)
-        metrics = impl.get_session_metrics(user_id, limit=limit * page)
+        sessions = impl.get_user_sessions(safe_user_id, limit=limit * page)
+        metrics = impl.get_session_metrics(safe_user_id, limit=limit * page)
 
         # Build session list
         session_list = _build_recent_sessions(sessions, metrics)
@@ -153,8 +180,14 @@ def get_session_history(
             "limit": limit,
             "has_more": start + limit < len(session_list),
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to get session history")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not load session history.",
+        )
 
 
 def _compute_mode_scores(sessions: list, metrics: list) -> dict:

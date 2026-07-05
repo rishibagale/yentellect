@@ -22,7 +22,7 @@ export default function HistoryPage() {
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    getSessionHistory(user.id, page, limit)
+    getSessionHistory(page, limit)
       .then((res) => {
         setSessions(res.sessions);
         setTotal(res.total);

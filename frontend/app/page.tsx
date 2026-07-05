@@ -92,20 +92,15 @@ export default function Home() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!opening.trim()) return;
-    if (user) {
-      // Logged in — redirect to session page
-      sessionStorage.setItem("yentellect_opening", opening.trim());
-      router.push("/session");
+    if (!user) {
+      router.push(`/auth/login?redirect=${encodeURIComponent("/session")}`);
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const userId = name.trim() || `user-${Date.now()}`;
-      sessionStorage.setItem("yentellect_user_id", userId);
-      sessionStorage.setItem("yentellect_user_name", name.trim());
       sessionStorage.setItem("yentellect_opening", opening.trim());
-      router.push(`/session?user_id=${encodeURIComponent(userId)}`);
+      router.push("/session");
     } catch (err: any) {
       setError(err?.message || "Failed to start session");
       setLoading(false);

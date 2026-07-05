@@ -155,7 +155,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    getDashboard(user.id)
+    getDashboard()
       .then(setData)
       .catch((err) => setError(err?.message || "Failed to load dashboard"))
       .finally(() => setLoading(false));

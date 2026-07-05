@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { motion } from "framer-motion";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { startSession, getModeColor, getModeName, ThinkingMode } from "@/lib/api";
 import SessionChat from "@/components/SessionChat";
 import ModeIndicator from "@/components/ModeIndicator";
@@ -42,8 +42,7 @@ function SessionSkeleton() {
 
 function SessionContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { user } = useSupabase();
+  const { user, isLoading } = useSupabase();
   const [userId, setUserId] = useState<string | null>(null);
   const [opening, setOpening] = useState("");
   const [sessionData, setSessionData] = useState<{
@@ -60,24 +59,29 @@ function SessionContent() {
   const startInitiatedRef = useRef(false);
 
   useEffect(() => {
-    const finalUserId = user?.id || 
-      searchParams.get("user_id") ||
-      (typeof window !== "undefined" ? sessionStorage.getItem("yentellect_user_id") : null);
-    // Fresh session — do NOT reuse previous session's opening message
-    if (typeof window !== "undefined") {
-      sessionStorage.removeItem("yentellect_opening");
-      sessionStorage.removeItem("yentellect_session_id");
+    if (isLoading) return;
+    if (!user) {
+      router.replace("/auth/login?redirect=/session");
+      return;
     }
-    setUserId(finalUserId || `user-${Date.now()}`);
-    setOpening("");
-  }, [searchParams, user]);
+    let pendingOpening = "";
+    if (typeof window !== "undefined") {
+      pendingOpening = sessionStorage.getItem("yentellect_opening") || "";
+      // Fresh session — do NOT reuse previous session data.
+      sessionStorage.removeItem("yentellect_session_id");
+      sessionStorage.removeItem("yentellect_opening");
+    }
+    startInitiatedRef.current = false;
+    setUserId(user.id);
+    setOpening(pendingOpening);
+  }, [isLoading, router, user]);
 
   useEffect(() => {
     if (!userId) return;
     if (startInitiatedRef.current) return;
     startInitiatedRef.current = true;
     setError(null);
-    startSession(userId, opening)
+    startSession(opening)
       .then((data) => {
         setSessionData({
           session_id: data.session_id,
@@ -146,7 +150,7 @@ function SessionContent() {
               </div>
             </div>
             <button
-              onClick={() => router.push(`/profile?user_id=${encodeURIComponent(userId)}`)}
+              onClick={() => router.push("/profile")}
               className="w-full py-2.5 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition text-sm font-medium"
             >
               View full profile →

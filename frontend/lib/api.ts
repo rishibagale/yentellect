@@ -1,6 +1,13 @@
 /**
  * Typed API client for Yentellect backend.
+ * 
+ * SECURITY: All authenticated requests derive user identity from the
+ * Supabase access token in the Authorization header. The backend
+ * never trusts user IDs sent by the client; it verifies ownership
+ * against the token's `sub` claim server-side.
  */
+
+import { createClient } from "@/utils/supabase/client";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com";
 
@@ -173,27 +180,68 @@ export interface SessionHistoryResponse {
   has_more: boolean;
 }
 
+async function getAccessToken(): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.access_token) {
+    throw new Error("Please sign in again.");
+  }
+  return data.session.access_token;
+}
+
+async function getCurrentUserId(): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user?.id) {
+    throw new Error("Please sign in again.");
+  }
+  return data.user.id;
+}
+
+async function getSafeApiError(response: Response): Promise<string> {
+  // Use generic error messages to prevent information leakage
+  if (response.status === 401) return "Please sign in again.";
+  if (response.status === 403) return "You do not have access to this resource.";
+  if (response.status === 404) return "The requested resource was not found.";
+  if (response.status === 429) return "Too many requests. Please wait and try again.";
+  if (response.status >= 500) return "The service is temporarily unavailable. Please try again.";
+
+  try {
+    const body = await response.json();
+    const detail = typeof body?.detail === "string" ? body.detail : null;
+    // Only return specific error messages if they're safe (not containing secrets)
+    if (detail && detail.length <= 140 && !/(secret|token|key|password|https?:\/\/|api_key)/i.test(detail)) {
+      return detail;
+    }
+  } catch {
+    // Ignore parse errors and use a generic message below.
+  }
+
+  return "Request failed. Please try again.";
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = await getAccessToken();
+  const headers = new Headers(options?.headers);
+  headers.set("Content-Type", "application/json");
+  headers.set("Authorization", `Bearer ${token}`);
+
   const response = await fetch(`${API_BASE}${url}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
     ...options,
+    headers,
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`API error ${response.status}: ${error}`);
+    throw new Error(await getSafeApiError(response));
   }
 
   return response.json();
 }
 
 export async function startSession(
-  userId: string,
   openingMessage: string
 ): Promise<SessionStartResponse> {
+  const userId = await getCurrentUserId();
   return fetchJson<SessionStartResponse>("/sessions/start", {
     method: "POST",
     body: JSON.stringify({
@@ -221,34 +269,38 @@ export async function endSession(
   });
 }
 
-export async function getProfile(userId: string): Promise<CognitiveProfile> {
+export async function getProfile(): Promise<CognitiveProfile> {
+  const userId = await getCurrentUserId();
   return fetchJson<CognitiveProfile>(`/profile/${userId}`);
 }
 
 export async function getProfileMetrics(
-  userId: string,
   limit = 20
 ): Promise<SessionMetrics> {
+  const userId = await getCurrentUserId();
   return fetchJson<SessionMetrics>(`/profile/${userId}/metrics?limit=${limit}`);
 }
 
-export async function getGraph(userId: string): Promise<D3GraphData> {
+export async function getGraph(): Promise<D3GraphData> {
+  const userId = await getCurrentUserId();
   return fetchJson<D3GraphData>(`/graph/${userId}`);
 }
 
-export async function getDashboard(userId: string): Promise<DashboardData> {
+export async function getDashboard(): Promise<DashboardData> {
+  const userId = await getCurrentUserId();
   return fetchJson<DashboardData>(`/dashboard/${userId}`);
 }
 
-export async function getFingerprint(userId: string): Promise<CognitiveFingerprint> {
+export async function getFingerprint(): Promise<CognitiveFingerprint> {
+  const userId = await getCurrentUserId();
   return fetchJson<CognitiveFingerprint>(`/dashboard/fingerprint/${userId}`);
 }
 
 export async function getSessionHistory(
-  userId: string,
   page = 1,
   limit = 20
 ): Promise<SessionHistoryResponse> {
+  const userId = await getCurrentUserId();
   return fetchJson<SessionHistoryResponse>(
     `/dashboard/history/${userId}?page=${page}&limit=${limit}`
   );
