@@ -153,6 +153,18 @@ class DatabaseManager:
                 (user_id,)
             )
             return dict(cursor.fetchone())
+
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get a session by ID."""
+        if self._using_supabase and self._impl is not None:
+            return self._impl.get_session(session_id)
+        with self.get_db() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM sessions WHERE session_id = ?",
+                (session_id,)
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
     
     def update_user_profile(self, user_id: str, **kwargs) -> Optional[Dict[str, Any]]:
         """

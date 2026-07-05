@@ -6,6 +6,7 @@ Uses Supabase REST endpoints over HTTPS (no direct Postgres connection).
 Reads SUPABASE_URL and SUPABASE_SERVICE_KEY from environment.
 """
 
+import logging
 import os
 import uuid
 import json
@@ -13,6 +14,9 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 import httpx
+
+
+logger = logging.getLogger(__name__)
 
 
 _SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
@@ -67,11 +71,8 @@ class SupabaseDatabaseManager:
     def _check_response(self, r: httpx.Response, context: str) -> None:
         if r.is_success:
             return
-        try:
-            body = r.text
-        except Exception:
-            body = ""
-        raise RuntimeError(f"{context} failed: {r.status_code} {r.reason_phrase} for {r.url}. Body: {body}")
+        logger.warning("%s failed with Supabase REST status %s", context, r.status_code)
+        raise RuntimeError(f"{context} failed")
 
     def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
         with httpx.Client() as client:
@@ -86,9 +87,9 @@ class SupabaseDatabaseManager:
                 return rows[0] if rows else None
             return None
 
-    def create_user(self, user_id: str, name: str = "", *, provided_id: bool = False) -> Dict[str, Any]:
+    def create_user(self, user_id: str, name: str = "", *, provided_id: bool = True) -> Dict[str, Any]:
         now = datetime.utcnow().isoformat()
-        if not provided_id:
+        if not provided_id or not user_id:
             user_id = str(uuid.uuid4())
         payload = {"user_id": user_id, "name": name, "created_at": now, "updated_at": now}
         with httpx.Client() as client:
@@ -102,6 +103,19 @@ class SupabaseDatabaseManager:
             if isinstance(row, list) and row:
                 return row[0]
             return payload
+
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        with httpx.Client() as client:
+            r = client.get(
+                f"{_base()}/sessions",
+                headers=_headers(),
+                params={"session_id": f"eq.{session_id}", "select": "*"},
+            )
+            self._check_response(r, "get_session")
+            rows = self._json_or_none(r)
+            if isinstance(rows, list):
+                return rows[0] if rows else None
+            return None
 
     def update_user_profile(self, user_id: str, **kwargs) -> Optional[Dict[str, Any]]:
         allowed_fields = {"name", "dominant_mode", "weakest_mode", "session_count"}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { motion } from "framer-motion";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   getProfile,
   getGraph,
@@ -44,13 +44,8 @@ function ProfileSkeleton() {
 
 function ProfileContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { user } = useSupabase();
-  const userId =
-    user?.id ||
-    searchParams.get("user_id") ||
-    (typeof window !== "undefined" ? sessionStorage.getItem("yentellect_user_id") : null) ||
-    "demo-user";
+  const { user, isLoading } = useSupabase();
+  const userId = user?.id;
 
   const [profile, setProfile] = useState<CognitiveProfile | null>(null);
   const [graphData, setGraphData] = useState<D3GraphData | null>(null);
@@ -60,13 +55,14 @@ function ProfileContent() {
   const [retryKey, setRetryKey] = useState(0);
 
   const load = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     setError(null);
     try {
       const [p, g, m] = await Promise.all([
-        getProfile(userId),
-        getGraph(userId),
-        getProfileMetrics(userId, 20),
+        getProfile(),
+        getGraph(),
+        getProfileMetrics(20),
       ]);
       setProfile(p);
       setGraphData(g);
@@ -80,7 +76,7 @@ function ProfileContent() {
 
   useEffect(() => { load(); }, [load, retryKey]);
 
-  if (loading) return <ProfileSkeleton />;
+  if (isLoading || !userId || loading) return <ProfileSkeleton />;
   if (error)
     return (
       <ErrorState
