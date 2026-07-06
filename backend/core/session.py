@@ -33,6 +33,7 @@ from .signals import BehavioralSignalExtractor
 from .classifier import ThinkingModeClassifier
 from .graph import KnowledgeGraph
 from .prompts import get_prompt, EXTRACT_CONCEPTS_PROMPT
+from .vsa import compute_session_vector
 from ..db.database import DatabaseManager, init_db
 
 
@@ -416,6 +417,16 @@ class SessionManager:
         except Exception:
             pass
         
+        # Compute and persist VSA session vector
+        try:
+            session_vec = compute_session_vector(modes_activated)
+            self.db.update_session(
+                session_id,
+                vector=json.dumps([round(v, 6) for v in session_vec])
+            )
+        except Exception:
+            logger.warning("Failed to compute session vector", exc_info=True)
+
         self.db.save_session_metrics(
             metric_id, session_id,
             modes_activated=modes_activated,
