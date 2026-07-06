@@ -42,14 +42,18 @@ export default function KnowledgeGraph({
   data,
   height = 500,
   onStartSession,
+  userId,
 }: {
   data?: { nodes: Array<any>; links: Array<any> } | null;
   height?: number;
   onStartSession?: () => void;
+  userId?: string;
 }) {
   const fgRef = useRef<any>(null);
   const [zoom, setZoom] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [simEdges, setSimEdges] = useState<Array<{source: string; target: string; similarity: number}>>([]);
+  const [loadingSim, setLoadingSim] = useState(false);
 
   const nodeCount = data?.nodes?.length ?? 0;
   const edgeCount = data?.links?.length ?? 0;
@@ -61,6 +65,34 @@ export default function KnowledgeGraph({
       fgRef.current.zoomToFit(400, 60);
     }
   }, []);
+
+  // Fetch similarity edges for session nodes
+  useEffect(() => {
+    if (!data?.nodes?.length || !userId) return;
+    const sessionIds = data.nodes
+      .filter((n: any) => n.session_id)
+      .map((n: any) => n.session_id)
+      .slice(0, 5);
+    if (sessionIds.length < 2) return;
+    setLoadingSim(true);
+    const fetchAll = sessionIds.map(async (sid: string) => {
+      try {
+        const res = await fetch(`/api/graph/nearest/${sid}?limit=3`);
+        if (!res.ok) return [];
+        const json = await res.json();
+        return (json.nearest || []).map((n: any) => ({
+          source: sid,
+          target: n.session_id,
+          similarity: n.similarity,
+        }));
+      } catch { return []; }
+    });
+    Promise.all(fetchAll).then((results) => {
+      const flat = results.flat().filter((e: any) => e.similarity > 0.1);
+      setSimEdges(flat);
+      setLoadingSim(false);
+    });
+  }, [data, userId]);
 
   // If empty, show demo graph with CTA
   if (isEmpty) {
@@ -112,6 +144,22 @@ export default function KnowledgeGraph({
     color: l.weight === "weak" ? "#5A648088" : "#6C63FF99",
     dash: l.weight === "weak" ? [4, 4] : undefined,
   }));
+
+  // Merge similarity edges into graph links (drawn as dashed accent lines)
+  for (const e of simEdges) {
+    const exists = graphLinks.some(
+      (l) => (l.source === e.source && l.target === e.target) || (l.source === e.target && l.target === e.source)
+    );
+    if (!exists) {
+      graphLinks.push({
+        source: e.source,
+        target: e.target,
+        color: `rgba(108, 99, 255, ${Math.max(0.15, e.similarity)})`,
+        width: Math.max(0.5, e.similarity * 3),
+        dash: [3, 6],
+      });
+    }
+  }
 
   // Ghost nodes for sparse state
   if (isSparse) {

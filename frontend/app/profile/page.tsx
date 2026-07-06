@@ -207,7 +207,7 @@ function ProfileContent() {
               <span className="text-xs text-[#5A6480]">{graphData.nodes.length} concepts</span>
             )}
           </div>
-          <KnowledgeGraph data={graphData || null} height={500} onStartSession={() => router.push("/")} />
+          <KnowledgeGraph data={graphData || null} height={500} onStartSession={() => router.push("/")} userId={userId} />
         </div>
 
         {/* Progress Chart */}
