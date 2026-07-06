@@ -240,7 +240,7 @@ class DatabaseManager:
         """
         if self._using_supabase and self._impl is not None:
             return self._impl.update_session(session_id, **kwargs)
-        allowed_fields = {"turn_count", "status", "summary", "ended_at"}
+        allowed_fields = {"turn_count", "status", "summary", "ended_at", "vector"}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         if not updates:
             return None
