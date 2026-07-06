@@ -68,7 +68,12 @@ export default function HistoryPage() {
           <>
             <div className="space-y-2 mb-6">
               {sessions.map((s, i) => (
-                <SessionCard key={s.session_id} session={s} index={i} />
+                <SessionCard
+                  key={s.session_id}
+                  session={s}
+                  index={i}
+                  onClick={() => router.push(`/session?session_id=${s.session_id}`)}
+                />
               ))}
             </div>
 

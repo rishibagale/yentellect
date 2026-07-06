@@ -172,6 +172,28 @@ export interface DashboardData {
   last_session_date: string | null;
 }
 
+export interface SessionDetailResponse {
+  session: {
+    session_id: string;
+    user_id: string;
+    mode_target: ThinkingMode;
+    predicted_mode: ThinkingMode;
+    status: string;
+    turn_count: number;
+    started_at: string;
+    ended_at: string | null;
+  };
+  turns: {
+    turn_id: string;
+    turn_number: number;
+    user_input: string;
+    response: string;
+    predicted_mode: string;
+    confidence: number;
+    created_at: string;
+  }[];
+}
+
 export interface SessionHistoryResponse {
   sessions: SessionSummary[];
   total: number;
@@ -320,4 +342,13 @@ export function getModeColor(mode: ThinkingMode): string {
 
 export function getModeName(mode: ThinkingMode): string {
   return mode.charAt(0) + mode.slice(1).toLowerCase();
+}
+
+export async function getSession(sessionId: string): Promise<SessionDetailResponse> {
+  return fetchJson<SessionDetailResponse>(`/sessions/${sessionId}`);
+}
+
+export async function getSessionMetrics(): Promise<SessionMetrics> {
+  const userId = await getCurrentUserId();
+  return fetchJson<SessionMetrics>(`/sessions/metrics?user_id=${userId}`);
 }
