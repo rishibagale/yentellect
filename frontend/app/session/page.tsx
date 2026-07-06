@@ -3,13 +3,14 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { startSession, getModeColor, getModeName, ThinkingMode } from "@/lib/api";
+import { startSession, getModeColor, getModeName, ThinkingMode, getSession } from "@/lib/api";
 import SessionChat from "@/components/SessionChat";
 import ModeIndicator from "@/components/ModeIndicator";
 import Header from "@/components/Header";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import { useSupabase } from "@/utils/supabase/provider";
+import { useSearchParams } from "next/navigation";
 
 function SessionSkeleton() {
   return (
@@ -42,6 +43,7 @@ function SessionSkeleton() {
 
 function SessionContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoading } = useSupabase();
   const [userId, setUserId] = useState<string | null>(null);
   const [opening, setOpening] = useState("");
@@ -56,7 +58,36 @@ function SessionContent() {
   const [summary, setSummary] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [readOnly, setReadOnly] = useState(false);
   const startInitiatedRef = useRef(false);
+  const viewingSessionId = searchParams.get("session_id");
+
+  // Load existing ended session if session_id is in URL
+  useEffect(() => {
+    if (!viewingSessionId || !user) return;
+    let cancelled = false;
+    setError(null);
+    getSession(viewingSessionId)
+      .then((data) => {
+        if (cancelled) return;
+        const s = data.session;
+        const first = data.turns[0];
+        setSessionData({
+          session_id: s.session_id,
+          response: first?.response || "",
+          mode_target: s.mode_target,
+          predicted_mode: s.predicted_mode,
+          confidence: first?.confidence || 0,
+        });
+        setUserId(user.id);
+        setReadOnly(true);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err?.message || "Could not load session");
+      });
+    return () => { cancelled = true; };
+  }, [viewingSessionId, user]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -64,6 +95,8 @@ function SessionContent() {
       router.replace("/auth/login?redirect=/session");
       return;
     }
+    // If viewing an existing session, don't start a new one
+    if (viewingSessionId) return;
     let pendingOpening = "";
     if (typeof window !== "undefined") {
       pendingOpening = sessionStorage.getItem("yentellect_opening") || "";
@@ -73,11 +106,12 @@ function SessionContent() {
     startInitiatedRef.current = false;
     setUserId(user.id);
     setOpening(pendingOpening);
-  }, [isLoading, router, user]);
+  }, [isLoading, router, user, viewingSessionId]);
 
   useEffect(() => {
     if (!userId) return;
     if (startInitiatedRef.current) return;
+    if (viewingSessionId) return;
     startInitiatedRef.current = true;
     setError(null);
     startSession(opening)
@@ -97,7 +131,7 @@ function SessionContent() {
         startInitiatedRef.current = false;
         setError(err?.message || "Failed to start session");
       });
-  }, [userId, opening, retryKey]);
+  }, [userId, opening, retryKey, viewingSessionId]);
 
   if (error) {
     return (
@@ -114,7 +148,7 @@ function SessionContent() {
   }
 
   if (!userId || !sessionData) {
-    return <LoadingState message="Initializing your session..." />;
+    return <LoadingState message={viewingSessionId ? "Loading session..." : "Initializing your session..."} />;
   }
 
   return (

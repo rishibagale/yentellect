@@ -104,3 +104,22 @@ async def end_session(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not end session.",
         )
+
+
+@router.get("/metrics")
+async def get_session_metrics(current_user: CurrentUser = Depends(get_current_user)):
+    rows = db.get_session_metrics(str(current_user.id))
+    return {"metrics": rows}
+
+
+@router.get("/{session_id}")
+async def get_session_detail(
+    session_id: UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    require_session_owner(db, session_id, current_user)
+    s = db.get_session(str(session_id))
+    if not s:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+    turns = db.get_session_turns(str(session_id))
+    return {"session": s, "turns": turns}
