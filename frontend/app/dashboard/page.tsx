@@ -109,7 +109,7 @@ function RecentFeed({ sessions }: { sessions: any[] | undefined }) {
     return (
       <div className="bg-[#0F1420] border border-[#1E2535] rounded-[16px] p-6 text-center shadow-card">
         <div className="text-sm text-[#5A6480] mb-3">Your first session will appear here.</div>
-        <button onClick={() => router.push("/")} className="px-4 py-2 rounded-[10px] bg-[#6C63FF] text-white text-xs font-medium hover:opacity-90 transition shadow-active">
+        <button onClick={() => router.push("/session")} className="px-4 py-2 rounded-[10px] bg-[#6C63FF] text-white text-xs font-medium hover:opacity-90 transition shadow-active">
           Start one →
         </button>
       </div>
@@ -261,7 +261,7 @@ export default function DashboardPage() {
               <ModeBreakdown scores={fp.scores} />
             </motion.div>
             <motion.div variants={fadeInUp}>
-              <ThinkingToday dominant={dominant} onStart={() => router.push("/")} />
+              <ThinkingToday dominant={dominant} onStart={() => router.push("/session")} />
             </motion.div>
             <motion.div variants={fadeInUp}>
               <div className="text-[11px] uppercase tracking-[0.1em] text-[#5A6480] mb-3 font-mono">Recent sessions</div>
@@ -277,7 +277,7 @@ export default function DashboardPage() {
           >
             <div className="bg-[#0F1420] border border-[#1E2535] rounded-[16px] p-8 text-center max-w-2xl mx-auto shadow-card">
               <div className="text-sm text-[#5A6480] mb-4">Begin training to visualize your thinking profile.</div>
-              <button onClick={() => router.push("/")} className="px-5 py-2.5 rounded-[10px] bg-[#6C63FF] text-white text-sm font-medium hover:opacity-90 transition shadow-active">
+              <button onClick={() => router.push("/session")} className="px-5 py-2.5 rounded-[10px] bg-[#6C63FF] text-white text-sm font-medium hover:opacity-90 transition shadow-active">
                 Start your first session
               </button>
             </div>

@@ -18,7 +18,15 @@ function friendlyModeName(mode?: string) {
   return map[(mode || "").toUpperCase()] || mode || "Mode";
 }
 function labelFor(d: any) {
-  return d.topic || d.concept || d.name || "Concept";
+  // Show meaningful label: goal/concept name, fallback to mode + short summary
+  if (d.goal) return d.goal;
+  if (d.concept && d.concept !== "?") return d.concept;
+  if (d.name && !d.name.startsWith("Session ")) return d.name;
+  // For session nodes, show mode + learned concept
+  const modeLabel = friendlyModeName(d.thinkingMode || d.mode);
+  const learned = d.learned_concept || d.topic || "";
+  if (learned) return `${modeLabel}: ${learned}`;
+  return modeLabel;
 }
 function radiusFor(d: any) {
   const n = d.connections ?? d.sessionCount ?? 0;

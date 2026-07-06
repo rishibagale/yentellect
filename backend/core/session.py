@@ -402,10 +402,13 @@ class SessionManager:
 
         concepts_added = 0
         bridges_formed = 0
-        # Minimal fallback: create one concept so the knowledge graph has content
+        # Create concept node with goal + learned concept name
         try:
             concept_id = str(uuid.uuid4())
-            concept_name = f"Session {session_id[:8]} ({mode_target.value})"
+            # Use the first user input (opening) as the goal
+            turns = self.db.get_session_turns(session_id, limit=1)
+            goal = turns[0]["user_input"][:60] if turns else ""
+            concept_name = f"{mode_target.value}: {goal}" if goal else mode_target.value
             self.db.save_concept_node(
                 concept_id=concept_id,
                 user_id=user_id,

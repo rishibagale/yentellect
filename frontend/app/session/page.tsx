@@ -67,7 +67,6 @@ function SessionContent() {
     let pendingOpening = "";
     if (typeof window !== "undefined") {
       pendingOpening = sessionStorage.getItem("yentellect_opening") || "";
-      // Fresh session — do NOT reuse previous session data.
       sessionStorage.removeItem("yentellect_session_id");
       sessionStorage.removeItem("yentellect_opening");
     }
@@ -121,8 +120,8 @@ function SessionContent() {
   return (
     <div className="min-h-screen flex flex-col bg-[#0a0a0b] text-slate-100">
       <Header />
-      <main className="flex-1 px-4 md:px-6 py-4 max-w-7xl w-full mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 h-[calc(100vh-7rem)]">
+      <main className="flex-1 px-3 md:px-6 py-3 md:py-4 max-w-7xl w-full mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3 h-[calc(100vh-7rem)]">
           <SessionChat
             sessionId={sessionData.session_id}
             userId={userId}
@@ -135,7 +134,35 @@ function SessionContent() {
               setShowSummary(true);
             }}
           />
-          <aside className="space-y-3 overflow-y-auto scrollbar-thin pr-1">
+          {/* Mobile: collapsible sidebar */}
+          <details className="lg:hidden">
+            <summary className="text-xs text-[#5A6480] cursor-pointer hover:text-white transition px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 mb-2">
+              Session details ▾
+            </summary>
+            <aside className="space-y-3 overflow-y-auto scrollbar-thin pr-1">
+              <ModeIndicator
+                mode={sessionData.predicted_mode}
+                confidence={sessionData.confidence}
+              />
+              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-4">
+                <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">Training target</div>
+                <div className="text-base font-semibold" style={{ color: getModeColor(sessionData.mode_target) }}>
+                  {getModeName(sessionData.mode_target)}
+                </div>
+                <div className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  Selected by your knowledge graph + weakest-area analysis.
+                </div>
+              </div>
+              <button
+                onClick={() => router.push("/profile")}
+                className="w-full py-2.5 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition text-sm font-medium"
+              >
+                View full profile →
+              </button>
+            </aside>
+          </details>
+          {/* Desktop sidebar */}
+          <aside className="hidden lg:block space-y-3 overflow-y-auto scrollbar-thin pr-1">
             <ModeIndicator
               mode={sessionData.predicted_mode}
               confidence={sessionData.confidence}
