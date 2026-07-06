@@ -41,21 +41,22 @@ export default function ProgressChart({ metrics }: ProgressChartProps) {
   const modes: ThinkingMode[] = [
     "CONVERGENT", "DIVERGENT", "ANALOGICAL", "METACOGNITIVE", "SYSTEMS", "DMN",
   ];
+  // Show modes that have any data, even a single session
   const visibleModes = modes.filter((mode) =>
-    data.filter((d) => d && (d as any)[mode] > 0).length >= 3
+    data.some((d) => d && (d as any)[mode] > 0)
   );
 
   if (data.length === 0) {
     return (
-      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-12 text-center">
-        <p className="text-slate-500 text-sm">Complete at least 3 sessions to see your progress chart.</p>
+      <div className="bg-[#0F1420] border border-[#1E2535] rounded-[16px] p-8 text-center shadow-card">
+        <p className="text-[#5A6480] text-sm">Complete your first session to see progress.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl p-5">
-      <h3 className="text-sm font-semibold mb-4 text-slate-200">Mode performance over time</h3>
+    <div className="bg-[#0F1420] backdrop-blur-xl border border-[#1E2535] rounded-[16px] p-5 shadow-card">
+      <h3 className="text-sm font-semibold mb-4 text-[#F0F4FF] font-space">Mode performance over time</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
