@@ -121,6 +121,12 @@ class DatabaseManager:
         concept_cols = {row["name"] for row in cursor.fetchall()}
         if "session_id" not in concept_cols:
             conn.execute("ALTER TABLE concept_nodes ADD COLUMN session_id TEXT")
+        if "vector" not in concept_cols:
+            conn.execute("ALTER TABLE concept_nodes ADD COLUMN vector TEXT")
+        if "is_fusion" not in concept_cols:
+            conn.execute("ALTER TABLE concept_nodes ADD COLUMN is_fusion INTEGER NOT NULL DEFAULT 0")
+        if "fusion_parent_ids" not in concept_cols:
+            conn.execute("ALTER TABLE concept_nodes ADD COLUMN fusion_parent_ids TEXT")
     
     def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -369,7 +375,9 @@ class DatabaseManager:
             return dict(cursor.fetchone())
     
     def save_concept_node(self, concept_id: str, user_id: str, name: str,
-                          domain: str, thinking_mode_association: str) -> Dict[str, Any]:
+                          domain: str, thinking_mode_association: str,
+                          session_id: str = None, vector: list = None,
+                          is_fusion: bool = False, fusion_parent_ids: list = None) -> Dict[str, Any]:
         """
         Save a knowledge graph concept node.
         
@@ -379,20 +387,30 @@ class DatabaseManager:
             name: Concept name
             domain: Concept domain
             thinking_mode_association: Associated thinking mode
+            session_id: Optional session that created this concept
+            vector: Optional 512-dim VSA vector
+            is_fusion: True if created by fusing two sessions
+            fusion_parent_ids: Optional list of parent session IDs
             
         Returns:
             Dict with created concept node data
         """
         if self._using_supabase and self._impl is not None:
-            return self._impl.save_concept_node(concept_id, user_id, name, domain, thinking_mode_association)
+            return self._impl.save_concept_node(concept_id, user_id, name, domain,
+                                                 thinking_mode_association, session_id,
+                                                 vector, is_fusion, fusion_parent_ids)
         now = datetime.utcnow().isoformat()
+        vector_json = json.dumps(vector) if vector else None
+        fusion_json = json.dumps(fusion_parent_ids) if fusion_parent_ids else None
         with self.get_db() as conn:
             conn.execute(
                 """INSERT INTO concept_nodes (concept_id, user_id, name, domain,
-                   thinking_mode_association, last_reinforced, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   thinking_mode_association, session_id, vector, is_fusion,
+                   fusion_parent_ids, last_reinforced, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (concept_id, user_id, name, domain,
-                 thinking_mode_association, now, now)
+                 thinking_mode_association, session_id, vector_json,
+                 1 if is_fusion else 0, fusion_json, now, now)
             )
             cursor = conn.execute(
                 "SELECT * FROM concept_nodes WHERE concept_id = ?",
@@ -414,7 +432,8 @@ class DatabaseManager:
         if self._using_supabase and self._impl is not None:
             return self._impl.update_concept_node(concept_id, **kwargs)
         allowed_fields = {"confidence_score", "last_reinforced", "session_count",
-                         "thinking_mode_association"}
+                         "thinking_mode_association", "session_id", "vector",
+                         "is_fusion", "fusion_parent_ids"}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         if not updates:
             return None

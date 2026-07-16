@@ -402,19 +402,69 @@ class SessionManager:
 
         concepts_added = 0
         bridges_formed = 0
+        narrative_summary = ""
 
-        # Create concept node via KnowledgeGraph (handles dedup + reinforcement)
+        # Generate LLM summary and extract concepts from session transcript
+        try:
+            turns = self.db.get_session_turns(session_id)
+            transcript = "\n".join(
+                f"{'User' if i % 2 == 0 else 'Assistant'}: {t['user_input'] if i % 2 == 0 else t.get('response', '')}"
+                for i, t in enumerate(turns[-10:])
+            )
+            extraction_response = self.llm.chat_completion(
+                messages=[
+                    {"role": "system", "content": EXTRACT_CONCEPTS_PROMPT},
+                    {"role": "user", "content": f"Session mode: {mode_target.value}\n\nTranscript:\n{transcript}"},
+                ],
+                temperature=0.3,
+                max_tokens=800,
+            )
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', extraction_response)
+            if json_match:
+                extraction = json.loads(json_match.group())
+                narrative_summary = extraction.get("session_summary", {}).get("narrative", "")
+                extracted_concepts = extraction.get("new_concepts", [])
+            else:
+                extracted_concepts = []
+        except Exception:
+            logger.warning("LLM concept extraction failed; using fallback", exc_info=True)
+            extracted_concepts = []
+
+        # Create concept nodes via KnowledgeGraph
         graph = KnowledgeGraph(user_id, self.db)
         try:
-            turns = self.db.get_session_turns(session_id, limit=1)
-            goal = turns[0]["user_input"][:60] if turns else ""
-            concept_name = f"{mode_target.value}: {goal}" if goal else mode_target.value
-            concept = graph.add_concept(
-                name=concept_name,
-                domain="general",
-                thinking_mode=mode_target,
-            )
-            concepts_added = 1
+            if extracted_concepts:
+                for ec in extracted_concepts[:3]:
+                    concept = graph.add_concept(
+                        name=ec.get("name", mode_target.value)[:200],
+                        domain=ec.get("domain", "general")[:100],
+                        thinking_mode=mode_target,
+                    )
+                    concepts_added += 1
+            else:
+                turns = self.db.get_session_turns(session_id, limit=1)
+                goal = turns[0]["user_input"][:60] if turns else ""
+                concept_name = f"{mode_target.value}: {goal}" if goal else mode_target.value
+                concept = graph.add_concept(
+                    name=concept_name,
+                    domain="general",
+                    thinking_mode=mode_target,
+                )
+                concepts_added = 1
+
+            # Compute concept VSA vectors and link to session
+            signal_dicts = [sv.model_dump() for sv in signal_history]
+            session_vec = compute_enriched_session_vector(modes_activated, signal_dicts)
+            for node in graph._nodes.values():
+                if str(node.id) == str(concept.id):
+                    node.session_id = session_id
+                    node.vector = session_vec
+                    self.db.update_concept_node(
+                        str(node.id), session_id=session_id,
+                        vector=json.dumps([round(v, 6) for v in session_vec])
+                    )
+                    break
 
             # Strengthen edges between the new concept and related concepts
             related_nodes = [
@@ -430,14 +480,23 @@ class SessionManager:
         
         # Compute and persist VSA session vector
         try:
-            signal_dicts = [sv.model_dump() for sv in signal_history]
-            session_vec = compute_enriched_session_vector(modes_activated, signal_dicts)
+            if not signal_dicts:
+                signal_dicts = [sv.model_dump() for sv in signal_history]
+            if 'session_vec' not in dir():
+                session_vec = compute_enriched_session_vector(modes_activated, signal_dicts)
             self.db.update_session(
                 session_id,
                 vector=json.dumps([round(v, 6) for v in session_vec])
             )
         except Exception:
             logger.warning("Failed to compute session vector", exc_info=True)
+
+        # Write narrative summary to session
+        if narrative_summary:
+            try:
+                self.db.update_session(session_id, summary=narrative_summary)
+            except Exception:
+                pass
 
         self.db.save_session_metrics(
             metric_id, session_id,
@@ -455,6 +514,7 @@ class SessionManager:
         return {
             "session_id": session_id,
             "summary": {
+                "narrative": narrative_summary,
                 "modes_activated": modes_activated,
                 "concepts_added": concepts_added,
                 "bridges_formed": bridges_formed,

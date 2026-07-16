@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS concept_nodes (
     session_count INTEGER NOT NULL DEFAULT 0,
     thinking_mode_association TEXT NOT NULL DEFAULT 'CONVERGENT',
     session_id TEXT,                             -- Optional FK to originating session
+    vector TEXT,                                 -- 512-dim VSA vector as JSON
+    is_fusion INTEGER NOT NULL DEFAULT 0,        -- 1 if created by fusing two sessions
+    fusion_parent_ids TEXT,                       -- JSON array of parent session IDs
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );

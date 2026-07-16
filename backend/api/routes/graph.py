@@ -3,9 +3,10 @@
 import json
 import logging
 from uuid import UUID
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
 
 from ...core.graph import KnowledgeGraph
 from ...core.vsa import similarity, compute_session_vector
@@ -15,6 +16,11 @@ from ..security import CurrentUser, get_current_user, require_user_id
 router = APIRouter(prefix="/graph", tags=["graph"])
 db = DatabaseManager()
 logger = logging.getLogger(__name__)
+
+
+class FuseRequest(BaseModel):
+    session_a_id: str = Field(..., description="First session UUID to fuse")
+    session_b_id: str = Field(..., description="Second session UUID to fuse")
 
 
 @router.get("/nearest/{session_id}")
@@ -92,4 +98,58 @@ async def get_graph(user_id: UUID, current_user: CurrentUser = Depends(get_curre
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not load graph.",
+        )
+
+
+@router.post("/fuse")
+async def fuse_sessions(
+    req: FuseRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Fuse two sessions into a new fusion concept using VSA binding.
+    
+    Creates a new concept node with a VSA vector that is the circular
+    convolution (bind) of the two session vectors. Edges are created
+    from the fusion concept to both parent session concepts.
+    """
+    try:
+        # Verify both sessions exist and belong to the user
+        session_a = db.get_session(req.session_a_id)
+        session_b = db.get_session(req.session_b_id)
+        
+        if not session_a or not session_b:
+            raise HTTPException(status_code=404, detail="One or both sessions not found")
+        
+        user_id = session_a["user_id"]
+        if current_user and current_user.id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        if session_b["user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="Sessions belong to different users")
+        
+        graph = KnowledgeGraph(user_id, db)
+        fusion = graph.fuse_sessions(req.session_a_id, req.session_b_id)
+        
+        if not fusion:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not fuse sessions. Both sessions must have VSA vectors."
+            )
+        
+        return {
+            "fusion_concept_id": str(fusion.id),
+            "name": fusion.name,
+            "domain": fusion.domain,
+            "is_fusion": True,
+            "fusion_parent_ids": fusion.fusion_parent_ids,
+            "thinkingMode": fusion.thinking_mode_association.value,
+        }
+    
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to fuse sessions")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fuse sessions",
         )

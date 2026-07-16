@@ -105,6 +105,12 @@ export interface D3GraphData {
     sessionCount: number;
     thinkingMode: ThinkingMode;
     isolated: boolean;
+    type?: "concept" | "session" | "fusion";
+    sessionId?: string;
+    fusionParentIds?: string[];
+    modeTarget?: string;
+    status?: string;
+    turnCount?: number;
   }>;
   links: Array<{
     source: string;
@@ -112,6 +118,7 @@ export interface D3GraphData {
     weight: number;
     connectionCount: number;
     lastActivated: string;
+    type?: "reinforcement" | "produced" | "fusion" | "similarity";
   }>;
 }
 
@@ -351,4 +358,26 @@ export async function getSession(sessionId: string): Promise<SessionDetailRespon
 export async function getSessionMetrics(): Promise<SessionMetrics> {
   const userId = await getCurrentUserId();
   return fetchJson<SessionMetrics>(`/sessions/metrics?user_id=${userId}`);
+}
+
+export interface FusionResponse {
+  fusion_concept_id: string;
+  name: string;
+  domain: string;
+  is_fusion: boolean;
+  fusion_parent_ids: string[];
+  thinkingMode: ThinkingMode;
+}
+
+export async function fuseSessions(
+  sessionAId: string,
+  sessionBId: string
+): Promise<FusionResponse> {
+  return fetchJson<FusionResponse>("/graph/fuse", {
+    method: "POST",
+    body: JSON.stringify({
+      session_a_id: sessionAId,
+      session_b_id: sessionBId,
+    }),
+  });
 }

@@ -23,6 +23,7 @@ from .models import (
     ThinkingMode, ConceptNode, GraphEdge, CognitiveProfile
 )
 from ..db.database import DatabaseManager
+from .vsa import bind, similarity, get_mode_vector
 
 
 class KnowledgeGraph:
@@ -68,7 +69,11 @@ class KnowledgeGraph:
                 confidence_score=row["confidence_score"],
                 last_reinforced=last_reinforced,
                 session_count=row["session_count"],
-                thinking_mode_association=ThinkingMode(row["thinking_mode_association"])
+                thinking_mode_association=ThinkingMode(row["thinking_mode_association"]),
+                session_id=row.get("session_id"),
+                vector=json.loads(row["vector"]) if row.get("vector") else None,
+                is_fusion=bool(row.get("is_fusion", 0)),
+                fusion_parent_ids=json.loads(row["fusion_parent_ids"]) if row.get("fusion_parent_ids") else None,
             )
             self._nodes[row["concept_id"]] = node
         
@@ -329,13 +334,16 @@ class KnowledgeGraph:
     def to_d3_json(self) -> Dict[str, list]:
         """
         Export graph to D3.js force-directed graph format.
+        Includes concept nodes, session nodes, and fusion edges.
         
         Returns:
             Dict with "nodes" and "links" arrays
         """
         d3_nodes = []
         d3_links = []
+        seen_sessions = set()
         
+        # Concept nodes
         for node in self._nodes.values():
             d3_nodes.append({
                 "id": str(node.id),
@@ -345,17 +353,73 @@ class KnowledgeGraph:
                 "lastReinforced": node.last_reinforced.isoformat(),
                 "sessionCount": node.session_count,
                 "thinkingMode": node.thinking_mode_association.value,
-                "isolated": self._is_isolated(str(node.id))
+                "isolated": self._is_isolated(str(node.id)),
+                "type": "fusion" if node.is_fusion else "concept",
+                "sessionId": node.session_id,
+                "fusionParentIds": node.fusion_parent_ids,
             })
+            # Session→concept edges
+            if node.session_id and node.session_id not in seen_sessions:
+                seen_sessions.add(node.session_id)
         
+        # Session nodes (from session metrics)
+        try:
+            sessions = self.db._get_user_sessions(self.user_id) if hasattr(self.db, '_get_user_sessions') else []
+        except Exception:
+            sessions = []
+        
+        # Also check concepts for session_ids we haven't seen
+        for node in self._nodes.values():
+            if node.session_id and node.session_id not in seen_sessions:
+                seen_sessions.add(node.session_id)
+        
+        # Fetch session data for session nodes
+        for sid in seen_sessions:
+            try:
+                session_data = self.db.get_session(sid) if hasattr(self.db, 'get_session') else None
+                if session_data:
+                    summary_text = session_data.get("summary", "")
+                    if isinstance(summary_text, str) and len(summary_text) > 120:
+                        summary_text = summary_text[:120] + "..."
+                    d3_nodes.append({
+                        "id": f"session-{sid}",
+                        "name": summary_text or f"Session {sid[:8]}",
+                        "type": "session",
+                        "modeTarget": session_data.get("mode_target", ""),
+                        "status": session_data.get("status", ""),
+                        "turnCount": session_data.get("turn_count", 0),
+                        "sessionId": sid,
+                    })
+                    # Edge from session to its concept
+                    for node in self._nodes.values():
+                        if node.session_id == sid:
+                            d3_links.append({
+                                "source": f"session-{sid}",
+                                "target": str(node.id),
+                                "weight": 0.8,
+                                "connectionCount": 1,
+                                "lastActivated": datetime.utcnow().isoformat(),
+                                "type": "produced",
+                            })
+            except Exception:
+                pass
+        
+        # Graph edges
         for (s_id, t_id), edge in self._edges.items():
-            d3_links.append({
+            link = {
                 "source": s_id,
                 "target": t_id,
                 "weight": edge.weight,
                 "connectionCount": edge.connection_count,
-                "lastActivated": edge.last_activated.isoformat()
-            })
+                "lastActivated": edge.last_activated.isoformat(),
+                "type": "reinforcement",
+            }
+            # Mark fusion edges
+            source_node = self._nodes.get(s_id)
+            target_node = self._nodes.get(t_id)
+            if target_node and target_node.is_fusion:
+                link["type"] = "fusion"
+            d3_links.append(link)
         
         return {
             "nodes": d3_nodes,
@@ -446,7 +510,11 @@ class KnowledgeGraph:
                 confidence_score=node.confidence_score,
                 last_reinforced=node.last_reinforced.isoformat(),
                 session_count=node.session_count,
-                thinking_mode_association=node.thinking_mode_association.value
+                thinking_mode_association=node.thinking_mode_association.value,
+                session_id=node.session_id,
+                vector=json.dumps([round(v, 6) for v in node.vector]) if node.vector else None,
+                is_fusion=node.is_fusion,
+                fusion_parent_ids=json.dumps(node.fusion_parent_ids) if node.fusion_parent_ids else None,
             )
         except Exception:
             # Fall back to insert
@@ -518,3 +586,79 @@ class KnowledgeGraph:
             node for node in self._nodes.values()
             if getattr(node, "session_id", None) == session_id
         ]
+
+    def fuse_sessions(self, session_a_id: str, session_b_id: str) -> Optional[ConceptNode]:
+        """
+        Fuse two sessions into a new fusion concept using VSA binding.
+        
+        Args:
+            session_a_id: First session UUID
+            session_b_id: Second session UUID
+            
+        Returns:
+            The new fusion ConceptNode, or None on failure
+        """
+        # Get session vectors
+        vec_a = self._get_session_vector(session_a_id)
+        vec_b = self._get_session_vector(session_b_id)
+        
+        if not vec_a or not vec_b:
+            return None
+        
+        # VSA binding: bind two session vectors to create fusion vector
+        fusion_vector = bind(vec_a, vec_b)
+        
+        # Get session metadata for naming
+        meta_a = self._get_session_meta(session_a_id)
+        meta_b = self._get_session_meta(session_b_id)
+        
+        mode_a = meta_a.get("mode_target", "CONVERGENT") if meta_a else "CONVERGENT"
+        mode_b = meta_b.get("mode_target", "DIVERGENT") if meta_b else "DIVERGENT"
+        
+        # Create fusion concept
+        concept_name = f"Fusion: {mode_a} + {mode_b}"
+        fusion_concept = ConceptNode(
+            name=concept_name,
+            domain="fusion",
+            thinking_mode_association=ThinkingMode(mode_a),
+            session_id=None,
+            vector=fusion_vector,
+            is_fusion=True,
+            fusion_parent_ids=[session_a_id, session_b_id],
+        )
+        self._nodes[str(fusion_concept.id)] = fusion_concept
+        self._save_concept(fusion_concept)
+        
+        # Create edges from fusion concept to parent concepts
+        parent_concepts_a = self._find_concepts_by_session(session_a_id)
+        parent_concepts_b = self._find_concepts_by_session(session_b_id)
+        
+        for pc in parent_concepts_a + parent_concepts_b:
+            try:
+                self.strengthen_edge(str(fusion_concept.id), str(pc.id), amount=0.3)
+            except Exception:
+                pass
+        
+        return fusion_concept
+
+    def _get_session_vector(self, session_id: str) -> Optional[List[float]]:
+        """Get the VSA vector for a session."""
+        try:
+            session_data = self.db.get_session(session_id) if hasattr(self.db, 'get_session') else None
+            if session_data and session_data.get("vector"):
+                vec = session_data["vector"]
+                if isinstance(vec, str):
+                    return json.loads(vec)
+                return vec
+        except Exception:
+            pass
+        return None
+
+    def _get_session_meta(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get session metadata (mode_target, summary, etc.)."""
+        try:
+            if hasattr(self.db, 'get_session'):
+                return self.db.get_session(session_id)
+        except Exception:
+            pass
+        return None

@@ -223,13 +223,23 @@ class SupabaseDatabaseManager:
             return payload
 
     def save_concept_node(self, concept_id: str, user_id: str, name: str,
-                          domain: str, thinking_mode_association: str) -> Dict[str, Any]:
+                          domain: str, thinking_mode_association: str,
+                          session_id: str = None, vector: list = None,
+                          is_fusion: bool = False, fusion_parent_ids: list = None) -> Dict[str, Any]:
         now = datetime.utcnow().isoformat()
         payload = {
             "concept_id": concept_id, "user_id": user_id, "name": name,
             "domain": domain, "thinking_mode_association": thinking_mode_association,
             "last_reinforced": now, "created_at": now,
         }
+        if session_id:
+            payload["session_id"] = session_id
+        if vector:
+            payload["vector"] = vector
+        if is_fusion:
+            payload["is_fusion"] = True
+        if fusion_parent_ids:
+            payload["fusion_parent_ids"] = fusion_parent_ids
         with httpx.Client() as client:
             r = client.post(
                 f"{_base()}/concept_nodes",
@@ -243,7 +253,9 @@ class SupabaseDatabaseManager:
             return payload
 
     def update_concept_node(self, concept_id: str, **kwargs) -> Optional[Dict[str, Any]]:
-        allowed = {"confidence_score", "last_reinforced", "session_count", "thinking_mode_association"}
+        allowed = {"confidence_score", "last_reinforced", "session_count",
+                   "thinking_mode_association", "session_id", "vector",
+                   "is_fusion", "fusion_parent_ids"}
         updates = {k: v for k, v in kwargs.items() if k in allowed}
         if not updates:
             return None

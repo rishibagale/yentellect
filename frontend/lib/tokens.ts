@@ -18,6 +18,9 @@ export const tokens = {
     text: '#F0F4FF',
     muted: '#5A6480',
     success: '#00FFB2',
+    particle: 'rgba(108,99,255,0.6)',
+    session: 'rgba(0,229,255,0.15)',
+    fusion: 'linear-gradient(135deg, #6C63FF, #A855F7)',
     modes: {
       CONVERGENT: '#6C63FF',
       DIVERGENT: '#A855F7',

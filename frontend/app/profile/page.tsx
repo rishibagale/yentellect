@@ -14,6 +14,7 @@ import {
 } from "@/lib/api";
 import { MODE_PALETTES, ANIMATION, MODE_DESCRIPTIONS } from "@/lib/tokens";
 import KnowledgeGraph from "@/components/KnowledgeGraph";
+import NodeDetailPanel from "@/components/NodeDetailPanel";
 import ProgressChart from "@/components/ProgressChart";
 import Header from "@/components/Header";
 import ErrorState from "@/components/ErrorState";
@@ -53,6 +54,7 @@ function ProfileContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [selectedNode, setSelectedNode] = useState<any | null>(null);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -200,14 +202,21 @@ function ProfileContent() {
         </motion.div>
 
         {/* Knowledge Graph — always rendered so empty states show demo/constellation */}
-        <div className="mb-6">
+        <div className="mb-6 relative">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-[#F0F4FF] font-space">Knowledge graph</h2>
             {graphData && graphData.nodes.length > 0 && (
               <span className="text-xs text-[#5A6480]">{graphData.nodes.length} concepts</span>
             )}
           </div>
-          <KnowledgeGraph data={graphData || null} height={500} onStartSession={() => router.push("/")} userId={userId} />
+          <KnowledgeGraph
+            data={graphData || null}
+            height={500}
+            onStartSession={() => router.push("/")}
+            userId={userId}
+            onNodeClick={setSelectedNode}
+          />
+          <NodeDetailPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
         </div>
 
         {/* Progress Chart */}

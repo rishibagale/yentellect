@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS concept_nodes (
     session_count INTEGER NOT NULL DEFAULT 0,
     thinking_mode_association TEXT NOT NULL DEFAULT 'CONVERGENT',
     session_id TEXT,                             -- Optional FK to originating session
+    vector JSONB,                                -- 512-dim VSA vector
+    is_fusion BOOLEAN NOT NULL DEFAULT FALSE,    -- True if created by fusing two sessions
+    fusion_parent_ids JSONB,                      -- Array of parent session IDs
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_concept_nodes_user_id ON concept_nodes(user_id);

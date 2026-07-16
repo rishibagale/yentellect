@@ -102,11 +102,15 @@ class ConceptNode(BaseModel):
     
     id: UUID = Field(default_factory=uuid4)
     name: str = Field(..., min_length=1, max_length=200)
-    domain: str = Field(..., min_length=1, max_length=100)  # e.g., "physics", "psychology", "programming"
+    domain: str = Field(..., min_length=1, max_length=100)
     confidence_score: float = Field(default=1.0, ge=0.0, le=1.0)
     last_reinforced: datetime = Field(default_factory=datetime.utcnow)
     session_count: int = Field(default=0, ge=0)
     thinking_mode_association: ThinkingMode = Field(default=ThinkingMode.CONVERGENT)
+    session_id: Optional[str] = Field(default=None, description="Session that created this concept")
+    vector: Optional[List[float]] = Field(default=None, description="512-dim VSA vector for this concept")
+    is_fusion: bool = Field(default=False, description="True if this concept was created by fusing two sessions")
+    fusion_parent_ids: Optional[List[str]] = Field(default=None, description="Session IDs that were fused to create this concept")
 
 
 class GraphEdge(BaseModel):
