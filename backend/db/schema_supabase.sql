@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     turn_count INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'active',       -- 'active', 'completed', 'abandoned'
     summary JSONB,                               -- JSON summary from state machine
+    vector JSONB,                                -- JSON-serialized 512-dim VSA session vector
     started_at TIMESTAMPTZ,                      -- When the session began
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     ended_at TIMESTAMPTZ
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS concept_nodes (
     last_reinforced TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     session_count INTEGER NOT NULL DEFAULT 0,
     thinking_mode_association TEXT NOT NULL DEFAULT 'CONVERGENT',
+    session_id TEXT,                             -- Optional FK to originating session
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_concept_nodes_user_id ON concept_nodes(user_id);

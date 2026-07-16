@@ -94,6 +94,7 @@ class DatabaseManager:
         
         Runs schema.sql to create all tables and indexes.
         Safe to call multiple times (uses IF NOT EXISTS).
+        Also runs migrations for existing databases.
         """
         if self._using_supabase and self._impl is not None:
             self._impl.init_db()
@@ -107,6 +108,19 @@ class DatabaseManager:
         
         with self.get_db() as conn:
             conn.executescript(schema_sql)
+            self._migrate(conn)
+
+    def _migrate(self, conn: sqlite3.Connection) -> None:
+        """Run incremental schema migrations for existing databases."""
+        cursor = conn.execute("PRAGMA table_info(sessions)")
+        columns = {row["name"] for row in cursor.fetchall()}
+        if "vector" not in columns:
+            conn.execute("ALTER TABLE sessions ADD COLUMN vector TEXT")
+
+        cursor = conn.execute("PRAGMA table_info(concept_nodes)")
+        concept_cols = {row["name"] for row in cursor.fetchall()}
+        if "session_id" not in concept_cols:
+            conn.execute("ALTER TABLE concept_nodes ADD COLUMN session_id TEXT")
     
     def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
         """

@@ -33,7 +33,7 @@ from .signals import BehavioralSignalExtractor
 from .classifier import ThinkingModeClassifier
 from .graph import KnowledgeGraph
 from .prompts import get_prompt, EXTRACT_CONCEPTS_PROMPT
-from .vsa import compute_session_vector
+from .vsa import compute_session_vector, compute_enriched_session_vector
 from ..db.database import DatabaseManager, init_db
 
 
@@ -402,27 +402,36 @@ class SessionManager:
 
         concepts_added = 0
         bridges_formed = 0
-        # Create concept node with goal + learned concept name
+
+        # Create concept node via KnowledgeGraph (handles dedup + reinforcement)
+        graph = KnowledgeGraph(user_id, self.db)
         try:
-            concept_id = str(uuid.uuid4())
-            # Use the first user input (opening) as the goal
             turns = self.db.get_session_turns(session_id, limit=1)
             goal = turns[0]["user_input"][:60] if turns else ""
             concept_name = f"{mode_target.value}: {goal}" if goal else mode_target.value
-            self.db.save_concept_node(
-                concept_id=concept_id,
-                user_id=user_id,
+            concept = graph.add_concept(
                 name=concept_name,
                 domain="general",
-                thinking_mode_association=mode_target.value,
+                thinking_mode=mode_target,
             )
             concepts_added = 1
+
+            # Strengthen edges between the new concept and related concepts
+            related_nodes = [
+                n for n in graph._nodes.values()
+                if str(n.id) != str(concept.id)
+                and n.thinking_mode_association == mode_target
+            ]
+            for related in related_nodes[:3]:
+                graph.strengthen_edge(str(concept.id), str(related.id), amount=0.15)
+                bridges_formed += 1
         except Exception:
-            pass
+            logger.warning("Failed to update knowledge graph", exc_info=True)
         
         # Compute and persist VSA session vector
         try:
-            session_vec = compute_session_vector(modes_activated)
+            signal_dicts = [sv.model_dump() for sv in signal_history]
+            session_vec = compute_enriched_session_vector(modes_activated, signal_dicts)
             self.db.update_session(
                 session_id,
                 vector=json.dumps([round(v, 6) for v in session_vec])
@@ -447,15 +456,15 @@ class SessionManager:
             "session_id": session_id,
             "summary": {
                 "modes_activated": modes_activated,
-                "concepts_added": 0,
-                "bridges_formed": 0,
+                "concepts_added": concepts_added,
+                "bridges_formed": bridges_formed,
                 "session_duration_seconds": duration,
                 "mode_scores": mode_scores,
                 "overall_score": overall_score,
             },
             "modes_activated": modes_activated,
-            "concepts_added": 0,
-            "bridges_formed": 0,
+            "concepts_added": concepts_added,
+            "bridges_formed": bridges_formed,
             "session_duration": duration,
         }
     

@@ -470,3 +470,51 @@ class KnowledgeGraph:
                 )
         except Exception:
             pass
+
+    def persist_similarity_edges(self, similarities: List[Dict[str, Any]], threshold: float = 0.3) -> int:
+        """
+        Persist high-confidence VSA similarity results as real graph edges.
+
+        Maps session IDs to their concept nodes via the session_id column,
+        then creates or strengthens edges between related concepts.
+
+        Args:
+            similarities: List of dicts with keys: session_id, target_session_id, similarity
+            threshold: Minimum similarity score to persist
+
+        Returns:
+            Number of edges created or strengthened
+        """
+        edges_created = 0
+        for sim in similarities:
+            if sim.get("similarity", 0) < threshold:
+                continue
+            source_session = sim.get("session_id")
+            target_session = sim.get("target_session_id")
+            if not source_session or not target_session:
+                continue
+
+            # Find concept nodes associated with these sessions
+            source_concepts = self._find_concepts_by_session(source_session)
+            target_concepts = self._find_concepts_by_session(target_session)
+
+            for sc in source_concepts:
+                for tc in target_concepts:
+                    if str(sc.id) == str(tc.id):
+                        continue
+                    try:
+                        self.strengthen_edge(
+                            str(sc.id), str(tc.id),
+                            amount=sim["similarity"] * 0.2,
+                        )
+                        edges_created += 1
+                    except Exception:
+                        pass
+        return edges_created
+
+    def _find_concepts_by_session(self, session_id: str) -> List[ConceptNode]:
+        """Find concept nodes associated with a session ID."""
+        return [
+            node for node in self._nodes.values()
+            if getattr(node, "session_id", None) == session_id
+        ]
