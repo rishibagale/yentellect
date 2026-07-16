@@ -6,8 +6,8 @@ import { ThinkingMode, getModeColor, getModeName } from "@/lib/api";
 interface MetricEntry {
   metric_id: string;
   session_id: string;
-  modes_activated: string;
-  mode_scores: string;
+  modes_activated: string | string[];
+  mode_scores: string | Record<string, number>;
   overall_score: number;
   created_at: string;
 }
@@ -22,7 +22,7 @@ export default function ProgressChart({ metrics }: ProgressChartProps) {
     .reverse()
     .map((m, i) => {
       try {
-        const scores = JSON.parse(m.mode_scores);
+        const scores = typeof m.mode_scores === "string" ? JSON.parse(m.mode_scores) : m.mode_scores;
         return {
           session: i + 1,
           CONVERGENT: (scores.CONVERGENT || 0) * 100,

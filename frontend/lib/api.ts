@@ -119,11 +119,11 @@ export interface SessionMetrics {
   metrics: Array<{
     metric_id: string;
     session_id: string;
-    modes_activated: string;
+    modes_activated: string | string[];
     concepts_added: number;
     bridges_formed: number;
     session_duration_seconds: number;
-    mode_scores: string;
+    mode_scores: string | Record<string, number>;
     overall_score: number;
     created_at: string;
   }>;
