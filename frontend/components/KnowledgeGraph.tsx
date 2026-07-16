@@ -48,22 +48,23 @@ function makeConceptNode(node: any) {
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(color),
     emissive: new THREE.Color(color),
-    emissiveIntensity: 0.6,
-    roughness: 0.3,
-    metalness: 0.4,
+    emissiveIntensity: 0.15,
+    roughness: 0.5,
+    metalness: 0.2,
     transparent: true,
     opacity: 0.95,
   });
   const mesh = new THREE.Mesh(geo, mat);
   group.add(mesh);
 
-  // Outer glow shell
-  const glowGeo = new THREE.IcosahedronGeometry(radius * 1.8, 2);
+  // Outer glow shell — subtle, not contributing to bloom
+  const glowGeo = new THREE.IcosahedronGeometry(radius * 1.4, 2);
   const glowMat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(color),
     transparent: true,
-    opacity: 0.06,
+    opacity: 0.03,
     side: THREE.BackSide,
+    depthWrite: false,
   });
   group.add(new THREE.Mesh(glowGeo, glowMat));
 
@@ -100,9 +101,9 @@ function makeSessionNode(node: any) {
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(color),
     emissive: new THREE.Color(color),
-    emissiveIntensity: 0.8,
-    roughness: 0.2,
-    metalness: 0.5,
+    emissiveIntensity: 0.2,
+    roughness: 0.5,
+    metalness: 0.3,
     transparent: true,
     opacity: 0.9,
   });
@@ -140,21 +141,22 @@ function makeFusionNode(node: any) {
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color("#7C4DFF"),
     emissive: new THREE.Color("#A855F7"),
-    emissiveIntensity: 0.5,
-    roughness: 0.2,
-    metalness: 0.6,
+    emissiveIntensity: 0.12,
+    roughness: 0.4,
+    metalness: 0.3,
     transparent: true,
     opacity: 0.92,
   });
   group.add(new THREE.Mesh(geo, mat));
 
-  // Outer glow
-  const glowGeo = new THREE.IcosahedronGeometry(radius * 2.2, 2);
+  // Outer glow — subtle
+  const glowGeo = new THREE.IcosahedronGeometry(radius * 1.6, 2);
   const glowMat = new THREE.MeshBasicMaterial({
     color: new THREE.Color("#A855F7"),
     transparent: true,
-    opacity: 0.05,
+    opacity: 0.03,
     side: THREE.BackSide,
+    depthWrite: false,
   });
   group.add(new THREE.Mesh(glowGeo, glowMat));
 
@@ -299,20 +301,50 @@ export default function KnowledgeGraph({
   const handleEngineStop = useCallback(() => {
     const fg = fgRef.current;
     if (!fg) return;
+
+    // Replace default lights with constant, even illumination
+    try {
+      const scene = fg.scene();
+      // Remove default directional/ambient lights added by the library
+      const toRemove: THREE.Object3D[] = [];
+      scene.traverse((child: THREE.Object3D) => {
+        if (child instanceof THREE.Light) toRemove.push(child);
+      });
+      toRemove.forEach((l) => l.parent?.remove(l));
+
+      // Single ambient — constant base light, no flicker
+      const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambient);
+
+      // One soft directional from above-front — gives subtle depth
+      const dir = new THREE.DirectionalLight(0xffffff, 0.5);
+      dir.position.set(50, 80, 100);
+      scene.add(dir);
+
+      // Fill from opposite side — kills harsh shadows
+      const fill = new THREE.DirectionalLight(0xffffff, 0.2);
+      fill.position.set(-40, -20, -60);
+      scene.add(fill);
+    } catch {
+      // Degrade gracefully
+    }
+
+    // Bloom
     try {
       const { UnrealBloomPass } = require("three/examples/jsm/postprocessing/UnrealBloomPass");
       const composer = fg.postProcessingComposer();
       composer.addPass(
         new UnrealBloomPass(
           new THREE.Vector2(window.innerWidth, height),
-          0.8,  // strength — subtle
-          0.3,  // radius
-          0.7   // threshold
+          0.25,
+          0.4,
+          0.9
         )
       );
     } catch {
       // Bloom is cosmetic — degrade gracefully
     }
+
     // Set initial camera
     fg.camera().position.set(0, 0, 200);
   }, [height]);
