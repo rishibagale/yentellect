@@ -18,12 +18,12 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Get the user to check if they need to be created in the backend
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: { session } } = await supabase.auth.getSession();
+      const [{ data: { user } }, { data: { session } }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.auth.getSession(),
+      ]);
 
       if (user && session?.access_token) {
-        // For OAuth sign-ins, create backend user profile if it doesn't exist
         const displayName =
           user.user_metadata?.display_name ||
           user.user_metadata?.full_name ||
@@ -31,22 +31,18 @@ export async function GET(request: Request) {
           user.email?.split("@")[0] ||
           "User";
 
-        try {
-          const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com";
-          await fetch(`${apiBase}/profile/create`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              user_id: user.id,
-              name: displayName,
-            }),
-          });
-        } catch {
-          // Non-critical - auth succeeded regardless
-        }
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com";
+        fetch(`${apiBase}/profile/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            name: displayName,
+          }),
+        }).catch(() => {});
       }
 
       return NextResponse.redirect(`${origin}${next}`);
