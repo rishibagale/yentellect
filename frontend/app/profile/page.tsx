@@ -13,8 +13,17 @@ import {
   getModeName,
 } from "@/lib/api";
 import { MODE_PALETTES, ANIMATION, MODE_DESCRIPTIONS } from "@/lib/tokens";
-import KnowledgeGraph from "@/components/KnowledgeGraph";
+import dynamic from "next/dynamic";
 import NodeDetailPanel from "@/components/NodeDetailPanel";
+
+const KnowledgeGraph = dynamic(() => import("@/components/KnowledgeGraph"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[500px] bg-[#0F1420] rounded-2xl animate-pulse flex items-center justify-center">
+      <span className="text-[#5A6480] text-xs font-mono">Loading 3D graph...</span>
+    </div>
+  ),
+});
 import ProgressChart from "@/components/ProgressChart";
 import Header from "@/components/Header";
 import ErrorState from "@/components/ErrorState";
