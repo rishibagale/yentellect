@@ -124,3 +124,45 @@ def compute_session_vector(modes_activated: List[str]) -> Vector:
     if len(modes) == 1:
         return get_mode_vector(modes[0])
     return bind(get_mode_vector(modes[0]), get_mode_vector(modes[1]))
+
+
+# Maps each thinking mode to its characteristic signal dimension
+_MODE_SIGNAL_MAP: dict[str, str] = {
+    "CONVERGENT": "sentence_complexity",
+    "DIVERGENT": "ideational_fluency",
+    "ANALOGICAL": "cross_domain_refs",
+    "METACOGNITIVE": "hedge_word_rate",
+    "SYSTEMS": "sentence_complexity",
+    "DMN": "first_person_rate",
+}
+
+
+def compute_enriched_session_vector(
+    modes_activated: List[str],
+    signal_history: Optional[List[dict]] = None,
+) -> Vector:
+    """
+    Compute a session vector weighted by average signal strength per mode.
+
+    Each mode's contribution is scaled by its characteristic behavioral signal
+    intensity across turns, giving a richer representation than binary activation.
+    Falls back to the basic ``compute_session_vector`` when no signal history
+    is available.
+    """
+    if not signal_history:
+        return compute_session_vector(modes_activated)
+
+    modes = [m.upper() for m in modes_activated if m.upper() in MODE_VECTORS][:2]
+    if not modes:
+        return get_mode_vector("CONVERGENT")
+
+    weighted: list[Vector] = []
+    for mode in modes:
+        signal_key = _MODE_SIGNAL_MAP.get(mode, "type_token_ratio")
+        avg_signal = sum(s.get(signal_key, 0.5) for s in signal_history) / max(len(signal_history), 1)
+        weight = max(0.3, min(1.0, avg_signal))
+        weighted.append([x * weight for x in MODE_VECTORS[mode]])
+
+    if len(weighted) == 1:
+        return weighted[0]
+    return bundle(weighted[0], weighted[1])

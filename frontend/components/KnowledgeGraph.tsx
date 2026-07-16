@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { tokens } from "@/lib/tokens";
+import { similarity } from "@/lib/combination/vsa";
+import { getModeVector } from "@/lib/combination/modeVectors";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
 
@@ -102,6 +104,33 @@ export default function KnowledgeGraph({
     });
   }, [data, userId]);
 
+  // Client-side VSA concept-to-concept similarity edges
+  const conceptSimEdges = useMemo(() => {
+    if (!data?.nodes?.length) return [];
+    const conceptNodes = data.nodes.filter((n: any) => n.thinkingMode && !n.session_id);
+    if (conceptNodes.length < 2) return [];
+    const edges: Array<{ source: string; target: string; similarity: number }> = [];
+    for (let i = 0; i < conceptNodes.length; i++) {
+      for (let j = i + 1; j < conceptNodes.length; j++) {
+        const a = conceptNodes[i];
+        const b = conceptNodes[j];
+        try {
+          const vecA = getModeVector(a.thinkingMode);
+          const vecB = getModeVector(b.thinkingMode);
+          const score = similarity(vecA, vecB);
+          if (score > 0.2) {
+            edges.push({
+              source: a.concept_id || a.id || a.name,
+              target: b.concept_id || b.id || b.name,
+              similarity: score,
+            });
+          }
+        } catch { /* skip unknown modes */ }
+      }
+    }
+    return edges;
+  }, [data]);
+
   // If empty, show demo graph with CTA
   if (isEmpty) {
     return (
@@ -165,6 +194,22 @@ export default function KnowledgeGraph({
         color: `rgba(108, 99, 255, ${Math.max(0.15, e.similarity)})`,
         width: Math.max(0.5, e.similarity * 3),
         dash: [3, 6],
+      });
+    }
+  }
+
+  // Merge client-side VSA concept similarity edges (cyan accent)
+  for (const e of conceptSimEdges) {
+    const exists = graphLinks.some(
+      (l) => (l.source === e.source && l.target === e.target) || (l.source === e.target && l.target === e.source)
+    );
+    if (!exists) {
+      graphLinks.push({
+        source: e.source,
+        target: e.target,
+        color: `rgba(0, 229, 255, ${Math.max(0.1, e.similarity * 0.6)})`,
+        width: Math.max(0.5, e.similarity * 2),
+        dash: [2, 4],
       });
     }
   }

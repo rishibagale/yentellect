@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     turn_count INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'active',       -- 'active', 'completed', 'abandoned'
     summary TEXT,                                -- JSON summary from state machine
+    vector TEXT,                                 -- JSON-serialized 512-dim VSA session vector
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     ended_at TEXT,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS concept_nodes (
     last_reinforced TEXT NOT NULL DEFAULT (datetime('now')),
     session_count INTEGER NOT NULL DEFAULT 0,
     thinking_mode_association TEXT NOT NULL DEFAULT 'CONVERGENT',
+    session_id TEXT,                             -- Optional FK to originating session
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );

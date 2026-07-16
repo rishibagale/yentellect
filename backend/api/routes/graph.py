@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from ...core.graph import KnowledgeGraph
-from ...core.vsa import similarity, compute_session_vector, MODE_VECTORS
+from ...core.vsa import similarity, compute_session_vector
 from ...db.database import DatabaseManager
 from ..security import CurrentUser, get_current_user, require_user_id
 
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 async def get_nearest_sessions(
     session_id: str,
     limit: int = 5,
+    persist: bool = False,
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """Get top-N most similar past sessions by VSA similarity."""
@@ -35,12 +36,10 @@ async def get_nearest_sessions(
 
         query_vec_raw = session.get("vector")
         if not query_vec_raw:
-            # Fall back to mode vector if no stored vector
             query_vec = compute_session_vector([session.get("mode_target", "CONVERGENT")])
         else:
             query_vec = json.loads(query_vec_raw)
 
-        # Load all completed sessions for the same user with vectors
         all_sessions = db.get_user_sessions(user_id, limit=100)
         scored = []
         for s in all_sessions:
@@ -52,13 +51,24 @@ async def get_nearest_sessions(
                 score = similarity(query_vec, vec)
                 if score > 0.05:
                     scored.append({
-                        "session_id": s["session_id"],
+                        "session_id": session_id,
+                        "target_session_id": s["session_id"],
                         "mode_target": s["mode_target"],
                         "similarity": round(score, 4),
                     })
 
         scored.sort(key=lambda x: x["similarity"], reverse=True)
-        return {"nearest": scored[:limit]}
+        result = scored[:limit]
+
+        # Optionally persist high-confidence edges as real graph edges
+        if persist and result:
+            try:
+                graph = KnowledgeGraph(user_id, db)
+                graph.persist_similarity_edges(result, threshold=0.3)
+            except Exception:
+                logger.warning("Failed to persist similarity edges", exc_info=True)
+
+        return {"nearest": result}
 
     except HTTPException:
         raise
