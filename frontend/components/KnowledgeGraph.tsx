@@ -278,9 +278,10 @@ export default function KnowledgeGraph({
               weight: score,
               __type: "similarity",
             });
+            console.log(`[VSA Edge] ${conceptNodes[i].id} <-> ${conceptNodes[j].id}: similarity = ${score.toFixed(3)}`);
           }
-        } catch {
-          /* skip */
+        } catch (err) {
+          console.warn("[VSA Edge] Failed to create similarity edge:", err);
         }
       }
     }
@@ -454,7 +455,11 @@ export default function KnowledgeGraph({
         </div>
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
           <button
-            onClick={onStartSession}
+            onClick={() => {
+              if (onStartSession) onStartSession();
+              // Navigate to session page instead of home
+              window.location.href = "/session";
+            }}
             className="px-5 py-2.5 rounded-[10px] bg-[#6C63FF] text-white text-sm font-medium hover:opacity-90 transition shadow-active cursor-pointer"
           >
             Start your first session

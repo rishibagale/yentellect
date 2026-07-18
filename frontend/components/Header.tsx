@@ -80,12 +80,12 @@ export default function Header() {
             </button>
           )}
           <motion.button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/session")}
             className="ml-2 px-3.5 py-1.5 rounded-[10px] bg-[#6C63FF] text-white text-xs font-medium hover:opacity-90 transition-all shadow-active"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            + New
+            New session
           </motion.button>
         </nav>
       </div>

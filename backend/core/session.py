@@ -498,15 +498,19 @@ class SessionManager:
             except Exception:
                 pass
 
-        self.db.save_session_metrics(
-            metric_id, session_id,
-            modes_activated=modes_activated,
-            concepts_added=concepts_added,
-            bridges_formed=bridges_formed,
-            session_duration_seconds=duration,
-            mode_scores=mode_scores,
-            overall_score=overall_score
-        )
+        # Only save metrics for meaningful sessions (>= 2 turns)
+        if turn_count >= 2:
+            self.db.save_session_metrics(
+                metric_id, session_id,
+                modes_activated=modes_activated,
+                concepts_added=concepts_added,
+                bridges_formed=bridges_formed,
+                session_duration_seconds=duration,
+                mode_scores=mode_scores,
+                overall_score=overall_score
+            )
+        else:
+            logger.info(f"Skipping metrics save for session {session_id} with only {turn_count} turn(s)")
         
         # Clean up session cache
         self._sessions.pop(session_id, None)

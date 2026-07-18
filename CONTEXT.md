@@ -1,7 +1,7 @@
 # Yentellect — Project Context
 
 > Single source of truth for the Yentellect platform, its IDE integration, and how to run every part of it.
-> Generated on **6/8/2026**.
+> Generated on **7/18/2026**.
 
 ---
 
@@ -39,36 +39,61 @@ yentellect/
 │   │   ├── globals.css                 # tailwind base
 │   │   ├── page.tsx                    # home (name + opening question)
 │   │   ├── session/page.tsx            # training session
-│   │   └── profile/page.tsx            # knowledge graph + progress
+│   │   ├── profile/page.tsx            # knowledge graph + progress
+│   │   ├── dashboard/page.tsx          # cognitive fingerprint dashboard
+│   │   ├── history/page.tsx            # session history list
+│   │   ├── settings/page.tsx           # user settings
+│   │   └── auth/                       # login, signup, reset-password, callback
 │   ├── components/
 │   │   ├── Header.tsx                  # sticky glass nav
 │   │   ├── LoadingState.tsx
 │   │   ├── ErrorState.tsx
 │   │   ├── ModeIndicator.tsx
+│   │   ├── ModeBadge.tsx
 │   │   ├── KnowledgeGraph.tsx          # d3 force-directed graph
 │   │   ├── ProgressChart.tsx           # recharts line chart
-│   │   └── SessionChat.tsx
-│   ├── lib/api.ts                      # typed API client
+│   │   ├── SessionChat.tsx
+│   │   ├── SessionCard.tsx
+│   │   ├── CognitiveFingerprint.tsx
+│   │   ├── AppShell.tsx
+│   │   └── AuthGuard.tsx
+│   ├── lib/
+│   │   ├── api.ts                      # typed API client
+│   │   ├── tokens.ts                   # design tokens
+│   │   ├── design-tokens.ts
+│   │   ├── auth-types.ts
+│   │   └── combination/                # VSA vector math
+│   │       ├── vsa.ts
+│   │       └── modeVectors.ts
+│   ├── utils/supabase/                 # Supabase client, server, middleware, provider
 │   └── package.json                    # next, react, d3, recharts
 │
 ├── backend/                            # FastAPI service (Python)
 │   ├── pyproject.toml                  # uv-managed
 │   ├── api/
 │   │   ├── main.py                     # FastAPI app + CORS
+│   │   ├── security.py                 # auth, rate limiting, sanitization, CSP
 │   │   └── routes/
-│   │       ├── sessions.py             # /sessions/start, /turn, /end
+│   │       ├── sessions.py             # /sessions/start, /turn, /end, /metrics, /{id}
 │   │       ├── profile.py              # /profile/{id}, /metrics
-│   │       └── graph.py                # /graph/{id}
+│   │       ├── graph.py                # /graph/{id}, /nearest/{session_id}
+│   │       └── dashboard.py            # /dashboard/{id}, /history, /fingerprint
 │   ├── core/
 │   │   ├── models.py                   # Pydantic: ThinkingMode, SignalVector, …
 │   │   ├── signals.py                  # spaCy + heuristic signal extraction
 │   │   ├── classifier.py               # mode prediction
 │   │   ├── graph.py                    # NetworkX knowledge graph + decay
 │   │   ├── session.py                  # LangGraph state machine
+│   │   ├── vsa.py                      # VSA vector computation (Python mirror)
 │   │   └── prompts.py                  # per-mode system prompts
 │   ├── db/
 │   │   ├── database.py                 # SQLite (singleton)
-│   │   └── schema.sql                  # DDL
+│   │   ├── database_supabase.py        # Supabase PostgreSQL client
+│   │   ├── schema.sql                  # SQLite DDL
+│   │   ├── schema_supabase.sql         # Supabase DDL
+│   │   ├── rls_policies.sql            # Row-level security policies
+│   │   └── migrations/
+│   │       └── 002_add_session_vector.sql
 │   └── Makefile
 │
 ├── rebuild/                            # Go CLI (fsnotify file watcher)
@@ -188,100 +213,131 @@ Run `--help` for the full flag list. Ctrl-C triggers a graceful shutdown.
 
 ---
 
-## 5. UI Status (frontend) — Last audit 6/8/2026
+## 5. UI Status (frontend) — Last audit 7/18/2026
 
-The Yentellect UI is **production-ready**. The latest `npm run build` produced:
+The Yentellect UI is **production-ready** with Supabase auth, dashboard, history, and settings pages.
 
-```
-Route (app)                  Size     First Load JS
-ƒ /                          2.43 kB  90 kB
-ƒ /profile                   121 kB   218 kB
-ƒ /session                   5.61 kB  103 kB
-```
+### Pages
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page with hero, mode explorer, session start form |
+| `/session` | Active training session (or read-only ended session view via `?session_id=`) |
+| `/dashboard` | Cognitive fingerprint, mode breakdown, recent sessions, streak |
+| `/profile` | Knowledge graph + progress chart |
+| `/history` | Paginated session history list |
+| `/settings` | User settings |
+| `/auth/login` | Supabase login |
+| `/auth/signup` | Supabase signup |
+| `/auth/reset-password` | Password reset |
+| `/auth/callback` | OAuth callback handler |
 
-What was fixed in the last pass:
-- **Critical**: `app/session/page.tsx` had a `useEffect` chain that could spawn duplicate sessions on `useSearchParams` re-render. Now uses `useRef` guard + `retryKey` counter.
-- **Critical**: `components/KnowledgeGraph.tsx` tooltip used `.html()` with concatenated strings (HTML-entity escaping bug + XSS risk). Rebuilt with DOM API and pre-built `<div>` children.
-- **New shared components**: `Header`, `LoadingState`, `ErrorState`.
-- **Polish**: glass-morphism cards, gradient hero, auto-resizing chat textarea, per-message confidence %, staggered fade-ins.
-
-The user explicitly said the **sign-in / account system should NOT be wired up** for now — the name field is used as the `user_id` directly so testing can continue without auth.
-
----
-
-## 6. Rebuild CLI Status
-
-All 13 unit tests pass on Windows. Built binary at `rebuild/bin/rebuild.exe` (4,069,376 bytes).
-
-```
-=== Final test run ===
-ok  github.com/example/rebuild/internal/debouncer  1.527s
-ok  github.com/example/rebuild/internal/runner     1.270s
-ok  github.com/example/rebuild/internal/watcher    1.613s
-```
-
-Note: `-race` is not yet enabled because the box has no C compiler (gcc/clang missing). Code is race-free by design (`sync.Mutex` in debouncer, runner, and main). To enable race detection later, install MinGW-w64.
+### Key Components
+- **AppShell** — Shared layout with sidebar navigation
+- **AuthGuard** — Redirects unauthenticated users to login
+- **KnowledgeGraph** — D3 force-directed graph with VSA similarity edges
+- **ProgressChart** — Recharts line chart showing mode performance over time
+- **SessionChat** — Chat interface with mode indicator, confidence, end-session flow
+- **SessionCard** — Clickable history card that opens ended session view
+- **CognitiveFingerprint** — Radar/spider chart of mode scores
+- **ModeBadge** — Colored mode label chip
 
 ---
 
-## 7. IDE ↔ CLI Integration (puter_test) Status
+## 6. Backend API Endpoints
 
-| Feature | Status | Endpoint / Notes |
-|---|---|---|
-| Prompt → Puter AI | ✅ Working | `puter.ai.chat(prompt, {model})` via CDN SDK in browser |
-| Project file tree | ✅ Working | `GET /api/tree?path=X` |
-| File contents as context | ✅ Working | `GET /api/file?path=X` |
-| Start rebuild watcher | ✅ Working | `POST /api/watcher/start` |
-| Stop rebuild watcher | ✅ Working | `POST /api/watcher/stop` |
-| Live log streaming | ✅ Working | `GET /api/watcher/log` (poll every 2s) |
-| Watcher start/exit events | ✅ Working | `GET /api/watcher/stream` (Server-Sent Events) |
-| Auth / accounts | ⏸️ Disabled by user request | name is used as `user_id` |
-
-The user explicitly said the **sign-in / account system should NOT be wired up** for now. Auth is paused per the original task instruction.
-
----
-
-## 8. Quick-Start Cheat Sheet
-
-```powershell
-# Open the AI playground (already running, just refresh):
-start http://localhost:8000/
-
-# Frontend dev server:
-cd "c:\Users\rushi\OneDrive\Desktop\yentellect\frontend"
-npm run dev
-
-# Backend API:
-cd "c:\Users\rushi\OneDrive\Desktop\yentellect\backend"
-uv run uvicorn backend.api.main:app --reload --port 8001
-
-# Go CLI directly:
-cd "c:\Users\rushi\OneDrive\Desktop\yentellect\rebuild"
-.\bin\rebuild.exe --command "go test ./..." --paths . --delay 400ms
-
-# Re-run all Go tests:
-go test ./... -count=1
-```
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/sessions/start` | Start new session |
+| POST | `/sessions/{id}/turn` | Process a turn |
+| POST | `/sessions/{id}/end` | End session and get summary |
+| GET | `/sessions/{id}` | Fetch ended session details + turns |
+| GET | `/sessions/metrics` | Fetch all session metrics for user |
+| GET | `/profile/{id}` | Get cognitive profile |
+| GET | `/profile/{id}/metrics` | Get profile metrics |
+| GET | `/graph/{id}` | Get knowledge graph data |
+| GET | `/graph/nearest/{session_id}` | Get VSA-similar sessions |
+| GET | `/dashboard/{id}` | Get dashboard data |
+| GET | `/dashboard/history/{id}` | Get paginated session history |
+| GET | `/dashboard/fingerprint/{id}` | Get cognitive fingerprint |
 
 ---
 
-## 9. Open Tasks / Known Limitations
+## 7. VSA Combination Mechanism
+
+Added in this session (commits `e34c8aa` → `574790f`):
+
+### Frontend (`frontend/lib/combination/`)
+- **`vsa.ts`** — VSA math: `bind()`, `bundle()`, `unbind()`, `cosineSimilarity()`, `computeSessionVector()`
+- **`modeVectors.ts`** — 512-dimensional mode vectors for all 6 thinking modes
+
+### Backend (`backend/core/vsa.py`)
+- Python mirror of the VSA math: `compute_session_vector()`, `cosine_similarity()`
+- Used in `end_session()` to persist a vector per session
+
+### Database
+- `backend/db/migrations/002_add_session_vector.sql` — Adds `vector` column (TEXT, JSON float array) to `sessions` table
+
+### API
+- `GET /api/graph/nearest/{session_id}?limit=3` — Returns top-K similar sessions by cosine similarity
+
+### KnowledgeGraph
+- Fetches similarity edges on mount and renders them as dashed accent lines with opacity proportional to similarity score
+
+---
+
+## 8. Security Hardening
+
+Added in commit `eb2d20f`:
+
+- **`backend/api/security.py`** — JWT auth via Supabase, rate limiting (per-endpoint), input sanitization, CSRF protection, CSP headers, brute force protection
+- **`backend/db/rls_policies.sql`** — Row-level security policies for Supabase
+- **Auth middleware** — `frontend/middleware.ts` protects routes, `frontend/utils/supabase/` provides client/server/provider
+- **AuthGuard** component redirects unauthenticated users
+
+---
+
+## 9. Supabase Integration
+
+- **Database**: Supabase PostgreSQL with `database_supabase.py` client
+- **Auth**: Supabase Auth with email/password + OAuth callback
+- **Deployment**: Frontend on Vercel, backend on Render
+- **Schema**: `backend/db/schema_supabase.sql` + `rls_policies.sql`
+
+---
+
+## 10. UI Fixes (commits b6e3c10 → 574790f)
+
+| Issue | Fix |
+|-------|-----|
+| Dashboard "Start session" goes to `/` | Changed to `/session` |
+| Mobile session UI cramped | Sidebar hidden behind collapsible `<details>` on mobile |
+| Graph shows "Session a1b2c3d4" | Labels now show `"{mode}: {goal}"` from user's opening message |
+| Progress chart empty with 10+ sessions | Added `/api/sessions/metrics` endpoint, lowered threshold to 1 session |
+| History click does nothing | Session cards navigate to `/session?session_id=...`, page loads ended session read-only |
+| Zero-score sessions saved immediately | `save_session_metrics()` guarded behind `turn_count >= 2` |
+| Slow loading | `SessionSkeleton` renders immediately while API call is in-flight |
+
+---
+
+## 11. Open Tasks / Known Limitations
 
 - [ ] **Race detection for Go tests**: install MinGW-w64 and re-run with `CGO_ENABLED=1`
-- [ ] **Auth / accounts**: paused at user request; revisit when Yentellect sign-in is specified
 - [ ] **Backend port conflict**: backend defaults to 8000; puter_test uses 8000; the cheat sheet runs backend on 8001 to avoid the conflict
 - [ ] **Puter JS in Node.js**: 401 from the SDK in pure Node (no auth). Use the browser (http://localhost:8000/) where guest auth is automatic.
 - [ ] **Race-free check unverified**: code uses `sync.Mutex` everywhere but `-race` not yet runnable
 - [ ] **CORS**: backend's `allow_origins` includes `http://localhost:3000` and `https://localhost:3000`. If you serve the frontend on a different port, update `backend/api/main.py`.
+- [ ] **Session chat read-only mode**: ended session view shows initial message/response but doesn't render full turn history yet — `SessionChat` needs a `readOnly` prop to display all turns
 
 ---
 
-## 10. Pointers for the Next Agent
+## 12. Pointers for the Next Agent
 
 - **Where to start the IDE**: `puter_test/server.js` (Node) is the only thing that needs to be running for the user to test. Open `http://localhost:8000/`.
 - **Where to add a feature**: New UI components go in `frontend/components/`. New API routes go in `backend/api/routes/`. New Go files go in `rebuild/internal/<pkg>/`.
 - **Where the build artifacts are**: `frontend/.next/`, `rebuild/bin/`, `puter_test/watcher.log`.
 - **Don't add new dependencies lightly** — Yentellect frontend already pins to React 18 + d3 + recharts; backend to FastAPI + spaCy + LangGraph; rebuild to fsnotify.
+- **VSA vectors**: 512-dimensional float arrays stored as JSON in `sessions.vector`. The frontend and backend both have VSA math modules that must stay in sync.
+- **Supabase**: Auth is fully wired now. New API routes should use `get_current_user` dependency from `backend/api/security.py`.
 
 ---
 

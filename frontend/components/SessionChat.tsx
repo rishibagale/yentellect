@@ -21,6 +21,14 @@ interface SessionChatProps {
   initialMode: ThinkingMode;
   initialConfidence: number;
   onEndSession: (summary: any) => void;
+  readOnly?: boolean;
+  initialTurns?: Array<{
+    user_input: string;
+    response: string;
+    predicted_mode: string;
+    confidence: number;
+    created_at: string;
+  }>;
 }
 
 function MessageBubble({ msg, index }: { msg: Message; index: number }) {
@@ -106,6 +114,8 @@ export default function SessionChat({
   initialMode,
   initialConfidence,
   onEndSession,
+  readOnly = false,
+  initialTurns = [],
 }: SessionChatProps) {
   const [messages, setMessages] = useState<Message[]>(() => {
     const list: Message[] = [];
@@ -118,6 +128,27 @@ export default function SessionChat({
       confidence: initialConfidence,
       timestamp: Date.now() + 100,
     });
+
+    // Add initial turns if in read-only mode (ended session)
+    if (readOnly && initialTurns.length > 0) {
+      // Skip the first turn since it's already added as initialMessage/initialResponse
+      initialTurns.slice(1).forEach((turn, idx) => {
+        const baseTime = Date.now() + 200 + idx * 100;
+        list.push({
+          role: "user",
+          content: turn.user_input,
+          timestamp: baseTime,
+        });
+        list.push({
+          role: "assistant",
+          content: turn.response,
+          mode: turn.predicted_mode as ThinkingMode,
+          confidence: turn.confidence,
+          timestamp: baseTime + 50,
+        });
+      });
+    }
+
     return list;
   });
   const [input, setInput] = useState("");
@@ -149,6 +180,7 @@ export default function SessionChat({
 
   const sendMessage = async () => {
     if (!input.trim() || sending || sendingRef.current) return;
+    if (readOnly) return;
     const userMsg = input.trim();
     setInput("");
     setError(null);
@@ -211,20 +243,24 @@ export default function SessionChat({
     <div className="flex flex-col h-full glass-card overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5 bg-black/10">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs font-medium text-slate-400">Session active</span>
+          <div className={`w-2 h-2 rounded-full ${readOnly ? "bg-slate-500" : "bg-emerald-400 animate-pulse"}`} />
+          <span className="text-xs font-medium text-slate-400">
+            {readOnly ? "Session ended" : "Session active"}
+          </span>
         </div>
-        <button
-          onClick={handleEnd}
-          disabled={ending}
-          className="px-3 py-1 rounded-md border border-white/10 text-slate-500 hover:text-white hover:bg-white/5 disabled:opacity-50 transition text-xs"
-        >
-          {ending ? "Ending..." : "End session"}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={handleEnd}
+            disabled={ending}
+            className="px-3 py-1 rounded-md border border-white/10 text-slate-500 hover:text-white hover:bg-white/5 disabled:opacity-50 transition text-xs"
+          >
+            {ending ? "Ending..." : "End session"}
+          </button>
+        )}
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-5 scrollbar-thin">
-        {messages.length === 0 && (
+        {messages.length === 0 && !readOnly && (
           <div className="text-center text-slate-500 py-12 text-sm">
             Waiting for first message...
           </div>
@@ -236,7 +272,7 @@ export default function SessionChat({
           ))}
         </AnimatePresence>
 
-        {sending && (
+        {sending && !readOnly && (
           <motion.div
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
@@ -279,52 +315,54 @@ export default function SessionChat({
         )}
       </AnimatePresence>
 
-      <div className="border-t border-white/5 p-3 md:p-4 bg-black/20">
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value.slice(0, 2000))}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your response... (Enter to send)"
-              rows={1}
-              disabled={sending || ending}
-              className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition resize-none disabled:opacity-50 text-sm"
-              style={{ minHeight: "44px", maxHeight: "160px" }}
-            />
+      {!readOnly && (
+        <div className="border-t border-white/5 p-3 md:p-4 bg-black/20">
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value.slice(0, 2000))}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your response... (Enter to send)"
+                rows={1}
+                disabled={sending || ending}
+                className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition resize-none disabled:opacity-50 text-sm"
+                style={{ minHeight: "44px", maxHeight: "160px" }}
+              />
+            </div>
+
+            <div className="flex gap-1.5">
+              <motion.button
+                onClick={sendMessage}
+                disabled={!input.trim() || sending || ending}
+                className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition shadow-lg shadow-indigo-500/20 text-sm flex items-center gap-1.5"
+                whileHover={input.trim() && !sending ? { scale: 1.03 } : {}}
+                whileTap={input.trim() && !sending ? { scale: 0.97 } : {}}
+              >
+                <span className="hidden sm:inline">Send</span>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </motion.button>
+            </div>
           </div>
 
-          <div className="flex gap-1.5">
-            <motion.button
-              onClick={sendMessage}
-              disabled={!input.trim() || sending || ending}
-              className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition shadow-lg shadow-indigo-500/20 text-sm flex items-center gap-1.5"
-              whileHover={input.trim() && !sending ? { scale: 1.03 } : {}}
-              whileTap={input.trim() && !sending ? { scale: 0.97 } : {}}
-            >
-              <span className="hidden sm:inline">Send</span>
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </motion.button>
+          <div className="mt-2 text-[10px] text-slate-600 text-center hidden sm:flex items-center justify-center gap-2">
+            <kbd>Enter</kbd>
+            <span>to send</span>
+            <span className="text-slate-700">·</span>
+            <kbd>Shift</kbd>
+            <span>+</span>
+            <kbd>Enter</kbd>
+            <span>for newline</span>
+            <span className="text-slate-700">·</span>
+            <span className="text-slate-600">Type</span>
+            <kbd>end</kbd>
+            <span>to finish</span>
           </div>
         </div>
-
-        <div className="mt-2 text-[10px] text-slate-600 text-center hidden sm:flex items-center justify-center gap-2">
-          <kbd>Enter</kbd>
-          <span>to send</span>
-          <span className="text-slate-700">·</span>
-          <kbd>Shift</kbd>
-          <span>+</span>
-          <kbd>Enter</kbd>
-          <span>for newline</span>
-          <span className="text-slate-700">·</span>
-          <span className="text-slate-600">Type</span>
-          <kbd>end</kbd>
-          <span>to finish</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

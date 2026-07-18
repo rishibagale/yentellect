@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { startSession, getModeColor, getModeName, ThinkingMode, getSession } from "@/lib/api";
+import { startSession, getModeColor, getModeName, ThinkingMode, getSession, type SessionDetailResponse } from "@/lib/api";
 import SessionChat from "@/components/SessionChat";
 import ModeIndicator from "@/components/ModeIndicator";
 import Header from "@/components/Header";
@@ -59,6 +59,13 @@ function SessionContent() {
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [readOnly, setReadOnly] = useState(false);
+  const [initialTurns, setInitialTurns] = useState<Array<{
+    user_input: string;
+    response: string;
+    predicted_mode: string;
+    confidence: number;
+    created_at: string;
+  }>>([]);
   const startInitiatedRef = useRef(false);
   const viewingSessionId = searchParams.get("session_id");
 
@@ -68,7 +75,7 @@ function SessionContent() {
     let cancelled = false;
     setError(null);
     getSession(viewingSessionId)
-      .then((data) => {
+      .then((data: SessionDetailResponse) => {
         if (cancelled) return;
         const s = data.session;
         const first = data.turns[0];
@@ -79,6 +86,7 @@ function SessionContent() {
           predicted_mode: s.predicted_mode,
           confidence: first?.confidence || 0,
         });
+        setInitialTurns(data.turns);
         setUserId(user.id);
         setReadOnly(true);
       })
@@ -167,6 +175,8 @@ function SessionContent() {
               setSummary(s);
               setShowSummary(true);
             }}
+            readOnly={readOnly}
+            initialTurns={initialTurns}
           />
           {/* Mobile: collapsible sidebar */}
           <details className="lg:hidden">
