@@ -328,7 +328,15 @@ class SupabaseDatabaseManager:
             self._check_response(r, "get_session_turns")
             rows = self._json_or_none(r) or []
             return [
-                {"user_input": row.get("user_input", ""), "response": row.get("response", "")}
+                {
+                    "turn_id": row.get("turn_id", ""),
+                    "turn_number": row.get("turn_number", 0),
+                    "user_input": row.get("user_input", ""),
+                    "response": row.get("response", ""),
+                    "predicted_mode": row.get("predicted_mode", ""),
+                    "confidence": row.get("confidence", 0.0),
+                    "created_at": row.get("timestamp", ""),
+                }
                 for row in rows
             ]
 

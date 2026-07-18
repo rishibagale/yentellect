@@ -550,11 +550,22 @@ class DatabaseManager:
             return self._impl.get_session_turns(session_id, limit)
         with self.get_db() as conn:
             cursor = conn.execute(
-                "SELECT user_input, response FROM turns WHERE session_id = ? ORDER BY turn_number ASC LIMIT ?",
+                "SELECT turn_id, turn_number, user_input, response, predicted_mode, confidence, timestamp FROM turns WHERE session_id = ? ORDER BY turn_number ASC LIMIT ?",
                 (session_id, limit)
             )
             rows = cursor.fetchall()
-            return [dict(r) for r in rows]
+            return [
+                {
+                    "turn_id": r["turn_id"],
+                    "turn_number": r["turn_number"],
+                    "user_input": r["user_input"],
+                    "response": r["response"],
+                    "predicted_mode": r["predicted_mode"],
+                    "confidence": r["confidence"],
+                    "created_at": r["timestamp"],
+                }
+                for r in rows
+            ]
 
     def get_session_metrics(self, user_id: str, limit: int = 20) -> List[Dict[str, Any]]:
         """
