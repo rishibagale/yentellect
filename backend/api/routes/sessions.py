@@ -122,4 +122,15 @@ async def get_session_detail(
     if not s:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
     turns = db.get_session_turns(str(session_id))
+    
+    # Add missing fields that frontend expects
+    # predicted_mode: use first turn's predicted_mode or session's mode_target
+    # started_at: use first turn's created_at or session's created_at
+    if turns:
+        s["predicted_mode"] = turns[0].get("predicted_mode", s.get("mode_target"))
+        s["started_at"] = turns[0].get("created_at", s.get("created_at"))
+    else:
+        s["predicted_mode"] = s.get("mode_target")
+        s["started_at"] = s.get("created_at")
+    
     return {"session": s, "turns": turns}

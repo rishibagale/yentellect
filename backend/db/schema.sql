@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     status TEXT NOT NULL DEFAULT 'active',       -- 'active', 'completed', 'abandoned'
     summary TEXT,                                -- JSON summary from state machine
     vector TEXT,                                 -- JSON-serialized 512-dim VSA session vector
+    started_at TEXT,                             -- When the session began
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     ended_at TEXT,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE

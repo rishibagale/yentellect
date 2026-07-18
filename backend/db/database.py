@@ -116,6 +116,8 @@ class DatabaseManager:
         columns = {row["name"] for row in cursor.fetchall()}
         if "vector" not in columns:
             conn.execute("ALTER TABLE sessions ADD COLUMN vector TEXT")
+        if "started_at" not in columns:
+            conn.execute("ALTER TABLE sessions ADD COLUMN started_at TEXT")
 
         cursor = conn.execute("PRAGMA table_info(concept_nodes)")
         concept_cols = {row["name"] for row in cursor.fetchall()}
