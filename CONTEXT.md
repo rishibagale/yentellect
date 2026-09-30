@@ -1,7 +1,8 @@
 # Yentellect — Project Context
 
-> Single source of truth for the Yentellect platform, its IDE integration, and how to run every part of it.
+> Single source of truth for the Yentellect platform and how to run every part of it.
 > Generated on **7/18/2026**. Last full refresh: **9/30/2026** (commits through `6fed645`).
+> Doc cleanup **9/30/2026**: removed stale `puter_test/` / `go_watcher/` / `rebuild` Go-source references (those directories no longer exist); corrected port guidance.
 
 ---
 
@@ -99,34 +100,11 @@ yentellect/
 │   │       └── 002_add_session_vector.sql
 │   └── Makefile
 │
-├── rebuild/                            # Go CLI (fsnotify file watcher)
-│   ├── go.mod                          # module github.com/example/rebuild
-│   ├── go.sum
-│   ├── main.go                         # flag parsing, signal handling
-│   ├── Makefile
-│   ├── README.md
-│   ├── bin/rebuild.exe                 # 4 MB Windows binary (built)
-│   └── internal/
-│       ├── debouncer/{debouncer,debouncer_test}.go
-│       ├── runner/{runner,runner_test}.go
-│       └── watcher/{watcher,watcher_test}.go
-│
-├── go_watcher/                         # older Go experiment (kept for reference)
-│
-├── puter_test/                         # browser-based AI playground (this is your "IDE")
-│   ├── package.json                    # @heyputer/puter.js
-│   ├── server.js                       # local Node server (port 8000)
-│   ├── app.js                          # AI prompt + project context
-│   ├── app_watcher.js                  # rebuild CLI control panel
-│   ├── index.html                      # single-page UI
-│   ├── watcher.log                     # build/test output (when watcher runs)
-│   └── node_modules/
-│
-└── puter_test/server.js                # serves UI + APIs:
-                                        #   GET  /api/tree
-                                        #   GET  /api/file
-                                        #   POST /api/watcher/{start,stop}
-                                        #   GET  /api/watcher/{status,log,stream}
+├── rebuild/                            # Retired. Go file-watcher CLI (fsnotify).
+│   └── bin/rebuild.exe                 # 4 MB Windows binary (kept); Go sources
+│                                       # (main.go, go.mod, internal/debouncer|runner|watcher)
+│                                       # are no longer in the repo and cannot be rebuilt.
+│                                       # Do not reference rebuild Go sources in new work.
 ```
 
 ---
@@ -139,21 +117,12 @@ yentellect/
 │   localhost:3000          │ ──────► │   localhost:8000          │
 │   (Yentellect UI)         │         │   (session logic, LLM)    │
 └───────────────────────────┘         └───────────────────────────┘
-
-┌───────────────────────────┐         ┌───────────────────────────┐
-│   puter_test (Node)       │  spawn  │     rebuild (Go CLI)      │
-│   localhost:8000          │ ──────► │   rebuild/bin/rebuild.exe │
-│   (AI playground + IDE)   │  stdout │   watches dirs, runs cmds│
-└──────────┬────────────────┘         └───────────────────────────┘
-           │   ▲
-           │   │  HTTPS (puter.ai)
-           ▼   │
-      puter.com  (minimax/minimax-m3 and 6 other models)
 ```
 
 - **Frontend ↔ Backend**: REST + JSON. CORS allows `http://localhost:3000`.
-- **puter_test → rebuild**: `child_process.spawn(rebuild.exe)`. Output is written to `puter_test/watcher.log` and tailed back into the browser via polling + SSE.
-- **puter_test → Puter AI**: `puter.ai.chat(prompt, { model })` in the browser via the `https://js.puter.com/v2/` SDK.
+  The port-8000 backend is the only local server now; there is no second
+  local service competing for the port (the Node `puter_test` playground and
+  its `rebuild.exe` watcher bridge were removed from the repo).
 
 ---
 
@@ -167,24 +136,7 @@ yentellect/
 | Go | `C:\Program Files\Go\bin` | 1.26.4 (added to user PATH) |
 | Python | (uv-managed) | 3.11+ via `uv` |
 
-### A) Start the AI Playground (this is the IDE)
-
-```powershell
-cd "c:\Users\rushi\OneDrive\Desktop\yentellect\puter_test"
-# server is already running on PID 32744, but to restart:
-$old = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
-if ($old) { Stop-Process -Id $old.OwningProcess -Force; Start-Sleep 1 }
-Start-Process node -ArgumentList "server.js" -WindowStyle Hidden
-# Open browser: http://localhost:8000/
-```
-
-What you get:
-- Prompt textarea + model picker
-- Project file browser with multi-select context
-- **Build Watcher** panel that controls the Go CLI live
-- AI response area with copy button
-
-### B) Start the Frontend
+### A) Start the Frontend
 
 ```powershell
 cd "c:\Users\rushi\OneDrive\Desktop\yentellect\frontend"
@@ -192,27 +144,17 @@ npm install        # first time only
 npm run dev        # http://localhost:3000
 ```
 
-### C) Start the Backend
+### B) Start the Backend
 
 ```powershell
 cd "c:\Users\rushi\OneDrive\Desktop\yentellect\backend"
 uv sync --all-extras                              # first time only
 python -m spacy download en_core_web_sm           # first time only
 cp ../.env.example .env                           # first time only
-uv run uvicorn backend.api.main:app --reload --port 8001
+uv run uvicorn backend.api.main:app --reload --port 8000
 ```
 
-The frontend talks to the backend on port `8000` by default. The puter_test server also uses `8000`; if you want both running simultaneously, set `NEXT_PUBLIC_API_URL=http://localhost:8001` in `frontend/.env.local` and start the backend on `8001` as shown above.
-
-### D) Use the Rebuild CLI directly (CLI mode)
-
-```powershell
-cd "c:\Users\rushi\OneDrive\Desktop\yentellect\rebuild"
-go test ./...                          # one-off
-.\bin\rebuild.exe --command "go test ./... -count=1" --paths . --delay 400ms
-```
-
-Run `--help` for the full flag list. Ctrl-C triggers a graceful shutdown.
+Port `8000` is free for the backend (the retired Node `puter_test` playground that used to occupy it is gone). Note: `frontend/.env.local` currently has no `NEXT_PUBLIC_API_URL`, so the frontend defaults to the production Render backend (`https://yentellect.onrender.com`); for local development add `NEXT_PUBLIC_API_URL=http://localhost:8000` to `frontend/.env.local`.
 
 ---
 
@@ -336,10 +278,9 @@ Added in commit `eb2d20f`:
 ## 11. Open Tasks / Known Limitations
 
 - [ ] **Verify completed-session click fix end-to-end**: backend now returns full turn data (`f9c8666` + `6fed645`); needs a live click-through on History/Dashboard → `/session?session_id=...` against a running backend
-- [ ] **Race detection for Go tests**: install MinGW-w64 and re-run with `CGO_ENABLED=1`
-- [ ] **Backend port conflict**: backend defaults to 8000; puter_test uses 8000; the cheat sheet runs backend on 8001 to avoid the conflict
-- [ ] **Puter JS in Node.js**: 401 from the SDK in pure Node (no auth). Use the browser (http://localhost:8000/) where guest auth is automatic.
-- [ ] **Race-free check unverified**: code uses `sync.Mutex` everywhere but `-race` not yet runnable
+- [ ] **Backend venv is an empty stub**: `backend/.venv` ships with no packages installed; run `uv sync --all-extras` + `python -m spacy download en_core_web_sm` before first launch
+- [ ] **Missing local API URL**: `frontend/.env.local` has no `NEXT_PUBLIC_API_URL`, so a local frontend calls the production Render backend by default
+- [ ] **Backend port 8000 is free**: the retired Node `puter_test` server that occupied it is gone; run the backend on its default `--port 8000`
 - [ ] **CORS**: backend's `allow_origins` includes `http://localhost:3000` and `https://localhost:3000`. If you serve the frontend on a different port, update `backend/api/main.py`.
 - [ ] **OneDrive `.next` build flakiness**: `EINVAL readlink` errors under `frontend/.next/` occur on OneDrive-synced paths; workaround is `Remove-Item -Recurse -Force .next` before `npm run build`
 
@@ -347,10 +288,10 @@ Added in commit `eb2d20f`:
 
 ## 12. Pointers for the Next Agent
 
-- **Where to start the IDE**: `puter_test/server.js` (Node) is the only thing that needs to be running for the user to test. Open `http://localhost:8000/`.
-- **Where to add a feature**: New UI components go in `frontend/components/`. New API routes go in `backend/api/routes/`. New Go files go in `rebuild/internal/<pkg>/`.
-- **Where the build artifacts are**: `frontend/.next/`, `rebuild/bin/`, `puter_test/watcher.log`.
-- **Don't add new dependencies lightly** — Yentellect frontend already pins to React 18 + d3 + recharts; backend to FastAPI + spaCy + LangGraph; rebuild to fsnotify.
+- **Where to start testing**: backend on `http://localhost:8000` (`uv run uvicorn backend.api.main:app --reload --port 8000`), frontend on `http://localhost:3000` (`npm run dev`). Set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local` for local runs.
+- **Where to add a feature**: New UI components go in `frontend/components/`. New API routes go in `backend/api/routes/`. (The retired `rebuild/` Go CLI has no sources left; do not extend it.)
+- **Where the build artifacts are**: `frontend/.next/`, `rebuild/bin/rebuild.exe` (orphaned binary, kept for reference).
+- **Don't add new dependencies lightly** — Yentellect frontend already pins to React 18 + d3 + recharts; backend to FastAPI + spaCy + LangGraph.
 - **VSA vectors**: 512-dimensional float arrays stored as JSON in `sessions.vector`. The frontend and backend both have VSA math modules that must stay in sync.
 - **Supabase**: Auth is fully wired now. New API routes should use `get_current_user` dependency from `backend/api/security.py`.
 - **Session detail contract**: `GET /sessions/{id}` must always return full turn objects (`turn_id`, `turn_number`, `user_input`, `response`, `predicted_mode`, `confidence`, `created_at`) — the read-only `SessionChat` depends on it. Both `database.py` and `database_supabase.py` `get_session_turns()` implement this; keep them in sync.
