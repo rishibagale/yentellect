@@ -2,18 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Yentellect workbench tokens. Dark by default; everything is a
+   CSS variable so a light theme is a token swap later.
+   --accent is the only accent (marks "awaiting your judgement").
+   ============================================================ */
 :root {
-  --bg-base: #080B11;
-  --surface: #0F1420;
-  --surface-hover: #131825;
-  --border-default: #1E2535;
-  --border-hover: #2E3A55;
-  --accent: #6C63FF;
-  --accent-glow: rgba(108,99,255,0.15);
-  --cyan: #00E5FF;
-  --text-primary: #F0F4FF;
-  --text-muted: #5A6480;
-  --success: #00FFB2;
+  --bg-0: #0e1116;
+  --bg-1: #141920;
+  --bg-2: #1b222b;
+  --border: #262f3b;
+  --text: #d6dde6;
+  --text-dim: #8391a3;
+  --accent: #5eb0ef;
+  --danger: #e5646e;
+  --radius: 4px;
+
+  --surface: var(--bg-1);
+  --surface-hover: var(--bg-2);
+  --border-default: var(--border);
+  --text-primary: var(--text);
+  --text-muted: var(--text-dim);
 }
 
 * {
@@ -22,49 +31,80 @@
   padding: 0;
 }
 
-html {
-  scroll-behavior: smooth;
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background-color: #080B11;
-  color: #F0F4FF;
-  font-family: "Inter", system-ui, sans-serif;
+  background-color: var(--bg-0);
+  color: var(--text);
+  font-family: var(--font-jetbrains-mono), ui-monospace, "Cascadia Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: "Space Grotesk", sans-serif;
+.font-doc,
+[data-doc] {
+  font-family: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
-code, pre, .font-mono, [data-mono] {
-  font-family: "JetBrains Mono", monospace;
+code,
+pre,
+.font-mono,
+[data-mono] {
+  font-family: var(--font-jetbrains-mono), ui-monospace, "Cascadia Mono", monospace;
 }
 
 a {
-  color: #6C63FF;
+  color: var(--accent);
   text-decoration: none;
 }
+
 a:hover {
   text-decoration: underline;
 }
 
 ::selection {
-  background: #6C63FF;
-  color: #fff;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--text);
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #1E2535;
-  border-radius: 3px;
+  background: var(--border);
+  border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #2E3A55;
+  background: var(--text-dim);
+}
+
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
