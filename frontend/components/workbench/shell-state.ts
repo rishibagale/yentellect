@@ -6,13 +6,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useLayout } from "@/lib/workbench/layout";
+import { useRouter } from "next/navigation";
+import { useLayout, type Activity } from "@/lib/workbench/layout";
 import type { ThinkingMode } from "@/lib/modes";
 import { buildCommands, type CommandContext } from "@/lib/workbench/commands";
 
 export function useShellState() {
-  const { layout, toggleExplorer, toggleLens, toggleDrawer, setActivity, setPaletteOpen } =
+  const { layout, update, toggleExplorer, toggleLens, toggleDrawer, setPaletteOpen } =
     useLayout();
+  const router = useRouter();
   const [activeLens, setActiveLensState] = useState<ThinkingMode>("ANALOGICAL");
   const [betaModes, setBetaModes] = useState(false);
   const [narrow, setNarrow] = useState(false);
@@ -32,6 +34,19 @@ export function useShellState() {
 
   const openPaletteOnly = useCallback(() => setPaletteOpen(true), [setPaletteOpen]);
 
+  /** Route navigation for palette commands (session / history / profile). */
+  const navigate = useCallback((path: string) => router.push(path), [router]);
+
+  /**
+   * Select a side-panel activity AND ensure the side panel is open — what
+   * "Open settings" means from the palette, matching a click on the activity
+   * bar exactly.
+   */
+  const openActivity = useCallback(
+    (a: Activity) => update({ activity: a, explorerOpen: true }),
+    [update]
+  );
+
   const ctx: CommandContext = {
     toggleExplorer,
     toggleLens,
@@ -41,6 +56,8 @@ export function useShellState() {
     setBetaModes,
     activeLens,
     setActiveLens,
+    navigate,
+    openActivity,
   };
 
   return { layout, activeLens, setActiveLens, betaModes, ctx, narrow };

@@ -15,17 +15,18 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     if (isLoading) return;
-
     if (!user) {
-      // Don't redirect if already on an auth page
-      if (
+      // Auth pages are exempt: they are where a signed-out user is *supposed*
+      // to be (redirecting a login page to itself would corrupt the `redirect`
+      // param and strand the user after login). "/" is deliberately NOT exempt
+      // — it is the auth-only workbench, so middleware and this backstop both
+      // send signed-out visitors to login.
+      const onAuthPage =
         pathname.startsWith("/auth/login") ||
         pathname.startsWith("/auth/signup") ||
         pathname.startsWith("/auth/callback") ||
-        pathname === "/"
-      ) {
-        return;
-      }
+        pathname.startsWith("/auth/reset-password");
+      if (onAuthPage) return;
       const redirectUrl = `/auth/login?redirect=${encodeURIComponent(pathname)}`;
       router.replace(redirectUrl);
     }
@@ -33,9 +34,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-0)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin" />
           <p className="text-sm text-slate-500">Loading...</p>
         </div>
       </div>

@@ -7,7 +7,7 @@
 
 import TitleBar from "./TitleBar";
 import ActivityBar from "./ActivityBar";
-import ExplorerPanel from "./ExplorerPanel";
+import SidePanelView from "./SidePanelView";
 import LensPanel from "./LensPanel";
 import EditorArea from "./EditorArea";
 import ConnectionsDrawer from "./ConnectionsDrawer";
@@ -45,7 +45,7 @@ function ShellInner() {
         {layout.explorerOpen && (
           <>
             <div style={{ width: layout.explorerWidth }} className="shrink-0 min-w-0">
-              <ExplorerPanel />
+              <SidePanelView activity={layout.activity} />
             </div>
             <Splitter
               orientation="vertical"

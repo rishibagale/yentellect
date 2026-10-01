@@ -56,6 +56,10 @@ frontend/out/
 frontend/*.log
 frontend/.turbo/
 
+# Frontend build / type-check scratch output
+frontend/build-out.txt
+frontend/tsc-out.txt
+
 # Model weights / large files
 *.bin
 *.pt

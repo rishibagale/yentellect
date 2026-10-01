@@ -98,6 +98,25 @@ a:hover {
   outline-offset: 1px;
 }
 
+/* Card surfaces used by the restored routes and workbench panels.
+   Workbench successor to the old "glass cards": flat surface + hairline,
+   no blur, no drop shadow (the command palette is the only shadow).
+   Declared in @layer components so utilities (e.g. border-red-500/20 on
+   the danger zone) still win over these. */
+@layer components {
+  .glass-card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .glass-card-strong {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
