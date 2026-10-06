@@ -37,7 +37,10 @@ export const metadata: Metadata = {
     "A research workbench: import papers, apply lenses, keep the connections that matter.",
 };
 
-/* Full viewport, no page scroll. Supabase + auth guard docked. */
+/* Body scrolls normally: document-flow routes (/history, /profile,
+   /settings, /session) need the document scroller, and the workbench
+   shell self-clips (Shell.tsx h-screen overflow-hidden). Supabase +
+   auth guard docked. */
 export default function RootLayout({
   children,
 }: {
@@ -48,7 +51,7 @@ export default function RootLayout({
       lang="en"
       className={`${jetbrainsMono.variable} ${sourceSerif.variable} ${inter.variable}`}
     >
-      <body className="h-screen overflow-hidden bg-[var(--bg-0)] text-[var(--text)] antialiased">
+      <body className="bg-[var(--bg-0)] text-[var(--text)] antialiased">
         <SupabaseProvider>
           <AuthGuard>{children}</AuthGuard>
         </SupabaseProvider>
