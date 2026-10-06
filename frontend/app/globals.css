@@ -44,7 +44,10 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+  /* No overflow:hidden here: the workbench shell self-clips
+     (Shell.tsx h-screen overflow-hidden); a body-level clip would
+     kill document scrolling on every document-flow route
+     (/history, /profile, /settings, /session). */
 }
 
 .font-doc,
