@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "eval:lenses": "tsx scripts/eval-lenses.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -19,6 +20,7 @@
     "d3": "^7.9.0",
     "framer-motion": "^12.40.0",
     "next": "^14.2.3",
+    "openai": "^7.25.0",
     "postcss": "^8.4.38",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -27,11 +29,13 @@
     "tailwindcss": "^3.4.4",
     "three": "^0.185.1",
     "three-spritetext": "^1.10.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/three": "^0.185.1",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.3"
+    "eslint-config-next": "^14.2.3",
+    "tsx": "^4.23.0"
   }
 }
