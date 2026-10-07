@@ -17,6 +17,8 @@ import CommandPalette from "./CommandPalette";
 import MinWidthNotice from "./MinWidthNotice";
 import { LayoutProvider, useLayout } from "@/lib/workbench/layout";
 import { buildCommands } from "@/lib/workbench/commands";
+import { useLensThread } from "@/lib/workbench/lens-thread";
+import { thinkingModeToLensId } from "@/lib/workbench/lens-client";
 import { useShellState } from "./shell-state";
 import { useShellKeys } from "./shell-keys";
 
@@ -34,6 +36,9 @@ function ShellInner() {
     toggleDrawer,
     setActiveLens,
   });
+
+  const lens = thinkingModeToLensId(activeLens);
+  const thread = useLensThread({ lens });
 
   if (narrow) return <MinWidthNotice />;
 
@@ -77,7 +82,12 @@ function ShellInner() {
                   onChange={(v) => update({ lensWidth: Math.round(640 - (v / 100) * 400) })}
                 />
                 <div style={{ width: layout.lensWidth }} className="shrink-0 min-w-0">
-                  <LensPanel activeLens={activeLens} onSelect={setActiveLens} betaModes={betaModes} />
+                  <LensPanel
+                    activeLens={activeLens}
+                    onSelect={setActiveLens}
+                    betaModes={betaModes}
+                    thread={thread}
+                  />
                 </div>
               </>
             )}
@@ -100,7 +110,7 @@ function ShellInner() {
           )}
         </div>
       </div>
-      <StatusBar activeLens={activeLens} words={0} kept={0} saved />
+      <StatusBar activeLens={activeLens} words={thread.selectionWords} kept={thread.keptCount} saved />
       <CommandPalette
         open={layout.paletteOpen}
         commands={commands}

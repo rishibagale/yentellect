@@ -45,9 +45,23 @@ export function useShellKeys(args: KeysArgs) {
         e.preventDefault();
         toggleLens();
       } else if (k === "1" && !e.shiftKey) {
+        const el = e.target as HTMLElement | null;
+        const typing =
+          !!el &&
+          (el.tagName === "INPUT" ||
+            el.tagName === "TEXTAREA" ||
+            el.isContentEditable);
+        if (typing) return;
         e.preventDefault();
         setActiveLens("ANALOGICAL");
       } else if (k === "2" && !e.shiftKey) {
+        const el = e.target as HTMLElement | null;
+        const typing =
+          !!el &&
+          (el.tagName === "INPUT" ||
+            el.tagName === "TEXTAREA" ||
+            el.isContentEditable);
+        if (typing) return;
         e.preventDefault();
         setActiveLens("SYSTEMS");
       }
