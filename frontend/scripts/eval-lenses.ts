@@ -26,6 +26,18 @@ function flag(name: string): string | null {
 
 const only = flag("--only") ?? undefined;
 const lensArg = (flag("--lens") ?? "both").toLowerCase();
+const resumeFrom = (() => {
+  const i = process.argv.indexOf("--resume-from");
+  return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : null;
+})();
+const delayMs = (() => {
+  const i = process.argv.indexOf("--delay-ms");
+  const raw = i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : process.env.EVAL_DELAY_MS;
+  const n = raw ? Number(raw) : 0;
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+})();
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const outFile = flag("--out") ?? undefined;
 const lenses: LensId[] =
   lensArg === "both" ? ["analogical", "systems"]
   : lensArg === "analogical" ? ["analogical"]
@@ -39,7 +51,13 @@ async function main(): Promise<number> {
   console.log(`[eval] items: ${ITEMS_PATH}`);
   console.log(`[eval] out:   ${EVAL_DIR}/report.md`);
 
-  const items = loadItems(only);
+  const items = resumeFrom
+    ? (() => {
+        const all = loadItems(only);
+        const idx = all.findIndex((i) => i.title.toLowerCase().includes(resumeFrom.toLowerCase()));
+        return idx < 0 ? all : all.slice(idx);
+      })()
+    : loadItems(only);
   console.log(`[eval] running ${items.length} item(s) × ${lenses.length} lens(es)`);
 
   let mockSeen = false;
@@ -47,6 +65,7 @@ async function main(): Promise<number> {
 
   for (const item of items) {
     for (const lens of lenses) {
+      if (delayMs > 0) await sleep(delayMs);
       const req: LensRequest = {
         lens,
         selection: item.selection,
@@ -88,7 +107,7 @@ async function main(): Promise<number> {
   }
 
   const md = renderReport(runs, mockSeen, startedAt, Date.now() - t0);
-  const path = writeReport(md);
+  const path = writeReport(md, outFile);
 
   const n = runs.length;
   const ok = runs.filter((r) => !r.error).length;

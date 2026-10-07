@@ -22,7 +22,15 @@ const LABELS: Record<Activity, string> = {
   settings: "Settings",
 };
 
-export default function SidePanelView({ activity }: { activity: Activity }) {
+export default function SidePanelView({
+  activity,
+  betaModes,
+  onToggleBetaModes,
+}: {
+  activity: Activity;
+  betaModes: boolean;
+  onToggleBetaModes: (on: boolean) => void;
+}) {
   if (activity === "explorer") return <ExplorerPanel />;
 
   return (
@@ -37,7 +45,9 @@ export default function SidePanelView({ activity }: { activity: Activity }) {
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-3">
-        {activity === "settings" && <SettingsForm />}
+        {activity === "settings" && (
+          <SettingsForm betaModes={betaModes} onToggleBetaModes={onToggleBetaModes} />
+        )}
 
         {activity === "graph" && (
           <div className="space-y-3">

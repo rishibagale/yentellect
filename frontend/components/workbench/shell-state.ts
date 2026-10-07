@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLayout, type Activity } from "@/lib/workbench/layout";
+import { readBetaModes, writeBetaModes } from "@/lib/workbench/storage";
 import type { ThinkingMode } from "@/lib/modes";
 import { buildCommands, type CommandContext } from "@/lib/workbench/commands";
 
@@ -16,7 +17,7 @@ export function useShellState() {
     useLayout();
   const router = useRouter();
   const [activeLens, setActiveLensState] = useState<ThinkingMode>("ANALOGICAL");
-  const [betaModes, setBetaModes] = useState(false);
+  const [betaModes, setBetaModesState] = useState<boolean>(() => readBetaModes());
   const [narrow, setNarrow] = useState(false);
 
   // Minimum supported width is 1024px (C7); below that show a plain notice.
@@ -26,6 +27,12 @@ export function useShellState() {
     apply();
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  /** Persisting beta toggle: keeps localStorage and shell state in sync. */
+  const setBetaModes = useCallback((on: boolean) => {
+    writeBetaModes(on);
+    setBetaModesState(on);
   }, []);
 
   const setActiveLens = useCallback((lens: ThinkingMode) => {
@@ -60,5 +67,5 @@ export function useShellState() {
     openActivity,
   };
 
-  return { layout, activeLens, setActiveLens, betaModes, ctx, narrow };
+  return { layout, activeLens, setActiveLens, betaModes, setBetaModes, ctx, narrow };
 }

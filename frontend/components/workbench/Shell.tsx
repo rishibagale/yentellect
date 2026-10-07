@@ -23,7 +23,7 @@ import { useShellKeys } from "./shell-keys";
 function ShellInner() {
   const { layout, update, toggleExplorer, toggleLens, toggleDrawer, setActivity, setPaletteOpen } =
     useLayout();
-  const { activeLens, setActiveLens, betaModes, ctx, narrow } = useShellState();
+  const { activeLens, setActiveLens, betaModes, setBetaModes, ctx, narrow } = useShellState();
   const commands = buildCommands(ctx);
 
   useShellKeys({
@@ -45,7 +45,11 @@ function ShellInner() {
         {layout.explorerOpen && (
           <>
             <div style={{ width: layout.explorerWidth }} className="shrink-0 min-w-0">
-              <SidePanelView activity={layout.activity} />
+              <SidePanelView
+                activity={layout.activity}
+                betaModes={betaModes}
+                onToggleBetaModes={setBetaModes}
+              />
             </div>
             <Splitter
               orientation="vertical"

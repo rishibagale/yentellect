@@ -38,7 +38,7 @@ const PRESETS: Record<string, ProviderPreset> = {
     name: "groq",
     baseURL: "https://api.groq.com/openai/v1",
     apiKeyEnv: "GROQ_API_KEY",
-    defaultModel: "llama-3.3-70b-versatile",
+    defaultModel: "openai/gpt-oss-120b",
     jsonObject: true,
     needsJsonExampleInPrompt: true,
     note: "Strict json_schema not trusted on this provider; JSON Object Mode + zod + retry.",

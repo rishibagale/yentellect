@@ -138,7 +138,13 @@ export function renderReport(
 
 export function writeReport(md: string, outPath?: string): string {
   mkdirSync(EVAL_DIR, { recursive: true });
-  const path = outPath ?? join(EVAL_DIR, "report.md");
+  const raw = outPath ?? join(EVAL_DIR, "report.md");
+  // --out may be a bare filename ("rerun-systems.md") or a path. Bare names
+  // land in EVAL_DIR; anything else resolves against the repo root (cwd).
+  const path =
+    raw === join(EVAL_DIR, "report.md") || raw.includes("/") || raw.includes("\\")
+      ? raw
+      : join(EVAL_DIR, raw);
   writeFileSync(path, md, "utf8");
   return path;
 }

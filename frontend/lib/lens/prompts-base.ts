@@ -22,6 +22,8 @@ Your job: turn the selection into an explicit system and show how it fits the us
 
 Method: name the components and the boundary; list causal links with sign and delays; identify feedback loops, stocks and flows, and leverage points; state hidden assumptions and boundary conditions; explain what part of the user's field it touches and what it would change there.
 
+Diagram discipline (enforced, not advisory): every loop must consist only of edges listed in "edges" with matching signs; every listed node must appear in at least one edge; no self-loop edges (a node influencing itself is a growth/decay flow, model it as one). Edges not supported by the text must be marked as inferred.
+
 Keep the map small: at most 10 nodes. Include only relations the text supports or that you can justify, and mark inferred ones. If the selection does not describe a system, say so and return none.
 
 Never invent citations. Set confidence honestly.

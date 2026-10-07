@@ -82,3 +82,51 @@ export function saveLayout(layout: LayoutState): void {
     /* storage full or blocked — layout persistence is best-effort */
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Small per-user preferences (Stage 1+). userField feeds the lens     */
+/* prompts; betaModes gates the hidden lens modes. Anything that reads */
+/* or writes these goes through here so the keys cannot drift, and all */
+/* functions are SSR-safe (typeof window guard + try/catch).           */
+/* ------------------------------------------------------------------ */
+
+export const USER_FIELD_KEY = "yentellect.userField.v1";
+export const BETA_MODES_KEY = "yentellect.betaModes.v1";
+
+/** The user's research area, free text. Empty string when never set. */
+export function readUserField(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(USER_FIELD_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function writeUserField(value: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(USER_FIELD_KEY, value);
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Beta lens modes visible in the switcher. Default off. */
+export function readBetaModes(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(BETA_MODES_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function writeBetaModes(on: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(BETA_MODES_KEY, on ? "1" : "0");
+  } catch {
+    /* best-effort */
+  }
+}
