@@ -1,27 +1,38 @@
-# Yentellect — Project Context
+# Yentellect -- Project Context
 
 > Single source of truth for the Yentellect platform and how to run every part of it.
 > Generated on **7/18/2026**. Last full refresh: **9/30/2026** (commits through `6fed645`).
 > Doc cleanup **9/30/2026**: removed stale `puter_test/` / `go_watcher/` / `rebuild` Go-source references (those directories no longer exist); corrected port guidance.
+> Full refresh **10/6/2026** (commits through `ae28fb2`): the app is now a research workbench, not a training app. Sections 1, 2, 3, 4, 5, 8, 10, 11, 12 rewritten or extended; new Sections 13 (lens system), 14 (eval harness + verdict), 15 (session commit history), 16 (standing user decisions). Sections 6, 7, 9 (backend API, VSA, Supabase) verified still accurate and kept.
 
 ---
 
 ## 1. What is Yentellect?
 
-**Yentellect** is a production-grade cognitive development platform. It builds a persistent cognitive model of the user across sessions, detects dominant and underdeveloped thinking modes from behavioral text signals, and delivers adaptive Socratic sessions targeting the weakest modes — specifically **analogical reasoning**, **divergent thinking**, and **metacognitive awareness**.
+**Yentellect** is a research workbench for PhD students, research scientists, and STEM people. It helps a researcher understand new concepts and fit them into their own research. It is NOT a training app: mode-weakness detection, cognitive scores, streaks, assessments, onboarding quizzes, dashboards, and zero-value metrics are removed from the UI by spec (prompt #1 "Remove" list; enforcement sweep = Phase D, still open -- see Section 14 "Open Tasks").
+
+Core loop:
+1. Import a paper (arXiv URL or DOI, Stage 4) or write a concept/note (Stage 2).
+2. Select text and apply a lens (Analogical or Systems).
+3. Work through a Socratic thread in the side lens panel (no-doc chat works too: a typed 3am thought IS the selection).
+4. Keep the useful connections. They become edges in the user's knowledge graph (Stage 6).
 
 > *"Most AI makes you more informed. Yentellect makes you think better."*
 
-### The Six Thinking Modes
+### Lenses, not training modes
 
-| Mode | Trains | Neural basis |
-|------|--------|--------------|
-| **Convergent** | Precision under constraint, focused problem-solving | Dorsolateral Prefrontal Cortex (DLPFC) |
-| **Divergent** | Ideational fluency, creative generation, flexible thinking | DMN–DLPFC coupling |
-| **Analogical** | Cross-domain structural mapping, relational reasoning | Frontopolar cortex (Brodmann 10) |
-| **Metacognitive** | Reasoning about reasoning, calibration accuracy | Anterior Prefrontal Cortex |
-| **Systems** | Causal chains, feedback loops, emergent properties | Inferior parietal + DLPFC |
-| **DMN** | Open wandering, insight incubation, associative thinking | Posterior Cingulate + Medial PFC |
+Only two lenses are active: **Analogical** and **Systems**.
+
+The other four modes (Convergent, Divergent, Metacognitive, DMN) stay in the codebase but are hidden. Their data is preserved in `frontend/lib/modes.ts`, which MUST NOT be deleted. Nothing in `frontend/components/workbench/` may import it except the lens switcher and the Settings toggle (enforced by convention, not by lint). A Settings toggle "Beta modes", default off, shows them in the lens switcher with a "Beta" badge. Persisted in localStorage (`yentellect.betaModes.v1`); the shell state (`shell-state.ts`) is the source of truth inside the workbench, `SettingsForm` falls back to localStorage on the `/settings` route.
+
+| Mode | Lens role | Neural basis (legacy reference) |
+|------|-----------|---------------------------------|
+| **Convergent** | Beta only | Dorsolateral Prefrontal Cortex (DLPFC) |
+| **Divergent** | Beta only | DMN-DLPFC coupling |
+| **Analogical** | ACTIVE lens | Frontopolar cortex (Brodmann 10) |
+| **Metacognitive** | Beta only | Anterior Prefrontal Cortex |
+| **Systems** | ACTIVE lens | Inferior parietal + DLPFC |
+| **DMN** | Beta only | Posterior Cingulate + Medial PFC |
 
 ---
 
@@ -29,48 +40,66 @@
 
 ```
 yentellect/
-├── CONTEXT.md                          # ← this file (full refresh 9/30/2026)
+├── CONTEXT.md                          # ← this file (full refresh 10/6/2026, commits through `ae28fb2`)
 ├── README.md                           # project readme (repo: github.com/rishibagale/yentellect)
 ├── LICENSE                             # MIT
 ├── .env.example                        # backend env template
 │
-├── frontend/                           # Next.js 14 UI (TypeScript)
+├── frontend/                           # Next.js 14 UI (TypeScript) -- RESEARCH WORKBENCH
 │   ├── app/
-│   │   ├── layout.tsx                  # root layout
-│   │   ├── globals.css                 # tailwind base
-│   │   ├── page.tsx                    # home (name + opening question)
-│   │   ├── session/page.tsx            # training session (+ read-only ended view via ?session_id=, passes initialTurns)
-│   │   ├── profile/page.tsx            # knowledge graph + progress
-│   │   ├── dashboard/page.tsx          # cognitive fingerprint dashboard
-│   │   ├── history/page.tsx            # session history list
-│   │   ├── settings/page.tsx           # user settings
+│   │   ├── layout.tsx                  # root layout (body scrolls normally; shell self-clips)
+│   │   ├── globals.css                 # workbench tokens (CSS vars, dark default) + scrollbar/focus styles
+│   │   ├── page.tsx                    # `/`: the AUTHE'd workbench (dynamic, ssr:false). NO marketing landing.
+│   │   ├── api/lens/route.ts           # POST /api/lens (401 gate, 400 validation, 502/500 transport)
+│   │   ├── session/page.tsx            # Socratic chat flow (reform target, Phase D)
+│   │   ├── profile/page.tsx            # knowledge graph + progress (metric sweep pending, Phase D)
+│   │   ├── history/page.tsx            # thin host over SessionHistoryList
+│   │   ├── settings/page.tsx           # thin host over SettingsForm
 │   │   └── auth/                       # login, signup, reset-password, callback
 │   ├── components/
-│   │   ├── Header.tsx                  # sticky glass nav ("New session" CTA → /session)
-│   │   ├── LoadingState.tsx
-│   │   ├── ErrorState.tsx
-│   │   ├── ModeIndicator.tsx
-│   │   ├── ModeBadge.tsx
-│   │   ├── KnowledgeGraph.tsx          # react-force-graph-3D neural graph, bloom, fusion (Ctrl/Cmd+click)
-│   │   ├── DomainExplorer.tsx          # 3D graph with domain filter bar (added 9/30/2026)
-│   │   ├── CognitiveTimeline.tsx       # vertical session timeline (added 9/30/2026)
-│   │   ├── NodeDetailPanel.tsx         # selected-node detail drawer
-│   │   ├── ProgressChart.tsx           # recharts line chart
-│   │   ├── SessionChat.tsx             # chat + readOnly ended-session mode (readOnly, initialTurns props)
-│   │   ├── SessionCard.tsx
-│   │   ├── CognitiveFingerprint.tsx
-│   │   ├── AppShell.tsx
-│   │   └── AuthGuard.tsx
+│   │   ├── workbench/                  # Stage 1 shell
+│   │   │   ├── Shell.tsx               # grid root 36/48/240/flex/360/200/24, state+keys
+│   │   │   ├── TitleBar.tsx            # 36px: workspace name left, Cmd+K hint right
+│   │   │   ├── ActivityBar.tsx         # 48px icons: Explorer, Graph, Search, Settings
+│   │   │   ├── SidePanelView.tsx       # activity router (settings live, rest placeholders)
+│   │   │   ├── ExplorerPanel.tsx       # PLACEHOLDER (file tree = Stage 2)
+│   │   │   ├── EditorArea.tsx          # PLACEHOLDER first-run prompt (editor = Stage 3)
+│   │   │   ├── LensPanel.tsx           # PLACEHOLDER switcher (real threads = Phase C)
+│   │   │   ├── ConnectionsDrawer.tsx   # PLACEHOLDER (table = Stage 6)
+│   │   │   ├── StatusBar.tsx           # 24px: lens, words, kept, save state
+│   │   │   ├── CommandPalette.tsx      # Cmd+K fuzzy palette, stage-gated commands
+│   │   │   ├── Splitter.tsx            # draggable, persisted sizes
+│   │   │   ├── MinWidthNotice.tsx      # plain notice below 1024px
+│   │   │   ├── shell-state.ts          # lens+beta+narrow state, CommandContext
+│   │   │   └── shell-keys.ts           # Cmd+K/B/J/Shift+L/1/2
+│   │   ├── Header.tsx                  # legacy top nav (reformed routes)
+│   │   ├── AppShell.tsx                # legacy route shell (zero /dashboard refs)
+│   │   ├── SettingsForm.tsx            # shared settings (profile + Research + Lenses)
+│   │   ├── SessionHistoryList.tsx      # shared history (page + future panel variant)
+│   │   ├── LoadingState.tsx / ErrorState.tsx / SessionCard.tsx / SessionChat.tsx
+│   │   ├── ModeIndicator.tsx / ModeBadge.tsx / NodeDetailPanel.tsx
+│   │   ├── KnowledgeGraph.tsx          # react-force-graph-3D (legacy profile graph)
+│   │   ├── DomainExplorer.tsx          # 3D graph with domain filter bar
+│   │   ├── ProgressChart.tsx           # REMOVE-target (Phase D): metric display
+│   │   └── AuthGuard.tsx               # NO `/` exemption: unsigned users never see the workbench
 │   ├── lib/
+│   │   ├── workbench/                  # layout.tsx (LayoutProvider), storage.ts (layout+prefs keys), commands.ts (single registry)
+│   │   ├── lens/                       # 12 files (see Section 13): schema, prompts, provider+4 providers, run, errors, index
+│   │   ├── modes.ts                    # hidden beta modes live here. DO NOT DELETE.
 │   │   ├── api.ts                      # typed API client (SessionDetailResponse expects full turn fields)
-│   │   ├── tokens.ts                   # design tokens
-│   │   ├── design-tokens.ts
+│   │   ├── tokens.ts                   # HEX tokens for WebGL (three.js cannot read CSS vars)
 │   │   ├── auth-types.ts
 │   │   └── combination/                # VSA vector math
 │   │       ├── vsa.ts
 │   │       └── modeVectors.ts
 │   ├── utils/supabase/                 # Supabase client, server, middleware, provider
-│   └── package.json                    # next, react, d3, recharts
+│   ├── scripts/eval-lenses.ts          # eval runner (--only/--lens/--out/--delay-ms/--resume-from)
+│   ├── scripts/eval-lenses-lib.ts      # eval types, items loading, report rendering
+│   ├── eval/items.json                 # SEED set (REPLACE with the user's real papers)
+│   ├── eval/report.md                  # graded master report (use --out for reruns, never clobber)
+│   ├── eval/report-systems-rerun.md    # prompt-hardening evidence
+│   ├── .env.example                    # server-only LENS_* template (keys NEVER committed)
+│   └── package.json                    # next, react, openai, zod, tsx(dev). NO codemirror/katex/dexie yet
 │
 ├── backend/                            # FastAPI service (Python)
 │   ├── pyproject.toml                  # uv-managed
@@ -119,10 +148,19 @@ yentellect/
 └───────────────────────────┘         └───────────────────────────┘
 ```
 
-- **Frontend ↔ Backend**: REST + JSON. CORS allows `http://localhost:3000`.
+- **Frontend <-> Backend (Python)**: REST + JSON. CORS allows `http://localhost:3000`.
   The port-8000 backend is the only local server now; there is no second
   local service competing for the port (the Node `puter_test` playground and
   its `rebuild.exe` watcher bridge were removed from the repo).
+- **Browser -> POST /api/lens (NEW, Next.js route, NOT the Python backend)**:
+  the browser calls the Next.js frontend's own `/api/lens`. The route checks a
+  Supabase session itself (the app middleware deliberately excludes `/api/*`),
+  then calls `runLens()` in-process. Real LLM calls go from the Next.js server
+  to Groq (or another registry provider) using server-only keys. The Python
+  backend is NOT involved in lenses. So there are TWO separate LLM paths with
+  TWO separate keys: `GROQ_API_KEY` in Render (Python sessions) and
+  `GROQ_API_KEY` in `frontend/.env.local` (lens route + eval). Same value is
+  fine; they are read in different runtimes.
 
 ---
 
@@ -156,38 +194,61 @@ uv run uvicorn backend.api.main:app --reload --port 8000
 
 Port `8000` is free for the backend (the retired Node `puter_test` playground that used to occupy it is gone). Note: `frontend/.env.local` currently has no `NEXT_PUBLIC_API_URL`, so the frontend defaults to the production Render backend (`https://yentellect.onrender.com`); for local development add `NEXT_PUBLIC_API_URL=http://localhost:8000` to `frontend/.env.local`.
 
+### Lens + eval environment (NEW 10/6/2026)
+
+`frontend/.env.local` (gitignored, NEVER committed) currently holds:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://ygapudtdgcslbqhibgjl.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_0a24AEe8x7IDz0VD0jWlAg_sZF0hgo2
+GROQ_API_KEY=gsk_...   # live Groq key (Render backend has the same key as a dashboard env var)
+LENS_PROVIDER=groq
+```
+
+Full server-only var reference lives in `frontend/.env.example`: `LENS_PROVIDER` (groq|openai|openrouter|gemini|deepseek|anthropic|custom|mock), `LENS_MODEL`, `LENS_BASE_URL` + `LENS_API_KEY` (custom only), `LENS_TEMPERATURE` (0.4), `LENS_MAX_TOKENS` (4000), `LENS_TIMEOUT_MS`, and the six provider key vars (comma-separated = rotation + failover). `tsx` is a devDependency but npm installs are flaky on this machine; a working tsx CLI is shimmed at `frontend/node_modules/.bin/tsx.cmd` pointing at `%TEMP%/tsx-bin` (see Section 14 gotchas).
+
+### C) Run the lens eval
+
+```powershell
+cd "c:\Users\rushi\OneDrive\Desktop\yentellect\frontend"
+$env:EVAL_DELAY_MS='15000'   # free-tier TPM pacing (Groq on_demand = 8000 TPM); required for full runs
+.\node_modules\.bin\tsx.cmd scripts/eval-lenses.ts   # 6 items x 2 lenses -> eval/report.md
+# flags: -- --only <title-substring> -- --lens analogical|systems|both -- --out <file> -- --delay-ms <ms> -- --resume-from <title>
+```
+
 ---
 
-## 5. UI Status (frontend) — Last audit 9/30/2026
+## 5. UI Status (frontend) -- Last rewrite 10/6/2026 (workbench, commits through `ae28fb2`)
 
-The Yentellect UI is **production-ready** with Supabase auth, dashboard, history, and settings pages. Ended sessions render full conversation history in read-only mode.
+The Yentellect UI is now the **research workbench**. The old dashboard/training screens are gone as a product; four routes (session, history, settings, profile) were restored and re-skinned, NOT kept as training UI -- they are reform hosts that will dissolve into workbench panels stage by stage (standing user decision, Section 16). The workbench shell (Stage 1) is fully live. Explorer/Editor/LensPanel/Drawer are honest placeholders whose stages (2-6) are NOT built.
 
-### Pages
+### Routes
 | Route | Description |
 |-------|-------------|
-| `/` | Landing page with hero, mode explorer, session start form |
-| `/session` | Active training session (or read-only ended session view via `?session_id=`, full turn history) |
-| `/dashboard` | Cognitive fingerprint, mode breakdown, recent sessions, streak |
-| `/profile` | Knowledge graph + progress chart |
-| `/history` | Paginated session history list |
-| `/settings` | User settings |
-| `/auth/login` | Supabase login |
-| `/auth/signup` | Supabase signup |
-| `/auth/reset-password` | Password reset |
-| `/auth/callback` | OAuth callback handler |
+| `/` | THE WORKBENCH. Auth-required (middleware + AuthGuard). Dynamic import, SSR off. No marketing landing -- the old landing is deleted; its opening prompt lives as the editor first-run prompt. |
+| `/session` | Socratic chat flow (legacy `SessionChat`). Reform target, Phase D wording sweep pending. |
+| `/profile` | Knowledge graph (3D, legacy) + progress. Metric displays are REMOVE-targets (Phase D). |
+| `/history` | Thin host: `AppShell` + `SessionHistoryList`. Same component the Stage 2 Explorer tree will render. |
+| `/settings` | Thin host: `AppShell` + `SettingsForm` (Profile + Research[userField] + Lenses[beta toggle]). Shares persistence keys with the workbench (Section 13 storage paragraph). |
+| `/api/lens` | POST only. NOT a page. 401 without Supabase session; 400 bad shape; 502/500 transport/config (never masked as lens output). Adds `X-Lens-Provider`/`X-Lens-Model` headers. |
+| `/auth/login`, `/auth/signup`, `/auth/reset-password`, `/auth/callback` | Supabase auth (unchanged). |
+| `/dashboard` | DELETED. Zero references remain anywhere (verified by grep in `3c99dee`). Old dashboard metrics are retired by design correction C8. |
 
-### Key Components
-- **AppShell** — Shared layout with sidebar navigation
-- **AuthGuard** — Redirects unauthenticated users to login
-- **KnowledgeGraph** — react-force-graph-3D neural graph with bloom, VSA similarity edges, Ctrl/Cmd+click fusion
-- **DomainExplorer** — 3D graph with domain filter bar (added 9/30/2026)
-- **CognitiveTimeline** — Vertical session timeline with mode dots + score bars (added 9/30/2026)
-- **NodeDetailPanel** — Selected-node detail drawer
-- **ProgressChart** — Recharts line chart showing mode performance over time
-- **SessionChat** — Chat interface with mode indicator, confidence, end-session flow, and `readOnly` ended-session mode
-- **SessionCard** — Clickable history card that opens ended session view
-- **CognitiveFingerprint** — Radar/spider chart of mode scores
-- **ModeBadge** — Colored mode label chip
+### Workbench shell (all live)
+- Geometry: title 36 / activity 48 / explorer 240 / editor flex / lens 360 / drawer 200 default / status 24 (exact per spec; splitters drag + persist via `yentellect.layout.v1` with clamp-on-read-and-write).
+- Keyboard: Cmd/Ctrl+K palette, B sidebar, J drawer, Shift+L lens panel, 1/2 lens switch. All from a single command registry (`lib/workbench/commands.ts`) that also feeds the palette; not-yet-built commands render disabled WITH a reason, never hidden.
+- `Cmd+K` commands: Import paper (Stage 4), New concept/note (Stage 2), New session, Open history, Open settings, Run Analogical/Systems (switches lens tab), Open graph (-> /profile until Stage 6), Toggle beta, Toggle sidebar/lens/drawer.
+- First run: exact string in `EditorArea`: "Import a paper or write a concept to begin." (opens palette on click).
+- Minimum width 1024px (else `MinWidthNotice`).
+- Design tokens = the spec's CSS block byte-for-byte, all CSS vars, one accent (`--accent: #5eb0ef`). Chrome: JetBrains Mono 12px. Doc body (later): Source Serif 4 / Inter 15-16px, 1.6, max 72ch.
+- Scroll model (two fixes, `b415604` + `2b39a3f`): NO `overflow:hidden` on `body` anywhere (neither CSS nor Tailwind class). Document-flow routes scroll the document; the workbench self-clips at its own `h-screen overflow-hidden` root. All remaining `overflow-hidden` in the tree are inner panes (graph containers, chat, panels) -- legitimate.
+
+### Key components (legacy/reformed)
+- `SettingsForm` -- the ONE shared settings source (route + panel hosts). Owns userField + beta toggle persistence.
+- `SessionHistoryList` -- the ONE shared history source (`variant="page"|"panel"`).
+- `AppShell` -- legacy route shell: sidebar has "Workbench -> /" (NOT dashboard), logo -> `/`. No `/dashboard` strings.
+- `KnowledgeGraph` / `DomainExplorer` -- three.js 3D graphs (legacy profile page). Hex colours stay hex here on purpose (WebGL cannot read CSS vars).
+- `ProgressChart` -- REMOVE-target (Phase D). Do not extend.
 
 ---
 
@@ -233,14 +294,15 @@ Added in this session (commits `e34c8aa` → `574790f`, extended through `891092
 
 ---
 
-## 8. Security Hardening
+## 8. Security Hardening (+ lens route, 10/6/2026)
 
-Added in commit `eb2d20f`:
+Added in commit `eb2d20f` (backend) and `d721257` (lens route):
 
 - **`backend/api/security.py`** — JWT auth via Supabase, rate limiting (per-endpoint), input sanitization, CSRF protection, CSP headers, brute force protection
 - **`backend/db/rls_policies.sql`** — Row-level security policies for Supabase
 - **Auth middleware** — `frontend/middleware.ts` protects routes (uses local `getSession()`, not remote `getUser()`, per `40c58ed` to avoid 504 timeouts), `frontend/utils/supabase/` provides client/server/provider
-- **AuthGuard** component redirects unauthenticated users
+- **AuthGuard** component redirects unauthenticated users. Since `3c99dee` the `/` exemption is REMOVED: the workbench is auth-only, so middleware + guard agree and a session miss can never paint the shell for a signed-out user.
+- **`/api/lens` gates itself** (`frontend/app/api/lens/route.ts`): the app middleware deliberately excludes `/api/*`, so the route checks `supabase.auth.getUser()` and returns **401** without a session. An ungated LLM proxy would be an open abuse/cost vector. Error payloads are scrubbed for key/secret/token substrings before returning.
 
 ---
 
@@ -273,29 +335,107 @@ Added in commit `eb2d20f`:
 | Header says "+ New", AppShell says "New session" | Header CTA unified to "New session" → `/session` |
 | VSA edges fail silently | Similarity-edge creation now logs scores/warnings to console |
 
+### Workbench + lens era (10/6/2026, commits `644db06` -> `ae28fb2`)
+
+| Issue | Fix |
+|-------|-----|
+| History/profile pages don't scroll | TWO blockers removed: `body{overflow:hidden}` in `globals.css` (`b415604`) AND `h-screen overflow-hidden` on the `<body>` tag in `app/layout.tsx` (`2b39a3f`). First fix alone did nothing -- the Tailwind class kept clipping. Workbench unaffected (self-clips at `Shell.tsx:41`). |
+| `llama-3.3-70b-versatile` 404 on Groq | Model retired. Live model list queried via `/openai/v1/models`; default moved to `openai/gpt-oss-120b` (`registry.ts`). `LENS_MODEL` always overrides; re-check before trusting any pinned name. |
+| Eval dies at 8/12 calls: Groq 429 TPM | Free-tier `on_demand` = 8000 TPM. Harness gained `--delay-ms` pacing (`EVAL_DELAY_MS=15000` for full runs); key rotation (`keys.ts`) covers multi-key failover, not single-key pacing. |
+| Targeted rerun overwrote master report | `writeReport` wrote `report.md` unconditionally. Harness gained `--out <file>` (bare names land in `eval/`); master report carries hand-grades, must never be casually rewritten. `--resume-from <title>` also wired. |
+| Eval runner script corruption (line splices) | Two line-level `editor` inserts landed inside the `for` loop body and destroyed it; tsc caught 7+ errors. Recovered via `git checkout` + clean diffs. Lesson: for `scripts/`, prefer whole-block rewrites verified by `tsc`, not micro-inserts. |
+
 ---
 
-## 11. Open Tasks / Known Limitations
+## 11. Open Tasks / Known Limitations (rewritten 10/6/2026)
 
-- [ ] **Verify completed-session click fix end-to-end**: backend now returns full turn data (`f9c8666` + `6fed645`); needs a live click-through on History/Dashboard → `/session?session_id=...` against a running backend
+Carried over (still true):
 - [ ] **Backend venv is an empty stub**: `backend/.venv` ships with no packages installed; run `uv sync --all-extras` + `python -m spacy download en_core_web_sm` before first launch
 - [ ] **Missing local API URL**: `frontend/.env.local` has no `NEXT_PUBLIC_API_URL`, so a local frontend calls the production Render backend by default
-- [ ] **Backend port 8000 is free**: the retired Node `puter_test` server that occupied it is gone; run the backend on its default `--port 8000`
 - [ ] **CORS**: backend's `allow_origins` includes `http://localhost:3000` and `https://localhost:3000`. If you serve the frontend on a different port, update `backend/api/main.py`.
 - [ ] **OneDrive `.next` build flakiness**: `EINVAL readlink` errors under `frontend/.next/` occur on OneDrive-synced paths; workaround is `Remove-Item -Recurse -Force .next` before `npm run build`
 
+New (workbench + lens era):
+- [ ] **Phase C -- the chat box is NOT built (highest priority)**: nothing calls `POST /api/lens` yet, so select-text -> lens -> thread is unreachable end-to-end. Real `LensPanel` (composer + thread + cards + no-doc mode) is designed and approved, blocked only on sequencing. Backend is done and graded; the product is not.
+- [ ] **Phase D -- Remove-list sweep**: `profile/page.tsx` still renders `ProgressChart` (metrics); session wording still says "cognitive training"; README still advertises Cognitive Fingerprint/mode scores. Routes stay (standing decision), metric displays go.
+- [ ] **Stages 2-4, 6**: data model + Dexie + Explorer tree (2), CodeMirror + KaTeX + tabs + selection toolbar (3), arXiv/DOI import (4), drawer table + 2D graph tab (6). Deps needed: `dexie`, `@codemirror/*`, `katex`, `react-force-graph-2d` (currently only the 3D variant is installed).
+- [ ] **Eval seed data**: `eval/items.json` is a 6-item starter set of famous-paper paraphrases, NOT the user's papers. Bar transfers only if the user's own material grades as well. User owes real passages + the "wouldn't-have-found-alone" verdict on >= 3 items.
+- [ ] **npm installs are unreliable on this machine**: `tsx`/`zod`/`openai` had to be hand-placed; `tsx` runs only via the `node_modules/.bin/tsx.cmd` shim (`%TEMP%/tsx-bin`). Verify install health at the start of Stage 2 before promising dates. Also `npm run <script> -- <flags>` misparses flags; invoke `.bin` shims directly.
+- [ ] **Groq key was shared in chat**: rotate it in the Groq console when convenient, then update Render dashboard + `frontend/.env.local`. Repo-local git transport tunings were set during flaky pushes (`http.postBuffer`, `http.version=HTTP/1.1`, low-speed overrides) -- harmless, revert if unwanted.
+- [ ] **`frontend/tsconfig.tsbuildinfo` is TRACKED and churns on every build**: deliberately left out of every commit. Consider untracking it (`git rm --cached`).
+
 ---
 
-## 12. Pointers for the Next Agent
+## 12. Pointers for the Next Agent (extended 10/6/2026)
 
 - **Where to start testing**: backend on `http://localhost:8000` (`uv run uvicorn backend.api.main:app --reload --port 8000`), frontend on `http://localhost:3000` (`npm run dev`). Set `NEXT_PUBLIC_API_URL=http://localhost:8000` in `frontend/.env.local` for local runs.
-- **Where to add a feature**: New UI components go in `frontend/components/`. New API routes go in `backend/api/routes/`. (The retired `rebuild/` Go CLI has no sources left; do not extend it.)
-- **Where the build artifacts are**: `frontend/.next/`, `rebuild/bin/rebuild.exe` (orphaned binary, kept for reference).
-- **Don't add new dependencies lightly** — Yentellect frontend already pins to React 18 + d3 + recharts; backend to FastAPI + spaCy + LangGraph.
+- **Where to add a feature**: New workbench UI goes in `frontend/components/workbench/` (shell chrome) or `frontend/components/` (shared). Lens logic goes in `frontend/lib/lens/` and talks to the world ONLY through `LensProvider.complete()` -- never add a second transport. New Python API routes go in `backend/api/routes/`.
+- **Eval-before-UI is a hard rule**: the lens spec forbids polished UI on a lens that fails the >=6/8 bar. Any prompt change -> rerun (`--out` a separate file) -> regrade -> then UI. `eval/report.md` is the graded master; treat it as append-only evidence.
+- **The prompts are verbatim to spec** (`lib/lens/prompts-base.ts`): Analogical + Systems system prompts are character-identical to the lens spec. The ONLY sanctioned addition is the "Diagram discipline" paragraph in the Systems prompt (added `ae28fb2`, verified by rerun). Do not improvise prompt changes without a rerun.
+- **Beta modes live in `frontend/lib/modes.ts` and MUST NOT be deleted.** Only the lens switcher and the Settings toggle may import it.
+- **Don't add new dependencies lightly** -- and verify npm health first (Section 11). Stage 2-4 needs `dexie`, `@codemirror/*`, `katex`, `react-force-graph-2d`.
 - **VSA vectors**: 512-dimensional float arrays stored as JSON in `sessions.vector`. The frontend and backend both have VSA math modules that must stay in sync.
-- **Supabase**: Auth is fully wired now. New API routes should use `get_current_user` dependency from `backend/api/security.py`.
-- **Session detail contract**: `GET /sessions/{id}` must always return full turn objects (`turn_id`, `turn_number`, `user_input`, `response`, `predicted_mode`, `confidence`, `created_at`) — the read-only `SessionChat` depends on it. Both `database.py` and `database_supabase.py` `get_session_turns()` implement this; keep them in sync.
-- **SQLite migrations**: new columns go in `schema.sql` + `_migrate()` in `database.py` (see `started_at` precedent).
+- **Supabase**: Auth is fully wired. `/api/lens` uses `createClient` from `@/utils/supabase/server` + `auth.getUser()` (NOT middleware).
+- **Session detail contract**: unchanged (Section 6 backend routes).
+- **SQLite migrations**: unchanged (see `started_at` precedent).
+- **Line-surgery on `scripts/` is dangerous**: the `editor` tool once spliced lines inside a loop body; always re-run `tsc` after script edits.
+
+---
+
+## 13. Lens System (NEW 10/6/2026, commits `d721257` + `ae28fb2`)
+
+### Contract (`frontend/lib/lens/schema.ts`)
+The zod schemas ARE the API contract -- TS types are inferred, never hand-written. `LensRequest{ lens, selection, doc{title,kind,abstract?}, userField, history[], userMessage? }`; `LensResponse{ message, connections[] }`. `LensConnection` is a discriminated union on `type`: `analogy` carries `AnalogyDetail` (mapping>=3 pairs, transfers, breaks, test), `system` carries `SystemDetail` (nodes<=10, edges with +/-/delay, loops, leverage, assumptions[], touchesUserModel). Responses clamp to 3 connections in `run.ts` (code, not just prompt).
+
+### Semantics (`run.ts`)
+Validate request (caller bug throws) -> build system prompt (lens + shared rules + JSON shape) -> exactly one `complete()` call per attempt -> zod-validate -> EXACTLY one validation retry (on next key when keys exist) -> else `InvalidModelOutputError` -> fallback `{ message: <plain>, connections: [] }`. Transport/auth/config errors propagate as 502/500, NEVER masked as lens output. Empty content (documented DeepSeek behaviour) and `finish_reason=length` truncation count as invalid, not empty. Code fences are stripped before parsing. Streaming: NOT implemented; the spec-allowed loading-state + full response is used. No-doc chat needs no schema change: the typed thought becomes `selection` with `doc{title:"Untitled thought",kind:"note"}`.
+
+### Prompts (`prompts-base.ts` + `prompts.ts`)
+Both system prompts verbatim to spec (`{userField}`/`{docTitle}` interpolated). ONE shared-rules block appended to both (8 rules: structure-over-surface, checkable, empty-allowed, calibrated, no-invented-sources, Socratic, userField, terse) + follow-up rules + "Diagram discipline" paragraph (systems only, `ae28fb2`). The output-shape example ALWAYS includes the literal word "json" + full field example: required by DeepSeek, helpful everywhere.
+
+### Provider layer (`provider.ts` + `providers/`)
+Single seam: `LensProvider.complete<T>({ system, messages, schema, jsonShapeExample, model?, temperature?, maxTokens?, timeoutMs? })`. ONE transport (`openai-compat.ts`: raw `openai` SDK + baseURL + `response_format:json_object` only when the preset allows). Registry presets (URLs verified against vendor docs 10/2026): groq (`api.groq.com/openai/v1`, default model now `openai/gpt-oss-120b` after `llama-3.3-70b-versatile` retired), openai (`gpt-4o-mini`), openrouter (`anthropic/claude-sonnet-4` + attribution header), gemini (beta compat layer), deepseek (needs "json"+example in prompt, may return empty), anthropic (**`jsonObject:false` -- its compat layer silently ignores `response_format`**; use OpenRouter for Claude), custom (`LENS_BASE_URL` + `LENS_API_KEY`: vLLM/Ollama/LM Studio/anything-compatible). `keys.ts`: comma rotation + failover on 429/5xx, `maskKey` (last-4 only, never logged). `getProvider()` reads env at CALL time (no restart for key/provider switches); no usable keys -> loud-warning mock (plumbing only, never gradable). Live Groq key = Render dashboard `GROQ_API_KEY` + same value in `frontend/.env.local` (TWO separate runtimes reading it; Python sessions and lens route are independent paths).
+
+### Storage (`lib/workbench/storage.ts`)
+`yentellect.layout.v1` (geometry+activity, clamped read+write; `paletteOpen` deliberately NOT persisted) plus `yentellect.userField.v1` (feeds prompts; set in Settings > Research) and `yentellect.betaModes.v1` (default off). All readers SSR-safe (window guard + try/catch).
+
+---
+
+## 14. Eval Harness + Verdict (NEW 10/6/2026)
+
+Harness: `scripts/eval-lenses.ts` (runner) + `scripts/eval-lenses-lib.ts` (pure helpers, relative imports so tsx needs no alias resolution). Input `eval/items.json` (SEED: 6 famous-paper passages; REPLACE with the user's real papers). Output `eval/report.md` + per-run grade tables. Flags: `--only <substr>`, `--lens analogical|systems|both`, `--out <file>` (bare names land in `eval/`), `--delay-ms <ms>` / `EVAL_DELAY_MS` (Groq free-tier pacing -- 15000 required for full 12-call runs), `--resume-from <title>`. Grading the 0-2 rubric is a human job and lives IN the report as "Hand grades" sections.
+
+Rubric: structural validity / non-obviousness / actionability / honesty, 0-2 each, connection passes at >=6/8. Lens passes when >= half the items produce one passing connection AND the user says "wouldn't have found alone" on >= 3 items.
+
+- First full run (pre-hardening): **24/28 (86%), 6/6 items, 0 fallbacks/errors.** All 4 failures were systems diagrams: self-loops, dangling boundary node, loops from unlisted edges, unmarked inferences.
+- Hardened rerun (diagram-discipline rule): **24/24 (100%), 6/6 items.** Standouts: scattering-amplitude<->attention, mock-trial-witnesses<->Shannon codes, prospect-theory->asymmetric PID, generalist-pollinators<->weak-ties.
+- Second bar: **PENDING USER.** Evidence: `eval/report.md` (master, graded) + `eval/report-systems-rerun.md` (hardening verification).
+
+Gotchas (all bitten once, documented so they are never re-bitten): report clobbering (-> `--out`), Groq TPM pacing, `npm run` flag misparsing (call `.bin` shims directly), editor line-splices in scripts (always `tsc` after), tracked `tsconfig.tsbuildinfo` (exclude from commits), background-job output files (`eval-*.txt`) must be deleted before committing.
+
+---
+
+## 15. Session Commit History (NEW 10/6/2026)
+
+`3c99dee` Stage 1 restore+reform (routes restored, re-skinned, dead links killed, panels wired)
+`644db06` Stage 1 workbench shell (dashboard deleted, 15 pages removed)
+`d721257` Stage 5 lens backend (`lib/lens/`, `/api/lens`, harness, deps)
+`b415604` scroll fix part 1 (globals.css body rule)
+`2b39a3f` scroll fix part 2 (layout.tsx body class) -- the one that actually fixed it
+`ae28fb2` lens eval PASS (live key, gpt-oss-120b, diagram discipline, 24/24 graded) + Phase A (beta toggle, userField, storage prefs, harness flags)
+Remote `origin/main` == local HEAD at every step (verified via `git ls-remote` after each push). Repo: `https://github.com/rishibagale/yentellect.git`.
+
+---
+
+## 16. Standing User Decisions (NEW 10/6/2026 -- do not re-litigate)
+
+1. `/` is the auth-required workbench. The old marketing landing stays deleted.
+2. History/profile/session/settings routes are RESTORED and REFORMED, never deleted. They dissolve into workbench panels stage by stage.
+3. The Groq key comes from Render (same value in `frontend/.env.local`). More LLM keys later; the registry makes them config, not code. Name any new provider -> verify its docs URL before adding a preset (never from memory).
+4. Lens prompts stay verbatim to the lens spec. Only the verified diagram-discipline addition is sanctioned.
+5. Eval gates UI. No polished UI on a failing lens.
+6. No-document users get a chat box: a typed 3am thought IS the selection (Phase C, approved, not yet built).
+7. Push to `origin/main` after verification; `tsconfig.tsbuildinfo` stays out of commits; scratch `eval-*.txt` files deleted before committing; `report.md` is append-only evidence.
 
 ---
 
