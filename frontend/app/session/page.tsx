@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { startSession, getModeColor, getModeName, ThinkingMode, getSession, type SessionDetailResponse } from "@/lib/api";
+import { startSession, ThinkingMode, getSession, type SessionDetailResponse } from "@/lib/api";
 import SessionChat from "@/components/SessionChat";
 import ModeIndicator from "@/components/ModeIndicator";
 import Header from "@/components/Header";
@@ -50,7 +50,6 @@ function SessionContent() {
   const [sessionData, setSessionData] = useState<{
     session_id: string;
     response: string;
-    mode_target: ThinkingMode;
     predicted_mode: ThinkingMode;
     confidence: number;
   } | null>(null);
@@ -82,7 +81,6 @@ function SessionContent() {
         setSessionData({
           session_id: s.session_id,
           response: first?.response || "",
-          mode_target: s.mode_target,
           predicted_mode: s.predicted_mode,
           confidence: first?.confidence || 0,
         });
@@ -127,7 +125,6 @@ function SessionContent() {
         setSessionData({
           session_id: data.session_id,
           response: data.response,
-          mode_target: data.mode_target,
           predicted_mode: data.predicted_mode,
           confidence: data.confidence,
         });
@@ -184,19 +181,7 @@ function SessionContent() {
               Session details ▾
             </summary>
             <aside className="space-y-3 overflow-y-auto scrollbar-thin pr-1">
-              <ModeIndicator
-                mode={sessionData.predicted_mode}
-                confidence={sessionData.confidence}
-              />
-              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[var(--radius)] p-4">
-                <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">Training target</div>
-                <div className="text-base font-semibold" style={{ color: getModeColor(sessionData.mode_target) }}>
-                  {getModeName(sessionData.mode_target)}
-                </div>
-                <div className="text-xs text-slate-500 mt-2 leading-relaxed">
-                  Selected by your knowledge graph + weakest-area analysis.
-                </div>
-              </div>
+              <ModeIndicator mode={sessionData.predicted_mode} />
               <button
                 onClick={() => router.push("/profile")}
                 className="w-full py-2.5 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition text-sm font-medium"
@@ -207,19 +192,7 @@ function SessionContent() {
           </details>
           {/* Desktop sidebar */}
           <aside className="hidden lg:block space-y-3 overflow-y-auto scrollbar-thin pr-1">
-            <ModeIndicator
-              mode={sessionData.predicted_mode}
-              confidence={sessionData.confidence}
-            />
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[var(--radius)] p-5">
-              <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">Training target</div>
-              <div className="text-lg font-semibold" style={{ color: getModeColor(sessionData.mode_target) }}>
-                {getModeName(sessionData.mode_target)}
-              </div>
-              <div className="text-xs text-slate-500 mt-2 leading-relaxed">
-                Selected by your knowledge graph + weakest-area analysis.
-              </div>
-            </div>
+            <ModeIndicator mode={sessionData.predicted_mode} />
             <button
               onClick={() => router.push("/profile")}
               className="w-full py-2.5 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition text-sm font-medium"
@@ -251,43 +224,15 @@ function SessionContent() {
 
             <h2 className="text-2xl font-bold mb-1 text-center">Session complete</h2>
             <p className="text-sm text-slate-500 text-center mb-6">
-              Here's how you performed
+              Your transcript is above.
             </p>
 
             <div className="space-y-3 mb-6">
-              <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/[0.02] border border-white/5">
-                <span className="text-sm text-slate-400">Modes activated</span>
-                <span className="text-sm font-medium text-right max-w-[55%]">
-                  {summary.modes_activated?.join(", ") || "None"}
-                </span>
-              </div>
               <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/[0.02] border border-white/5">
                 <span className="text-sm text-slate-400">Duration</span>
                 <span className="text-sm font-medium font-mono">
                   {Math.round((summary.session_duration || 0) / 60)} min
                 </span>
-              </div>
-              <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/[0.02] border border-white/5">
-                <span className="text-sm text-slate-400">Overall score</span>
-                <motion.span
-                  className="text-lg font-bold font-mono"
-                  style={{
-                    color:
-                      (summary.summary?.overall_score || 0) >= 0.7
-                        ? "#34D399"
-                        : (summary.summary?.overall_score || 0) >= 0.4
-                        ? "#FBBF24"
-                        : "#F87171",
-                  }}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  {summary.summary?.overall_score
-                    ? Math.round(summary.summary.overall_score * 100)
-                    : 0}
-                  %
-                </motion.span>
               </div>
             </div>
 

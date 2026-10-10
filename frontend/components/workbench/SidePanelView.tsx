@@ -52,8 +52,7 @@ export default function SidePanelView({
         {activity === "graph" && (
           <div className="space-y-3">
             <p className="text-xs text-[var(--text-dim)]">
-              The graph tab lands in Stage 6. The working knowledge graph lives on the
-              profile page until then.
+              Your knowledge graph lives on the profile page for now.
             </p>
             <Link
               href="/profile"
@@ -66,7 +65,7 @@ export default function SidePanelView({
 
         {activity === "search" && (
           <p className="text-xs text-[var(--text-dim)]">
-            Search across areas and notes lands in Stage 2.
+            Search across your areas and notes is coming soon.
           </p>
         )}
       </div>

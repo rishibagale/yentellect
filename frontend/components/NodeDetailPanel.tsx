@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { tokens, MODE_PALETTES } from "@/lib/tokens";
+import { tokens } from "@/lib/tokens";
 
 interface NodeDetailPanelProps {
   node: any | null;
@@ -27,7 +27,6 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
   const isSession = node.type === "session";
   const isFusion = node.type === "fusion";
   const mode = node.thinkingMode || node.modeTarget;
-  const palette = MODE_PALETTES[mode?.toUpperCase() as keyof typeof MODE_PALETTES];
 
   return (
     <AnimatePresence>
@@ -64,7 +63,7 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
             {mode && (
               <div className="flex items-center gap-2">
                 <div className="px-2.5 py-1 rounded-full text-[10px] font-medium" style={{ background: `${modeColor(mode)}20`, color: modeColor(mode) }}>
-                  {palette?.emoji} {friendlyModeName(mode)}
+                  {friendlyModeName(mode)}
                 </div>
               </div>
             )}

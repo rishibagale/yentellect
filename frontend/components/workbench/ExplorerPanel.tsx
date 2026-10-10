@@ -17,7 +17,7 @@ export default function ExplorerPanel() {
         Explorer
       </div>
       <p className="px-3 text-xs text-[var(--text-dim)]">
-        Areas and documents land in Stage 2.
+        Your areas and documents will appear here.
       </p>
     </section>
   );

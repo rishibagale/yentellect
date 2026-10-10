@@ -17,7 +17,7 @@ export default function ConnectionsDrawer() {
         Connections
       </div>
       <p className="px-3 pb-3 text-xs text-[var(--text-dim)]">
-        Synthesis and kept connections land in Stage 6. Nothing kept yet.
+        Connections you keep from a lens thread will appear here.
       </p>
     </section>
   );

@@ -48,7 +48,7 @@ export default function SessionHistoryList({ variant = "page" }: SessionHistoryL
     <div className={isPage ? "max-w-4xl mx-auto px-4 md:px-6 py-6" : "p-3"}>
       {isPage && (
         <div className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold text-[var(--text)]">Training history</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-[var(--text)]">History</h1>
           <p className="text-sm text-slate-400 mt-1">
             {total > 0 ? `${total} session${total !== 1 ? "s" : ""} completed` : "No sessions yet"}
           </p>

@@ -100,7 +100,7 @@ export default function SettingsForm({
           <span>
             <span className="block text-xs text-slate-200">Beta modes</span>
             <span className="block text-[10px] text-slate-500 mt-0.5">
-              Show Convergent, Divergent, Metacognitive and DMN in the lens switcher (data preserved, experimental).
+              Show Convergent, Divergent, Metacognitive and DMN in the lens switcher. Experimental.
             </span>
           </span>
           <button

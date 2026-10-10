@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   getProfile,
   getGraph,
-  getProfileMetrics,
   CognitiveProfile,
   D3GraphData,
   getModeColor,
@@ -24,7 +23,6 @@ const KnowledgeGraph = dynamic(() => import("@/components/KnowledgeGraph"), {
     </div>
   ),
 });
-import ProgressChart from "@/components/ProgressChart";
 import Header from "@/components/Header";
 import ErrorState from "@/components/ErrorState";
 import { useSupabase } from "@/utils/supabase/provider";
@@ -59,7 +57,6 @@ function ProfileContent() {
 
   const [profile, setProfile] = useState<CognitiveProfile | null>(null);
   const [graphData, setGraphData] = useState<D3GraphData | null>(null);
-  const [metrics, setMetrics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
@@ -70,14 +67,12 @@ function ProfileContent() {
     setLoading(true);
     setError(null);
     try {
-      const [p, g, m] = await Promise.all([
+      const [p, g] = await Promise.all([
         getProfile(),
         getGraph(),
-        getProfileMetrics(20),
       ]);
       setProfile(p);
       setGraphData(g);
-      setMetrics(m.metrics || []);
     } catch (err: any) {
       setError(err?.message || "Failed to load profile");
     } finally {
@@ -110,9 +105,9 @@ function ProfileContent() {
       <main className="flex-1 px-4 md:px-6 py-6 max-w-7xl w-full mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold font-mono">
-            {profile?.name?.trim() || "Your cognitive profile"}
+            {profile?.name?.trim() || "Your knowledge graph"}
           </h1>
-          <p className="mt-1 text-sm text-[var(--text-dim)]">A snapshot of how you think and what you know.</p>
+          <p className="mt-1 text-sm text-[var(--text-dim)]">Your knowledge graph: connections across your sessions.</p>
         </div>
 
         {/* Stats grid with animated counters */}
@@ -155,19 +150,19 @@ function ProfileContent() {
           ))}
         </motion.div>
 
-        {/* Mode cards with animated entrance */}
+        {/* Dominant mode card with animated entrance */}
         <motion.div
           initial="hidden"
           animate="show"
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } } }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6"
+          className="mb-6"
         >
           <motion.div
             variants={{
               hidden: { opacity: 0, x: -20 },
               show: { opacity: 1, x: 0, transition: { ...ANIMATION.ease } },
             }}
-            className="bg-[var(--bg-1)] backdrop-blur-xl border border-[var(--border)] rounded-[var(--radius)] p-5 "
+            className="bg-[var(--bg-1)] backdrop-blur-xl border border-[var(--border)] rounded-[var(--radius)] p-5 max-w-xl"
           >
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-[var(--text-dim)] mb-2 font-mono">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -181,32 +176,11 @@ function ProfileContent() {
             >
               {profile?.dominant_mode ? getModeName(profile.dominant_mode) : "Not yet determined"}
             </div>
-            <div className="text-xs text-[var(--text-dim)]">
-              {profile?.dominant_mode ? MODE_DESCRIPTIONS[profile.dominant_mode] || "" : "Complete sessions to discover your dominant mode."}
-            </div>
-          </motion.div>
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, x: 20 },
-              show: { opacity: 1, x: 0, transition: { ...ANIMATION.ease } },
-            }}
-            className="bg-[var(--bg-1)] backdrop-blur-xl border border-[var(--border)] rounded-[var(--radius)] p-5 "
-          >
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-[var(--text-dim)] mb-2 font-mono">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-              </svg>
-              Weakest mode (target)
-            </div>
-            <div
-              className="text-xl md:text-2xl font-bold mb-1 font-mono"
-              style={{ color: profile?.weakest_mode ? getModeColor(profile.weakest_mode) : "var(--text-dim)" }}
-            >
-              {profile?.weakest_mode ? getModeName(profile.weakest_mode) : "Not yet determined"}
-            </div>
-            <div className="text-xs text-[var(--text-dim)]">
-              {profile?.weakest_mode ? `Training focus: ${MODE_DESCRIPTIONS[profile.weakest_mode] || ""}` : "Complete sessions to identify a training target."}
-            </div>
+            {profile?.dominant_mode && (
+              <div className="text-xs text-[var(--text-dim)]">
+                {MODE_DESCRIPTIONS[profile.dominant_mode] || ""}
+              </div>
+            )}
           </motion.div>
         </motion.div>
 
@@ -227,20 +201,6 @@ function ProfileContent() {
           />
           <NodeDetailPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
         </div>
-
-        {/* Progress Chart */}
-        {metrics.length > 0 ? (
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3 text-[var(--text)] font-mono">Progress</h2>
-            <ProgressChart metrics={metrics} />
-          </div>
-        ) : (
-          <div className="mb-6">
-            <div className="bg-[var(--bg-1)] border border-[var(--border)] rounded-[var(--radius)] p-6 text-center ">
-              <div className="text-xs text-[var(--text-dim)]">Progress will appear after your first session.</div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );

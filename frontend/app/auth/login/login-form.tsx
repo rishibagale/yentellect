@@ -60,7 +60,7 @@ export default function LoginForm() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Welcome back</h1>
-          <p className="text-sm text-slate-400 mt-1">Sign in to continue training</p>
+          <p className="text-sm text-slate-400 mt-1">Sign in to continue</p>
         </div>
 
         {/* OAuth Buttons */}

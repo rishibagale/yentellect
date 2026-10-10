@@ -76,7 +76,7 @@ export default function SignUpForm() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-[var(--text)]">Create your account</h1>
-          <p className="text-sm text-slate-400 mt-1">Start training your thinking</p>
+          <p className="text-sm text-slate-400 mt-1">Create your workspace</p>
         </div>
 
         {/* OAuth Buttons */}

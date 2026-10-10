@@ -451,7 +451,7 @@ export default function KnowledgeGraph({
           />
         </div>
         <div className="absolute top-3 left-1/2 -translate-x-1/2 text-[var(--text-dim)] text-xs font-mono pointer-events-none z-10">
-          Example — your neural map builds here
+          Example — your graph will appear here
         </div>
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
           <button
@@ -576,8 +576,8 @@ export default function KnowledgeGraph({
       {/* Sparse state */}
       {graphData.nodes.length <= 3 && graphData.links.length === 0 && (
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-[var(--text-dim)] text-xs text-center pointer-events-none max-w-md leading-relaxed z-10">
-          Concepts you explore become neurons. Connections form when Yentellect
-          detects related thinking across sessions.
+          Concepts you explore become nodes. Connections form when Yentellect
+          finds related ideas across sessions.
         </div>
       )}
     </div>
