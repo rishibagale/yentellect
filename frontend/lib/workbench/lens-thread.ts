@@ -28,6 +28,7 @@ export interface ConnectionEntry {
   id: string;
   connection: LensConnection;
   status: "open" | "kept" | "discarded";
+  usedFallback: boolean;
 }
 
 export interface LensThread {
@@ -41,6 +42,8 @@ export interface LensThread {
   keptCount: number;
   /** Title of the document pinned at the first send; null when never sent or none open. */
   pinnedDocTitle: string | null;
+  /** Whether the last assistant response used a fallback (invalid model output). */
+  lastResponseUsedFallback: boolean;
   send(text: string): Promise<boolean>;
   askWhy(connectionId: string): Promise<boolean>;
   keep(connectionId: string): void;
@@ -76,6 +79,7 @@ export function useLensThread(opts: {
   const [status, setStatus] = useState<ThreadStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [providerModel, setProviderModel] = useState<string | null>(null);
+  const [lastResponseUsedFallback, setLastResponseUsedFallback] = useState(false);
 
   const turnsRef = useRef<HistoryTurn[]>([]);
   const sendingRef = useRef(false);
@@ -149,11 +153,13 @@ export function useLensThread(opts: {
           id: `${userTurnIndex}-${i}`,
           connection,
           status: "open" as const,
+          usedFallback: result.usedFallback,
         })
       );
       commitTurns([...optimistic, reply]);
       setConnections((prev) => [...prev, ...entries]);
       setProviderModel(`${result.provider} · ${result.model}`);
+      setLastResponseUsedFallback(result.usedFallback);
       setStatus("idle");
       return true;
     } catch (err) {
@@ -210,6 +216,7 @@ export function useLensThread(opts: {
     setError(null);
     setStatus("idle");
     setProviderModel(null);
+    setLastResponseUsedFallback(false);
     pinnedDocRef.current = null;
   }
 
@@ -226,6 +233,7 @@ export function useLensThread(opts: {
     selectionWords: first ? countWords(first.content) : 0,
     keptCount: connections.filter((c) => c.status === "kept").length,
     pinnedDocTitle: pinnedDocRef.current ? pinnedDocRef.current.title : null,
+    lastResponseUsedFallback,
     send,
     askWhy,
     keep,

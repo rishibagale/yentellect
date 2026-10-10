@@ -334,6 +334,28 @@ export default function LensPanel({
         </div>
       )}
 
+      {/* Degraded strip — real-provider fallback (invalid model output). */}
+      {thread.lastResponseUsedFallback && !thread.error && (
+        <div
+          role="status"
+          className="mx-3 mb-2 flex items-center justify-between gap-2 text-[var(--text-dim)] border border-[var(--border)] bg-[var(--bg-2)] rounded-[var(--radius)] px-3 py-2 text-[12px] shrink-0"
+        >
+          <span className="break-words">
+            Couldn&apos;t structure a response — retry?
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              thread.clear();
+              thread.send(thread.turns[0]?.content ?? "");
+            }}
+            className="shrink-0 text-[10px] px-2 py-1 rounded-[var(--radius)] border border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--text)] hover:text-[var(--text)] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Composer */}
       <div className="border-t border-[var(--border)] p-2 shrink-0">
         {thread.userFieldEmpty && (
