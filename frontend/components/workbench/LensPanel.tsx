@@ -3,8 +3,9 @@
  * 360px default, resizable, collapsible.
  *
  * Top to bottom: the segmented lens switcher (unchanged from Stage 1), the
- * collapsed selection card (what the lens is actually reasoning about), the
- * thread with its connection cards, an error strip, and the composer.
+ * collapsed selection card (the pinned document, or "No document" until the
+ * first message), the thread with its connection cards, an error strip, and
+ * the composer.
  *
  * Connection cards are keyed by `${userTurnIndex}-${i}` (see lens-thread.ts):
  * the entries for the assistant turn sitting at index `t` are exactly the ones
@@ -25,6 +26,7 @@ interface LensPanelProps {
   onSelect: (lens: ThinkingMode) => void;
   betaModes: boolean;
   thread: LensThread;
+  docTitle?: string | null;
 }
 
 const CARD_BTN =
@@ -136,6 +138,7 @@ export default function LensPanel({
   onSelect,
   betaModes,
   thread,
+  docTitle = null,
 }: LensPanelProps) {
   const lenses = visibleLenses(betaModes);
   const [draft, setDraft] = useState("");
@@ -147,6 +150,8 @@ export default function LensPanel({
   const blocked = lensId === null;
   const sending = thread.status === "sending";
   const canSend = draft.trim().length > 0 && !sending && !blocked;
+  // The document this thread started with wins over the currently open one.
+  const shownTitle = thread.pinnedDocTitle ?? docTitle;
 
   // Auto-resize the composer (0 -> min(scrollHeight, 160)).
   useEffect(() => {
@@ -223,17 +228,29 @@ export default function LensPanel({
         })}
       </div>
 
-      {/* Selection card — what the lens reasons about, one honest line. */}
+      {/* Selection card — the pinned document plus today's selection, one honest line. */}
       <div
-        className="shrink-0 px-3 py-1.5 border-b border-[var(--border)] text-[10px] text-[var(--text-dim)] truncate"
+        className="shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-[var(--border)] text-[10px] text-[var(--text-dim)]"
         title={thread.turns.length > 0 ? thread.turns[0].content : undefined}
       >
-        {thread.turns.length === 0 ? (
-          <>No document — your first message becomes the selection.</>
-        ) : (
-          <>
-            Thought · Untitled thought — {excerpt(thread.turns[0].content)}
-          </>
+        <span className="truncate min-w-0 flex-1">
+          {shownTitle === null ? (
+            <>No document — your first message becomes the selection.</>
+          ) : (
+            <>
+              Paper · {shownTitle}
+              {thread.turns.length > 0 && ` — ${excerpt(thread.turns[0].content)}`}
+            </>
+          )}
+        </span>
+        {thread.turns.length > 0 && (
+          <button
+            type="button"
+            onClick={() => thread.clear()}
+            className="shrink-0 text-[10px] text-[var(--text-dim)] hover:text-[var(--text)] transition-colors duration-150"
+          >
+            New thread
+          </button>
         )}
       </div>
 
@@ -245,7 +262,7 @@ export default function LensPanel({
       >
         {thread.turns.length === 0 && (
           <p className="py-8 text-center text-[12px] text-[var(--text-dim)]">
-            Ask a lens about a passage — or type the thought you had at 3am.
+            Ask a lens about a passage, or start with a thought of your own.
           </p>
         )}
 
@@ -328,7 +345,7 @@ export default function LensPanel({
 
         {blocked && (
           <p className="mb-1.5 text-[11px] text-[var(--text-dim)]">
-            Beta mode has no lens backend yet — switch to Analogical or Systems
+            This beta mode isn&apos;t available yet — switch to Analogical or Systems
             (Cmd+1 / Cmd+2).
           </p>
         )}

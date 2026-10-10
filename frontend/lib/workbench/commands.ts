@@ -1,5 +1,5 @@
 /**
- * Yentellect workbench — command registry (Stage 1, C4).
+ * Yentellect workbench — command registry (Stages 1 + 4, C4).
  *
  * One registry feeds the palette, the keyboard shortcuts, and (later) the
  * Explorer context menu, so the three surfaces cannot drift out of sync.
@@ -11,6 +11,7 @@
  * first-class commands — New session → /session, Open history → /history,
  * Open settings → the Settings activity view (shared SettingsForm), and
  * Open graph → the profile knowledge graph until the Stage 6 tab lands.
+ * Import paper (Stage 4) opens the editor's import prompt in place.
  */
 "use client";
 
@@ -53,6 +54,7 @@ export interface CommandContext {
   setActiveLens: (lens: ThinkingMode) => void;
   navigate: (path: string) => void;
   openActivity: (a: Activity) => void;
+  openImport: () => void;
 }
 
 /**
@@ -69,26 +71,24 @@ export function buildCommands(ctx: CommandContext): WorkbenchCommand[] {
   return [
     cmd("import-paper", "Import paper", {
       hint: "arXiv URL or DOI",
-      enabled: false,
-      disabledReason: "Import lands in Stage 4",
-      run: () => {},
+      run: () => ctx.openImport(),
     }),
     cmd("new-concept", "New concept", {
       enabled: false,
-      disabledReason: "Notes land in Stage 2",
+      disabledReason: "Creating notes is coming soon",
       run: () => {},
     }),
     cmd("new-note", "New note", {
       enabled: false,
-      disabledReason: "Notes land in Stage 2",
+      disabledReason: "Creating notes is coming soon",
       run: () => {},
     }),
     cmd("new-session", "New session", {
-      hint: "Socratic training",
+      hint: "Guided dialogue",
       run: () => ctx.navigate("/session"),
     }),
     cmd("open-history", "Open history", {
-      hint: "Training history",
+      hint: "Your past sessions",
       run: () => ctx.navigate("/history"),
     }),
     cmd("open-settings", "Open settings", {
@@ -103,7 +103,7 @@ export function buildCommands(ctx: CommandContext): WorkbenchCommand[] {
       run: () => ctx.setActiveLens("SYSTEMS"),
     }),
     cmd("open-graph", "Open graph", {
-      hint: "Profile graph; Stage 6 moves it here",
+      hint: "Knowledge graph",
       run: () => ctx.navigate("/profile"),
     }),
     cmd("toggle-beta", ctx.betaModes ? "Turn off beta modes" : "Turn on beta modes", {

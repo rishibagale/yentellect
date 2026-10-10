@@ -25,7 +25,20 @@ import { useShellKeys } from "./shell-keys";
 function ShellInner() {
   const { layout, update, toggleExplorer, toggleLens, toggleDrawer, setActivity, setPaletteOpen } =
     useLayout();
-  const { activeLens, setActiveLens, betaModes, setBetaModes, ctx, narrow } = useShellState();
+  const {
+    activeLens,
+    setActiveLens,
+    betaModes,
+    setBetaModes,
+    ctx,
+    narrow,
+    importOpen,
+    importStatus,
+    importError,
+    doc,
+    closeImport,
+    submitImport,
+  } = useShellState();
   const commands = buildCommands(ctx);
 
   useShellKeys({
@@ -38,9 +51,18 @@ function ShellInner() {
   });
 
   const lens = thinkingModeToLensId(activeLens);
-  const thread = useLensThread({ lens });
+  const docContext = doc
+    ? { title: doc.title, kind: "paper", ...(doc.abstract ? { abstract: doc.abstract } : {}) }
+    : null;
+  const thread = useLensThread({ lens, doc: docContext });
 
   if (narrow) return <MinWidthNotice />;
+
+  /** "Ask lens about selection": open the panel, then send the captured text. */
+  const askLens = (text: string): void => {
+    update({ lensOpen: true });
+    void thread.send(text);
+  };
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--bg-0)] text-[var(--text)]">
@@ -69,7 +91,16 @@ function ShellInner() {
         )}
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           <div className="flex-1 flex min-h-0">
-            <EditorArea onOpenPalette={() => setPaletteOpen(true)} />
+            <EditorArea
+              onOpenPalette={() => setPaletteOpen(true)}
+              doc={doc}
+              importOpen={importOpen}
+              importStatus={importStatus}
+              importError={importError}
+              onSubmitImport={submitImport}
+              onCancelImport={closeImport}
+              onAskLens={askLens}
+            />
             {layout.lensOpen && (
               <>
                 <Splitter
@@ -87,6 +118,7 @@ function ShellInner() {
                     onSelect={setActiveLens}
                     betaModes={betaModes}
                     thread={thread}
+                    docTitle={doc?.title ?? null}
                   />
                 </div>
               </>

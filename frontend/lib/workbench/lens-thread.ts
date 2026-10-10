@@ -7,8 +7,9 @@
  * lens reasons about — and it stays pinned for the whole thread. Every later
  * message is a follow-up sent as `userMessage` with the prior turns replayed
  * as history, capped to the schema's 30-turn window, so the model always sees
- * the conversation it already had. Document context is a placeholder note
- * until Stage 3 supplies a real document.
+ * the conversation it already had. The document is pinned on the FIRST send
+ * only: importing a paper mid-thread must not retroactively change the
+ * document the conversation already started with.
  *
  * The user turn is appended optimistically so the panel never feels laggy, and
  * ROLLED BACK when the call fails: a message the lens never answered must not
@@ -38,21 +39,27 @@ export interface LensThread {
   userFieldEmpty: boolean;
   selectionWords: number;
   keptCount: number;
+  /** Title of the document pinned at the first send; null when never sent or none open. */
+  pinnedDocTitle: string | null;
   send(text: string): Promise<boolean>;
   askWhy(connectionId: string): Promise<boolean>;
   keep(connectionId: string): void;
   discard(connectionId: string): void;
   dismissError(): void;
+  clear(): void;
 }
 
-const DOC_CONTEXT = { title: "Untitled thought", kind: "note" };
+type ThreadDoc = { title: string; kind: string; abstract?: string };
+
+const DOC_CONTEXT: ThreadDoc = { title: "Untitled thought", kind: "note" };
 const HISTORY_LIMIT = 30;
 /** Covers every schema cap on user-supplied text: selection max 20000,
  *  userMessage max 10000 — so one clamp satisfies both whichever role it takes. */
 const MAX_USER_CHARS = 10000;
 const MAX_FIELD_CHARS = 300;
-const NO_LENS_ERROR =
-  "This lens has no backend yet — switch to Analogical or Systems.";
+/** Abstract is capped at the schema's 5000-char doc.abstract maximum. */
+const MAX_DOC_ABSTRACT = 5000;
+const NO_LENS_ERROR = "This mode isn't available yet — switch to Analogical or Systems.";
 const FALLBACK_ERROR = "Lens request failed.";
 
 function countWords(text: string): number {
@@ -60,7 +67,10 @@ function countWords(text: string): number {
   return trimmed ? trimmed.split(/\s+/).length : 0;
 }
 
-export function useLensThread(opts: { lens: LensId | null }): LensThread {
+export function useLensThread(opts: {
+  lens: LensId | null;
+  doc?: ThreadDoc | null;
+}): LensThread {
   const [turns, setTurns] = useState<HistoryTurn[]>([]);
   const [connections, setConnections] = useState<ConnectionEntry[]>([]);
   const [status, setStatus] = useState<ThreadStatus>("idle");
@@ -70,9 +80,15 @@ export function useLensThread(opts: { lens: LensId | null }): LensThread {
   const turnsRef = useRef<HistoryTurn[]>([]);
   const sendingRef = useRef(false);
   const lensRef = useRef(opts.lens);
+  const docRef = useRef<ThreadDoc | null>(opts.doc ?? null);
+  /** The document this thread is ABOUT: set once, on the first send only. */
+  const pinnedDocRef = useRef<ThreadDoc | null>(null);
   useEffect(() => {
     lensRef.current = opts.lens;
   }, [opts.lens]);
+  useEffect(() => {
+    docRef.current = opts.doc ?? null;
+  }, [opts.doc]);
 
   const commitTurns = (next: HistoryTurn[]): void => {
     turnsRef.current = next;
@@ -94,10 +110,20 @@ export function useLensThread(opts: { lens: LensId | null }): LensThread {
 
     const prevTurns = turnsRef.current;
     const isFirstSend = prevTurns.length === 0;
+    if (isFirstSend && pinnedDocRef.current === null) {
+      pinnedDocRef.current = docRef.current;
+    }
+    const pinned = pinnedDocRef.current ?? DOC_CONTEXT;
     const req: LensRequest = {
       lens,
       selection: isFirstSend ? content : prevTurns[0].content,
-      doc: { title: DOC_CONTEXT.title, kind: DOC_CONTEXT.kind },
+      doc: {
+        title: pinned.title.slice(0, 500),
+        kind: pinned.kind,
+        ...(pinned.abstract
+          ? { abstract: pinned.abstract.slice(0, MAX_DOC_ABSTRACT) }
+          : {}),
+      },
       userField: storedField || "not specified yet",
       history: isFirstSend ? [] : prevTurns.slice(1).slice(-HISTORY_LIMIT),
       ...(isFirstSend ? {} : { userMessage: content }),
@@ -177,6 +203,16 @@ export function useLensThread(opts: { lens: LensId | null }): LensThread {
     setStatus((s) => (s === "error" ? "idle" : s));
   }
 
+  /** Full reset: turns, connections, error, status, model, and the doc pin. */
+  function clear(): void {
+    commitTurns([]);
+    setConnections([]);
+    setError(null);
+    setStatus("idle");
+    setProviderModel(null);
+    pinnedDocRef.current = null;
+  }
+
   const first =
     turns.length > 0 && turns[0].role === "user" ? turns[0] : null;
 
@@ -189,10 +225,12 @@ export function useLensThread(opts: { lens: LensId | null }): LensThread {
     userFieldEmpty: readUserField().trim() === "",
     selectionWords: first ? countWords(first.content) : 0,
     keptCount: connections.filter((c) => c.status === "kept").length,
+    pinnedDocTitle: pinnedDocRef.current ? pinnedDocRef.current.title : null,
     send,
     askWhy,
     keep,
     discard,
     dismissError,
+    clear,
   };
 }

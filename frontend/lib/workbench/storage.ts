@@ -5,6 +5,8 @@
  * Sizes are clamped on read AND write: a hand-edited or stale value can
  * never wedge the shell into an unusable geometry.
  */
+import type { ImportedDoc } from "./import-client";
+
 export const LAYOUT_STORAGE_KEY = "yentellect.layout.v1";
 
 export type Activity = "explorer" | "graph" | "search" | "settings";
@@ -126,6 +128,58 @@ export function writeBetaModes(on: boolean): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(BETA_MODES_KEY, on ? "1" : "0");
+  } catch {
+    /* best-effort */
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Imported paper (Stage 4). Type-only import keeps this module free   */
+/* of a runtime cycle with import-client.ts. All readers validate the  */
+/* minimal shape, so a hand-edited or stale value never throws.        */
+/* ------------------------------------------------------------------ */
+
+export const DOC_STORAGE_KEY = "yentellect.doc.v1";
+
+function isImportedDoc(value: unknown): value is ImportedDoc {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const doc = value as Record<string, unknown>;
+  if (typeof doc.id !== "string" || !doc.id) return false;
+  if (typeof doc.title !== "string" || !doc.title) return false;
+  if (!Array.isArray(doc.authors) || !doc.authors.every((a) => typeof a === "string")) return false;
+  if (doc.year !== null && typeof doc.year !== "string") return false;
+  if (doc.abstract !== null && typeof doc.abstract !== "string") return false;
+  if (doc.source !== "arxiv" && doc.source !== "crossref") return false;
+  if (typeof doc.url !== "string" || !doc.url) return false;
+  return true;
+}
+
+/** The last imported paper, or null. Never throws. */
+export function readDoc(): ImportedDoc | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DOC_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isImportedDoc(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeDoc(doc: ImportedDoc): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DOC_STORAGE_KEY, JSON.stringify(doc));
+  } catch {
+    /* best-effort */
+  }
+}
+
+export function clearDoc(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(DOC_STORAGE_KEY);
   } catch {
     /* best-effort */
   }
