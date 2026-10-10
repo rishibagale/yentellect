@@ -4,12 +4,13 @@
 > Generated on **7/18/2026**. Last full refresh: **9/30/2026** (commits through `6fed645`).
 > Doc cleanup **9/30/2026**: removed stale `puter_test/` / `go_watcher/` / `rebuild` Go-source references (those directories no longer exist); corrected port guidance.
 > Full refresh **10/6/2026** (commits through `ae28fb2`): the app is now a research workbench, not a training app. Sections 1, 2, 3, 4, 5, 8, 10, 11, 12 rewritten or extended; new Sections 13 (lens system), 14 (eval harness + verdict), 15 (session commit history), 16 (standing user decisions). Sections 6, 7, 9 (backend API, VSA, Supabase) verified still accurate and kept.
+> Extended **10/2026** (working tree after `8f761f1`): lens config honesty (no mock-as-answer), minimal paper import (Stage 4 lite), copy sweep, Phase D remove-list sweep. Sections 2, 5, 8, 11, 13, 16 updated to match.
 
 ---
 
 ## 1. What is Yentellect?
 
-**Yentellect** is a research workbench for PhD students, research scientists, and STEM people. It helps a researcher understand new concepts and fit them into their own research. It is NOT a training app: mode-weakness detection, cognitive scores, streaks, assessments, onboarding quizzes, dashboards, and zero-value metrics are removed from the UI by spec (prompt #1 "Remove" list; enforcement sweep = Phase D, still open -- see Section 14 "Open Tasks").
+**Yentellect** is a research workbench for PhD students, research scientists, and STEM people. It helps a researcher understand new concepts and fit them into their own research. It is NOT a training app: mode-weakness detection, cognitive scores, streaks, assessments, onboarding quizzes, dashboards, and zero-value metrics are removed from the UI by spec (prompt #1 "Remove" list; enforcement sweep = Phase D, DONE -- see Section 11).
 
 Core loop:
 1. Import a paper (arXiv URL or DOI, Stage 4) or write a concept/note (Stage 2).
@@ -40,7 +41,7 @@ The other four modes (Convergent, Divergent, Metacognitive, DMN) stay in the cod
 
 ```
 yentellect/
-├── CONTEXT.md                          # ← this file (full refresh 10/6/2026, commits through `ae28fb2`)
+├── CONTEXT.md                          # ← this file (full refresh 10/6/2026 through `ae28fb2`; extended 10/2026, see blockquote)
 ├── README.md                           # project readme (repo: github.com/rishibagale/yentellect)
 ├── LICENSE                             # MIT
 ├── .env.example                        # backend env template
@@ -50,9 +51,10 @@ yentellect/
 │   │   ├── layout.tsx                  # root layout (body scrolls normally; shell self-clips)
 │   │   ├── globals.css                 # workbench tokens (CSS vars, dark default) + scrollbar/focus styles
 │   │   ├── page.tsx                    # `/`: the AUTHE'd workbench (dynamic, ssr:false). NO marketing landing.
-│   │   ├── api/lens/route.ts           # POST /api/lens (401 gate, 400 validation, 502/500 transport)
-│   │   ├── session/page.tsx            # Socratic chat flow (reform target, Phase D)
-│   │   ├── profile/page.tsx            # knowledge graph + progress (metric sweep pending, Phase D)
+│   │   ├── api/lens/route.ts           # POST /api/lens (401 gate, 400 validation, 502/500 transport, 500 on unconfigured provider)
+│   │   ├── api/import/arxiv/route.ts   # POST /api/import/arxiv (Stage 4 lite: arXiv Atom proxy, 401 self-gate, 400 bad id, 502 upstream)
+│   │   ├── session/page.tsx            # Socratic chat flow (reform host; wording sweep done, Phase D)
+│   │   ├── profile/page.tsx            # knowledge graph (metric displays removed, Phase D)
 │   │   ├── history/page.tsx            # thin host over SessionHistoryList
 │   │   ├── settings/page.tsx           # thin host over SettingsForm
 │   │   └── auth/                       # login, signup, reset-password, callback
@@ -63,14 +65,14 @@ yentellect/
 │   │   │   ├── ActivityBar.tsx         # 48px icons: Explorer, Graph, Search, Settings
 │   │   │   ├── SidePanelView.tsx       # activity router (settings live, rest placeholders)
 │   │   │   ├── ExplorerPanel.tsx       # PLACEHOLDER (file tree = Stage 2)
-│   │   │   ├── EditorArea.tsx          # PLACEHOLDER first-run prompt (editor = Stage 3)
-│   │   │   ├── LensPanel.tsx           # PLACEHOLDER switcher (real threads = Phase C)
+│   │   │   ├── EditorArea.tsx          # import form + read-only doc pane + select→Ask-lens (tabs/editor = Stage 3)
+│   │   │   ├── LensPanel.tsx           # Phase C (live): switcher + thread + connection cards + composer
 │   │   │   ├── ConnectionsDrawer.tsx   # PLACEHOLDER (table = Stage 6)
 │   │   │   ├── StatusBar.tsx           # 24px: lens, words, kept, save state
 │   │   │   ├── CommandPalette.tsx      # Cmd+K fuzzy palette, stage-gated commands
 │   │   │   ├── Splitter.tsx            # draggable, persisted sizes
 │   │   │   ├── MinWidthNotice.tsx      # plain notice below 1024px
-│   │   │   ├── shell-state.ts          # lens+beta+narrow state, CommandContext
+│   │   │   ├── shell-state.ts          # lens+beta+narrow+doc/import state, CommandContext
 │   │   │   └── shell-keys.ts           # Cmd+K/B/J/Shift+L/1/2
 │   │   ├── Header.tsx                  # legacy top nav (reformed routes)
 │   │   ├── AppShell.tsx                # legacy route shell (zero /dashboard refs)
@@ -80,10 +82,10 @@ yentellect/
 │   │   ├── ModeIndicator.tsx / ModeBadge.tsx / NodeDetailPanel.tsx
 │   │   ├── KnowledgeGraph.tsx          # react-force-graph-3D (legacy profile graph)
 │   │   ├── DomainExplorer.tsx          # 3D graph with domain filter bar
-│   │   ├── ProgressChart.tsx           # REMOVE-target (Phase D): metric display
+│   │   ├── ProgressChart.tsx           # DELETED 10/2026 (Phase D sweep); was a metric display
 │   │   └── AuthGuard.tsx               # NO `/` exemption: unsigned users never see the workbench
 │   ├── lib/
-│   │   ├── workbench/                  # layout.tsx (LayoutProvider), storage.ts (layout+prefs keys), commands.ts (single registry)
+│   │   ├── workbench/                  # layout.tsx (LayoutProvider), storage.ts (layout+prefs+doc keys), commands.ts (registry), import-client.ts (arXiv/DOI import)
 │   │   ├── lens/                       # 12 files (see Section 13): schema, prompts, provider+4 providers, run, errors, index
 │   │   ├── modes.ts                    # hidden beta modes live here. DO NOT DELETE.
 │   │   ├── api.ts                      # typed API client (SessionDetailResponse expects full turn fields)
@@ -220,25 +222,27 @@ $env:EVAL_DELAY_MS='15000'   # free-tier TPM pacing (Groq on_demand = 8000 TPM);
 
 ## 5. UI Status (frontend) -- Last rewrite 10/6/2026 (workbench, commits through `ae28fb2`)
 
-The Yentellect UI is now the **research workbench**. The old dashboard/training screens are gone as a product; four routes (session, history, settings, profile) were restored and re-skinned, NOT kept as training UI -- they are reform hosts that will dissolve into workbench panels stage by stage (standing user decision, Section 16). The workbench shell (Stage 1) is fully live. Explorer/Editor/LensPanel/Drawer are honest placeholders whose stages (2-6) are NOT built.
+The Yentellect UI is now the **research workbench**. The old dashboard/training screens are gone as a product; four routes (session, history, settings, profile) were restored and re-skinned, NOT kept as training UI -- they are reform hosts that will dissolve into workbench panels stage by stage (standing user decision, Section 16). The workbench shell (Stage 1) is fully live. Phase C (lens chat box) and a minimal paper import (Stage 4 lite) shipped after `ae28fb2`: `EditorArea` hosts the import form + a read-only doc pane, and `LensPanel` hosts the thread/composer/connection cards. Explorer, Search and the Drawer remain honest placeholders; real editing (tabs, KaTeX) is Stage 3, the drawer table is Stage 6.
 
 ### Routes
 | Route | Description |
 |-------|-------------|
 | `/` | THE WORKBENCH. Auth-required (middleware + AuthGuard). Dynamic import, SSR off. No marketing landing -- the old landing is deleted; its opening prompt lives as the editor first-run prompt. |
-| `/session` | Socratic chat flow (legacy `SessionChat`). Reform target, Phase D wording sweep pending. |
-| `/profile` | Knowledge graph (3D, legacy) + progress. Metric displays are REMOVE-targets (Phase D). |
+| `/session` | Socratic chat flow (legacy `SessionChat`). Reform host; Phase D wording sweep done. |
+| `/profile` | Knowledge graph (3D, legacy) + history. Metric displays removed (Phase D done). |
 | `/history` | Thin host: `AppShell` + `SessionHistoryList`. Same component the Stage 2 Explorer tree will render. |
 | `/settings` | Thin host: `AppShell` + `SettingsForm` (Profile + Research[userField] + Lenses[beta toggle]). Shares persistence keys with the workbench (Section 13 storage paragraph). |
-| `/api/lens` | POST only. NOT a page. 401 without Supabase session; 400 bad shape; 502/500 transport/config (never masked as lens output). Adds `X-Lens-Provider`/`X-Lens-Model` headers. |
+| `/api/lens` | POST only. NOT a page. 401 without Supabase session; 400 bad shape; 502/500 transport/config (never masked as lens output). Adds `X-Lens-Provider`/`X-Lens-Model` headers. On an unconfigured provider the route returns `500 "Lens provider is not configured."` and the client refuses to render a mock answer. |
+| `/api/import/arxiv` | POST only. NOT a page. 401 without Supabase session; 400 bad arXiv id; 502 upstream. arXiv has no CORS, so the fetch is server-side only; returns `{xml}` for the client to parse. |
 | `/auth/login`, `/auth/signup`, `/auth/reset-password`, `/auth/callback` | Supabase auth (unchanged). |
 | `/dashboard` | DELETED. Zero references remain anywhere (verified by grep in `3c99dee`). Old dashboard metrics are retired by design correction C8. |
 
 ### Workbench shell (all live)
 - Geometry: title 36 / activity 48 / explorer 240 / editor flex / lens 360 / drawer 200 default / status 24 (exact per spec; splitters drag + persist via `yentellect.layout.v1` with clamp-on-read-and-write).
 - Keyboard: Cmd/Ctrl+K palette, B sidebar, J drawer, Shift+L lens panel, 1/2 lens switch. All from a single command registry (`lib/workbench/commands.ts`) that also feeds the palette; not-yet-built commands render disabled WITH a reason, never hidden.
-- `Cmd+K` commands: Import paper (Stage 4), New concept/note (Stage 2), New session, Open history, Open settings, Run Analogical/Systems (switches lens tab), Open graph (-> /profile until Stage 6), Toggle beta, Toggle sidebar/lens/drawer.
+- `Cmd+K` commands: Import paper (**live** — opens the editor's import form), New concept/note (Stage 2, disabled: "Creating notes is coming soon"), New session, Open history, Open settings, Run Analogical/Systems (switches lens tab), Open graph (-> /profile until Stage 6), Toggle beta, Toggle sidebar/lens/drawer.
 - First run: exact string in `EditorArea`: "Import a paper or write a concept to begin." (opens palette on click).
+- Import + doc view: palette "Import paper" opens an inline arXiv-URL/DOI form in `EditorArea`; on success the doc is pinned in shell state, persisted to localStorage `yentellect.doc.v1`, and rendered as a read-only paper pane (title/byline/source link/abstract, `.font-doc`, `max-w-[72ch]`). Selecting >= 20 chars in a doc shows an "Ask lens about selection" button that seeds the lens thread; `useLensThread` takes the optional `doc`, pins it at first send (`pinnedDocTitle`), and `LensPanel`'s "New thread" clears it. No-doc chat still works: the first typed thought IS the selection (`doc` "Untitled thought", kind "note").
 - Minimum width 1024px (else `MinWidthNotice`).
 - Design tokens = the spec's CSS block byte-for-byte, all CSS vars, one accent (`--accent: #5eb0ef`). Chrome: JetBrains Mono 12px. Doc body (later): Source Serif 4 / Inter 15-16px, 1.6, max 72ch.
 - Scroll model (two fixes, `b415604` + `2b39a3f`): NO `overflow:hidden` on `body` anywhere (neither CSS nor Tailwind class). Document-flow routes scroll the document; the workbench self-clips at its own `h-screen overflow-hidden` root. All remaining `overflow-hidden` in the tree are inner panes (graph containers, chat, panels) -- legitimate.
@@ -248,7 +252,7 @@ The Yentellect UI is now the **research workbench**. The old dashboard/training 
 - `SessionHistoryList` -- the ONE shared history source (`variant="page"|"panel"`).
 - `AppShell` -- legacy route shell: sidebar has "Workbench -> /" (NOT dashboard), logo -> `/`. No `/dashboard` strings.
 - `KnowledgeGraph` / `DomainExplorer` -- three.js 3D graphs (legacy profile page). Hex colours stay hex here on purpose (WebGL cannot read CSS vars).
-- `ProgressChart` -- REMOVE-target (Phase D). Do not extend.
+- `ProgressChart` -- DELETED 10/2026 (Phase D sweep). Do not resurrect.
 
 ---
 
@@ -303,6 +307,7 @@ Added in commit `eb2d20f` (backend) and `d721257` (lens route):
 - **Auth middleware** — `frontend/middleware.ts` protects routes (uses local `getSession()`, not remote `getUser()`, per `40c58ed` to avoid 504 timeouts), `frontend/utils/supabase/` provides client/server/provider
 - **AuthGuard** component redirects unauthenticated users. Since `3c99dee` the `/` exemption is REMOVED: the workbench is auth-only, so middleware + guard agree and a session miss can never paint the shell for a signed-out user.
 - **`/api/lens` gates itself** (`frontend/app/api/lens/route.ts`): the app middleware deliberately excludes `/api/*`, so the route checks `supabase.auth.getUser()` and returns **401** without a session. An ungated LLM proxy would be an open abuse/cost vector. Error payloads are scrubbed for key/secret/token substrings before returning.
+- **`/api/import/arxiv` gates itself** (`frontend/app/api/import/arxiv/route.ts`): same pattern — the middleware excludes `/api/*`, so the route checks `supabase.auth.getUser()` (401), zod-validates the arXiv id (400), and returns 502 on an unreachable upstream (never a stack/key/env string). arXiv has no CORS, so the fetch is server-side only; DOI imports go browser-direct to Crossref (CORS `*`).
 
 ---
 
@@ -356,9 +361,13 @@ Carried over (still true):
 - [ ] **OneDrive `.next` build flakiness**: `EINVAL readlink` errors under `frontend/.next/` occur on OneDrive-synced paths; workaround is `Remove-Item -Recurse -Force .next` before `npm run build`
 
 New (workbench + lens era):
-- [ ] **Phase C -- the chat box is NOT built (highest priority)**: nothing calls `POST /api/lens` yet, so select-text -> lens -> thread is unreachable end-to-end. Real `LensPanel` (composer + thread + cards + no-doc mode) is designed and approved, blocked only on sequencing. Backend is done and graded; the product is not.
-- [ ] **Phase D -- Remove-list sweep**: `profile/page.tsx` still renders `ProgressChart` (metrics); session wording still says "cognitive training"; README still advertises Cognitive Fingerprint/mode scores. Routes stay (standing decision), metric displays go.
-- [ ] **Stages 2-4, 6**: data model + Dexie + Explorer tree (2), CodeMirror + KaTeX + tabs + selection toolbar (3), arXiv/DOI import (4), drawer table + 2D graph tab (6). Deps needed: `dexie`, `@codemirror/*`, `katex`, `react-force-graph-2d` (currently only the 3D variant is installed).
+- [x] **Phase C -- lens chat box DONE** (commit `8f761f1`, hardened this pass): composer, thread, connection cards (Keep/Discard/Ask-why), "New thread", error strip, no-doc mode (the first typed thought IS the selection), provider/model readout. `POST /api/lens` is reachable end-to-end; no approved-but-unbuilt panel remains.
+- [x] **Phase D -- Remove-list sweep DONE** (this pass): `ProgressChart.tsx` deleted (zero refs; README clean too). Training metrics/wording gone from the UI ("Modes activated", "Overall score", "Weakest mode (target)", "Training focus", "Signal clarity", 🧠, "Training history", "Your cognitive profile", "neural map", "Start training your thinking", "Sign in to continue training"). Routes stay (standing decision); `lib/modes.ts` untouched.
+- [x] **Minimal paper import DONE** (this pass, Stage 4 lite, no PDF, zero new deps): see Section 5. This is NOT full Stage 4 (no tabs/note-taking yet).
+- [x] **Lens config honesty DONE** (this pass): an unconfigured server never renders a mock as a lens answer. See Section 13.
+- [x] **Copy sweep DONE** (this pass): developer "Stage N / lands in" jargon removed from all user-visible strings; stage-gated entries now say "Creating notes is coming soon".
+- [ ] **Stages 2, 3, 6**: data model + Dexie + Explorer tree (2), CodeMirror + KaTeX + tabs + selection toolbar (3), drawer table + 2D graph tab (6). Deps needed: `dexie`, `@codemirror/*`, `katex`, `react-force-graph-2d` (currently only the 3D variant is installed).
+- [ ] **Vercel env vars (or lenses are honestly down on prod)**: set `GROQ_API_KEY` + `LENS_PROVIDER=groq` (+ `LENS_MODEL=openai/gpt-oss-120b`) in the Vercel project env vars. Without them every `/api/lens` call returns `500 "Lens provider is not configured."` -- intended honesty, not a bug.
 - [ ] **Eval seed data**: `eval/items.json` is a 6-item starter set of famous-paper paraphrases, NOT the user's papers. Bar transfers only if the user's own material grades as well. User owes real passages + the "wouldn't-have-found-alone" verdict on >= 3 items.
 - [ ] **npm installs are unreliable on this machine**: `tsx`/`zod`/`openai` had to be hand-placed; `tsx` runs only via the `node_modules/.bin/tsx.cmd` shim (`%TEMP%/tsx-bin`). Verify install health at the start of Stage 2 before promising dates. Also `npm run <script> -- <flags>` misparses flags; invoke `.bin` shims directly.
 - [ ] **Groq key was shared in chat**: rotate it in the Groq console when convenient, then update Render dashboard + `frontend/.env.local`. Repo-local git transport tunings were set during flaky pushes (`http.postBuffer`, `http.version=HTTP/1.1`, low-speed overrides) -- harmless, revert if unwanted.
@@ -394,10 +403,10 @@ Validate request (caller bug throws) -> build system prompt (lens + shared rules
 Both system prompts verbatim to spec (`{userField}`/`{docTitle}` interpolated). ONE shared-rules block appended to both (8 rules: structure-over-surface, checkable, empty-allowed, calibrated, no-invented-sources, Socratic, userField, terse) + follow-up rules + "Diagram discipline" paragraph (systems only, `ae28fb2`). The output-shape example ALWAYS includes the literal word "json" + full field example: required by DeepSeek, helpful everywhere.
 
 ### Provider layer (`provider.ts` + `providers/`)
-Single seam: `LensProvider.complete<T>({ system, messages, schema, jsonShapeExample, model?, temperature?, maxTokens?, timeoutMs? })`. ONE transport (`openai-compat.ts`: raw `openai` SDK + baseURL + `response_format:json_object` only when the preset allows). Registry presets (URLs verified against vendor docs 10/2026): groq (`api.groq.com/openai/v1`, default model now `openai/gpt-oss-120b` after `llama-3.3-70b-versatile` retired), openai (`gpt-4o-mini`), openrouter (`anthropic/claude-sonnet-4` + attribution header), gemini (beta compat layer), deepseek (needs "json"+example in prompt, may return empty), anthropic (**`jsonObject:false` -- its compat layer silently ignores `response_format`**; use OpenRouter for Claude), custom (`LENS_BASE_URL` + `LENS_API_KEY`: vLLM/Ollama/LM Studio/anything-compatible). `keys.ts`: comma rotation + failover on 429/5xx, `maskKey` (last-4 only, never logged). `getProvider()` reads env at CALL time (no restart for key/provider switches); no usable keys -> loud-warning mock (plumbing only, never gradable). Live Groq key = Render dashboard `GROQ_API_KEY` + same value in `frontend/.env.local` (TWO separate runtimes reading it; Python sessions and lens route are independent paths).
+Single seam: `LensProvider.complete<T>({ system, messages, schema, jsonShapeExample, model?, temperature?, maxTokens?, timeoutMs? })`. ONE transport (`openai-compat.ts`: raw `openai` SDK + baseURL + `response_format:json_object` only when the preset allows). Registry presets (URLs verified against vendor docs 10/2026): groq (`api.groq.com/openai/v1`, default model now `openai/gpt-oss-120b` after `llama-3.3-70b-versatile` retired), openai (`gpt-4o-mini`), openrouter (`anthropic/claude-sonnet-4` + attribution header), gemini (beta compat layer), deepseek (needs "json"+example in prompt, may return empty), anthropic (**`jsonObject:false` -- its compat layer silently ignores `response_format`**; use OpenRouter for Claude), custom (`LENS_BASE_URL` + `LENS_API_KEY`: vLLM/Ollama/LM Studio/anything-compatible). `keys.ts`: comma rotation + failover on 429/5xx, `maskKey` (last-4 only, never logged). `getProvider()` reads env at CALL time (no restart for key/provider switches); no usable keys -> loud-warning mock (plumbing only, never gradable). **Lens config honesty (10/2026):** with no usable key the route returns `500 "Lens provider is not configured."` and the workbench client detects `X-Lens-Provider: mock` and throws `LensCallError("Lens output isn't configured on this server yet.", 500)` — a mock NEVER renders as a real lens answer. `route.ts` and `lens-client.ts` both scrub key/secret/token/LENS_ substrings from error payloads. Live Groq key = Render dashboard `GROQ_API_KEY` + same value in `frontend/.env.local` (TWO separate runtimes reading it; Python sessions and lens route are independent paths).
 
 ### Storage (`lib/workbench/storage.ts`)
-`yentellect.layout.v1` (geometry+activity, clamped read+write; `paletteOpen` deliberately NOT persisted) plus `yentellect.userField.v1` (feeds prompts; set in Settings > Research) and `yentellect.betaModes.v1` (default off). All readers SSR-safe (window guard + try/catch).
+`yentellect.layout.v1` (geometry+activity, clamped read+write; `paletteOpen` deliberately NOT persisted) plus `yentellect.userField.v1` (feeds prompts; set in Settings > Research), `yentellect.betaModes.v1` (default off), and `yentellect.doc.v1` (the pinned imported doc; `readDoc`/`writeDoc`/`clearDoc`). All readers SSR-safe (window guard + try/catch).
 
 ---
 
@@ -434,7 +443,7 @@ Remote `origin/main` == local HEAD at every step (verified via `git ls-remote` a
 3. The Groq key comes from Render (same value in `frontend/.env.local`). More LLM keys later; the registry makes them config, not code. Name any new provider -> verify its docs URL before adding a preset (never from memory).
 4. Lens prompts stay verbatim to the lens spec. Only the verified diagram-discipline addition is sanctioned.
 5. Eval gates UI. No polished UI on a failing lens.
-6. No-document users get a chat box: a typed 3am thought IS the selection (Phase C, approved, not yet built).
+6. No-document users get a chat box: a typed 3am thought IS the selection (Phase C, built).
 7. Push to `origin/main` after verification; `tsconfig.tsbuildinfo` stays out of commits; scratch `eval-*.txt` files deleted before committing; `report.md` is append-only evidence.
 
 ---
