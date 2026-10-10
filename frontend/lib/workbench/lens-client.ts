@@ -20,7 +20,7 @@ import type { ThinkingMode } from "@/lib/modes";
 
 const NETWORK_ERROR = "Could not reach the lens service.";
 const UNREADABLE_RESPONSE = "Lens service returned an unreadable response.";
-const INSECURE = /api[_-]?key|secret|token|bearer|authorization/i;
+const INSECURE = /api[ _-]?key|secret|token|bearer|authorization|LENS_[A-Z_]+/i;
 
 /** Thrown by postLens. `status` is the HTTP status, or 0 for network/unknown failure. */
 export class LensCallError extends Error {
@@ -64,10 +64,9 @@ function safeServerError(body: unknown): string | null {
 function failureMessage(status: number, body: unknown): string {
   if (status === 401) return "Sign in to use lenses.";
   if (status === 400) return "The lens rejected this request.";
-  let fallback = `Lens request failed (${status}).`;
-  if (status === 500) fallback = "Lens provider is not configured.";
-  else if (status === 502) fallback = "Lens provider request failed.";
-  return safeServerError(body) ?? fallback;
+  if (status === 500) return "Lens provider is not configured.";
+  if (status === 502) return "The lens provider could not complete the request.";
+  return safeServerError(body) ?? `Lens request failed (${status}).`;
 }
 
 function readHeader(res: Response, name: string): string {
@@ -91,6 +90,12 @@ export async function postLens(req: LensRequest): Promise<LensCallResult> {
     });
   } catch {
     throw new LensCallError(NETWORK_ERROR, 0);
+  }
+
+  // The mock provider must NEVER render as an answer: it means "not
+  // configured", so surface that as a hard error before reading the body.
+  if ((res.headers.get("X-Lens-Provider") || "").trim().toLowerCase() === "mock") {
+    throw new LensCallError("Lens output isn't configured on this server yet.", 500);
   }
 
   let body: unknown = null;

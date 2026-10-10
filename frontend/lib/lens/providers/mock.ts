@@ -9,9 +9,7 @@
 import { InvalidModelOutputError } from "../errors";
 import type { CompleteOptions, CompleteResult, LensProvider } from "../provider";
 
-const MOCK_MESSAGE =
-  "Mock lens output: no LLM keys are configured, so no connections are offered. " +
-  "Set the provider key env var (see frontend/.env.example) for real output.";
+const MOCK_MESSAGE = "Lens output isn't configured on this server yet.";
 
 export function mockProvider(): LensProvider {
   return {

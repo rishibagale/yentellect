@@ -52,7 +52,10 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("[lens] request failed", err);
     const msg = err instanceof Error ? err.message : "Lens request failed.";
-    const insecure = /api[_-]?key|secret|token/i.test(msg);
+    const insecure = /api[ _-]?key|secret|token|bearer|authorization|LENS_[A-Z_]+/i.test(msg);
+    if (/LENS_|Unknown .*provider|requires/i.test(msg)) {
+      return NextResponse.json({ error: "Lens provider is not configured." }, { status: 500 });
+    }
     return NextResponse.json(
       { error: insecure ? "Lens provider error." : msg },
       { status: /LENS_|model|unknown/i.test(msg) ? 500 : 502 }
