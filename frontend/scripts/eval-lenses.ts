@@ -12,7 +12,7 @@
  * Anything the harness can check itself it checks (sums, connection counts,
  * fallback/error counts); grading the 0–2 rubric stays a human job.
  */
-import { EVAL_DIR, ITEMS_PATH, loadEnvLocal, loadItems, renderReport, writeReport, type RunRecord } from "./eval-lenses-lib";
+import { EVAL_DIR, ITEMS_SEED_PATH, ITEMS_USER_PATH, loadEnvLocal, loadItems, loadSeedItems, renderReport, writeReport, type RunRecord } from "./eval-lenses-lib";
 import { runLens } from "../lib/lens/run";
 import type { LensRequest } from "../lib/lens/schema";
 import type { LensId } from "../lib/lens/schema";
@@ -38,6 +38,9 @@ const delayMs = (() => {
 })();
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const outFile = flag("--out") ?? undefined;
+const baseline = flag("--baseline") !== null;
+const modelOverride = flag("--model") ?? undefined;
+if (modelOverride) process.env.LENS_MODEL = modelOverride;
 const lenses: LensId[] =
   lensArg === "both" ? ["analogical", "systems"]
   : lensArg === "analogical" ? ["analogical"]
@@ -48,16 +51,18 @@ const startedAt = new Date().toISOString();
 const t0 = Date.now();
 
 async function main(): Promise<number> {
-  console.log(`[eval] items: ${ITEMS_PATH}`);
+  console.log(`[eval] seed: ${ITEMS_SEED_PATH}`);
+  console.log(`[eval] user: ${ITEMS_USER_PATH}`);
   console.log(`[eval] out:   ${EVAL_DIR}/report.md`);
 
+  const loadFn = baseline ? loadSeedItems : loadItems;
   const items = resumeFrom
     ? (() => {
-        const all = loadItems(only);
+        const all = loadFn(only);
         const idx = all.findIndex((i) => i.title.toLowerCase().includes(resumeFrom.toLowerCase()));
         return idx < 0 ? all : all.slice(idx);
       })()
-    : loadItems(only);
+    : loadFn(only);
   console.log(`[eval] running ${items.length} item(s) × ${lenses.length} lens(es)`);
 
   let mockSeen = false;

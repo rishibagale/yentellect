@@ -24,7 +24,8 @@ export interface EvalItem {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const EVAL_DIR = join(HERE, "..", "eval");
-export const ITEMS_PATH = join(EVAL_DIR, "items.json");
+export const ITEMS_SEED_PATH = join(EVAL_DIR, "items.seed.json");
+export const ITEMS_USER_PATH = join(EVAL_DIR, "items.user.json");
 
 export function loadEnvLocal(): void {
   // Node >= 20.12: no dotenv dependency needed.
@@ -35,10 +36,32 @@ export function loadEnvLocal(): void {
   }
 }
 
+function loadItemsFromPath(path: string): EvalItem[] {
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw as EvalItem[];
+  } catch {
+    return [];
+  }
+}
+
 export function loadItems(only?: string): EvalItem[] {
-  const raw = JSON.parse(readFileSync(ITEMS_PATH, "utf8")) as unknown;
-  if (!Array.isArray(raw)) throw new Error("eval/items.json must be an array");
-  const items = raw as EvalItem[];
+  const seedItems = loadItemsFromPath(ITEMS_SEED_PATH);
+  const userItems = loadItemsFromPath(ITEMS_USER_PATH);
+  const byTitle = new Map<string, EvalItem>();
+  for (const item of seedItems) byTitle.set(item.title.toLowerCase(), item);
+  for (const item of userItems) if (item.title.trim()) byTitle.set(item.title.toLowerCase(), item);
+  const items = Array.from(byTitle.values());
+  if (only) {
+    const needle = only.toLowerCase();
+    return items.filter((i) => i.title.toLowerCase().includes(needle));
+  }
+  return items;
+}
+
+export function loadSeedItems(only?: string): EvalItem[] {
+  const items = loadItemsFromPath(ITEMS_SEED_PATH);
   if (only) {
     const needle = only.toLowerCase();
     return items.filter((i) => i.title.toLowerCase().includes(needle));

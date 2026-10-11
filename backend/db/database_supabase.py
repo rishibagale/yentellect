@@ -152,7 +152,7 @@ class SupabaseDatabaseManager:
             return payload
 
     def update_session(self, session_id: str, **kwargs) -> Optional[Dict[str, Any]]:
-        allowed_fields = {"turn_count", "status", "summary", "ended_at", "started_at", "vector"}
+        allowed_fields = {"turn_count", "status", "summary", "ended_at", "started_at", "vector", "layout", "user_field", "beta_modes", "doc"}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         if not updates:
             return None

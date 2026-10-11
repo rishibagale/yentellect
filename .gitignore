@@ -59,6 +59,7 @@ frontend/.turbo/
 # Frontend build / type-check scratch output
 frontend/build-out.txt
 frontend/tsc-out.txt
+frontend/tsconfig.tsbuildinfo
 
 # Model weights / large files
 *.bin

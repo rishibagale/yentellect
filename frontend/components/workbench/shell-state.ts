@@ -21,6 +21,24 @@ import { buildCommands, type CommandContext } from "@/lib/workbench/commands";
 
 export type ImportStatus = "idle" | "loading" | "error";
 
+export type ViewportSize = "phone" | "tablet" | "desktop";
+
+export function useViewport(): ViewportSize {
+  const [size, setSize] = useState<ViewportSize>("desktop");
+  useEffect(() => {
+    const apply = () => {
+      const w = window.innerWidth;
+      if (w < 768) setSize("phone");
+      else if (w < 1024) setSize("tablet");
+      else setSize("desktop");
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, []);
+  return size;
+}
+
 export function useShellState() {
   const { layout, update, toggleExplorer, toggleLens, toggleDrawer, setPaletteOpen } =
     useLayout();
@@ -28,6 +46,7 @@ export function useShellState() {
   const [activeLens, setActiveLensState] = useState<ThinkingMode>("ANALOGICAL");
   const [betaModes, setBetaModesState] = useState<boolean>(() => readBetaModes());
   const [narrow, setNarrow] = useState(false);
+  const viewport = useViewport();
   const [doc, setDoc] = useState<ImportedDoc | null>(() => readDoc());
   const [importOpen, setImportOpen] = useState(false);
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle");
@@ -35,6 +54,7 @@ export function useShellState() {
   const importingRef = useRef(false);
 
   // Minimum supported width is 1024px (C7); below that show a plain notice.
+  // Kept for backwards compat with MinWidthNotice.
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 1023px)");
     const apply = () => setNarrow(mq.matches);
@@ -133,6 +153,10 @@ export function useShellState() {
     setBetaModes,
     ctx,
     narrow,
+    viewport,
+    isPhone: viewport === "phone",
+    isTablet: viewport === "tablet",
+    isDesktop: viewport === "desktop",
     importOpen,
     importStatus,
     importError,

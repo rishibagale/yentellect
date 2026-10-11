@@ -118,6 +118,14 @@ class DatabaseManager:
             conn.execute("ALTER TABLE sessions ADD COLUMN vector TEXT")
         if "started_at" not in columns:
             conn.execute("ALTER TABLE sessions ADD COLUMN started_at TEXT")
+        if "layout" not in columns:
+            conn.execute("ALTER TABLE sessions ADD COLUMN layout TEXT")
+        if "user_field" not in columns:
+            conn.execute("ALTER TABLE sessions ADD COLUMN user_field TEXT")
+        if "beta_modes" not in columns:
+            conn.execute("ALTER TABLE sessions ADD COLUMN beta_modes INTEGER NOT NULL DEFAULT 0")
+        if "doc" not in columns:
+            conn.execute("ALTER TABLE sessions ADD COLUMN doc TEXT")
 
         cursor = conn.execute("PRAGMA table_info(concept_nodes)")
         concept_cols = {row["name"] for row in cursor.fetchall()}
@@ -262,7 +270,7 @@ class DatabaseManager:
         """
         if self._using_supabase and self._impl is not None:
             return self._impl.update_session(session_id, **kwargs)
-        allowed_fields = {"turn_count", "status", "summary", "ended_at", "vector"}
+        allowed_fields = {"turn_count", "status", "summary", "ended_at", "vector", "layout", "user_field", "beta_modes", "doc"}
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
         if not updates:
             return None

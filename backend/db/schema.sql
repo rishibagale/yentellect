@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS sessions (
     started_at TEXT,                             -- When the session began
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     ended_at TEXT,
+    layout TEXT,                                 -- Workbench layout JSON
+    user_field TEXT,                             -- User's research field
+    beta_modes INTEGER NOT NULL DEFAULT 0,       -- Beta lens modes toggle
+    doc TEXT,                                    -- Imported paper JSON
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
