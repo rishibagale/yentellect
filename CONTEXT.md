@@ -5,6 +5,7 @@
 > Doc cleanup **9/30/2026**: removed stale `puter_test/` / `go_watcher/` / `rebuild` Go-source references (those directories no longer exist); corrected port guidance.
 > Full refresh **10/6/2026** (commits through `ae28fb2`): the app is now a research workbench, not a training app. Sections 1, 2, 3, 4, 5, 8, 10, 11, 12 rewritten or extended; new Sections 13 (lens system), 14 (eval harness + verdict), 15 (session commit history), 16 (standing user decisions). Sections 6, 7, 9 (backend API, VSA, Supabase) verified still accurate and kept.
 > Extended **10/2026** (working tree after `8f761f1`): lens config honesty (no mock-as-answer), minimal paper import (Stage 4 lite), copy sweep, Phase D remove-list sweep. Sections 2, 5, 8, 11, 13, 16 updated to match.
+> Extended **10/2026** (commits through `610ae44`): P2 fallback-honesty UI (real-provider fallback surfaces as "Couldn't structure a response — retry?"), P1 eval rerun 12/12 passes on live Groq. Sections 11, 13, 15 updated.
 
 ---
 
@@ -41,7 +42,7 @@ The other four modes (Convergent, Divergent, Metacognitive, DMN) stay in the cod
 
 ```
 yentellect/
-├── CONTEXT.md                          # ← this file (full refresh 10/6/2026 through `ae28fb2`; extended 10/2026, see blockquote)
+├── CONTEXT.md                          # ← this file (full refresh 10/6/2026 through `ae28fb2`; extended 10/2026 through `610ae44`, see blockquote)
 ├── README.md                           # project readme (repo: github.com/rishibagale/yentellect)
 ├── LICENSE                             # MIT
 ├── .env.example                        # backend env template
@@ -366,6 +367,8 @@ New (workbench + lens era):
 - [x] **Minimal paper import DONE** (this pass, Stage 4 lite, no PDF, zero new deps): see Section 5. This is NOT full Stage 4 (no tabs/note-taking yet).
 - [x] **Lens config honesty DONE** (this pass): an unconfigured server never renders a mock as a lens answer. See Section 13.
 - [x] **Copy sweep DONE** (this pass): developer "Stage N / lands in" jargon removed from all user-visible strings; stage-gated entries now say "Creating notes is coming soon".
+- [x] **P2 fallback-honesty UI DONE** (commit `610ae44`): real-provider fallback (invalid model output) now surfaces a degraded strip "Couldn't structure a response — retry?" with a Retry button, distinct from the red transport/config error strip. Threads `usedFallback` through `lens-client.ts` → `lens-thread.ts` → `LensPanel.tsx`.
+- [x] **P1 eval rerun DONE** (commit `610ae44`): 12/12 passes on live Groq (`openai/gpt-oss-120b`), 0 fallbacks, 0 errors. Report at `eval/audit-rerun.md`.
 - [ ] **Stages 2, 3, 6**: data model + Dexie + Explorer tree (2), CodeMirror + KaTeX + tabs + selection toolbar (3), drawer table + 2D graph tab (6). Deps needed: `dexie`, `@codemirror/*`, `katex`, `react-force-graph-2d` (currently only the 3D variant is installed).
 - [ ] **Vercel env vars (or lenses are honestly down on prod)**: set `GROQ_API_KEY` + `LENS_PROVIDER=groq` (+ `LENS_MODEL=openai/gpt-oss-120b`) in the Vercel project env vars. Without them every `/api/lens` call returns `500 "Lens provider is not configured."` -- intended honesty, not a bug.
 - [ ] **Eval seed data**: `eval/items.json` is a 6-item starter set of famous-paper paraphrases, NOT the user's papers. Bar transfers only if the user's own material grades as well. User owes real passages + the "wouldn't-have-found-alone" verdict on >= 3 items.
@@ -405,6 +408,9 @@ Both system prompts verbatim to spec (`{userField}`/`{docTitle}` interpolated). 
 ### Provider layer (`provider.ts` + `providers/`)
 Single seam: `LensProvider.complete<T>({ system, messages, schema, jsonShapeExample, model?, temperature?, maxTokens?, timeoutMs? })`. ONE transport (`openai-compat.ts`: raw `openai` SDK + baseURL + `response_format:json_object` only when the preset allows). Registry presets (URLs verified against vendor docs 10/2026): groq (`api.groq.com/openai/v1`, default model now `openai/gpt-oss-120b` after `llama-3.3-70b-versatile` retired), openai (`gpt-4o-mini`), openrouter (`anthropic/claude-sonnet-4` + attribution header), gemini (beta compat layer), deepseek (needs "json"+example in prompt, may return empty), anthropic (**`jsonObject:false` -- its compat layer silently ignores `response_format`**; use OpenRouter for Claude), custom (`LENS_BASE_URL` + `LENS_API_KEY`: vLLM/Ollama/LM Studio/anything-compatible). `keys.ts`: comma rotation + failover on 429/5xx, `maskKey` (last-4 only, never logged). `getProvider()` reads env at CALL time (no restart for key/provider switches); no usable keys -> loud-warning mock (plumbing only, never gradable). **Lens config honesty (10/2026):** with no usable key the route returns `500 "Lens provider is not configured."` and the workbench client detects `X-Lens-Provider: mock` and throws `LensCallError("Lens output isn't configured on this server yet.", 500)` — a mock NEVER renders as a real lens answer. `route.ts` and `lens-client.ts` both scrub key/secret/token/LENS_ substrings from error payloads. Live Groq key = Render dashboard `GROQ_API_KEY` + same value in `frontend/.env.local` (TWO separate runtimes reading it; Python sessions and lens route are independent paths).
 
+### Fallback honesty UI (commit `610ae44`)
+`runLens` returns `{ message, connections: [], usedFallback: true }` when model output is invalid (zod failure after retry). `postLens` in `lens-client.ts` surfaces `usedFallback`; `LensThread` in `lens-thread.ts` stores it on `ConnectionEntry` and exposes `lastResponseUsedFallback`; `LensPanel.tsx` renders a distinct degraded strip — "Couldn't structure a response — retry?" with a Retry button — when `lastResponseUsedFallback && !error`, visually separate from the red transport/config error strip.
+
 ### Storage (`lib/workbench/storage.ts`)
 `yentellect.layout.v1` (geometry+activity, clamped read+write; `paletteOpen` deliberately NOT persisted) plus `yentellect.userField.v1` (feeds prompts; set in Settings > Research), `yentellect.betaModes.v1` (default off), and `yentellect.doc.v1` (the pinned imported doc; `readDoc`/`writeDoc`/`clearDoc`). All readers SSR-safe (window guard + try/catch).
 
@@ -432,6 +438,7 @@ Gotchas (all bitten once, documented so they are never re-bitten): report clobbe
 `b415604` scroll fix part 1 (globals.css body rule)
 `2b39a3f` scroll fix part 2 (layout.tsx body class) -- the one that actually fixed it
 `ae28fb2` lens eval PASS (live key, gpt-oss-120b, diagram discipline, 24/24 graded) + Phase A (beta toggle, userField, storage prefs, harness flags)
+`610ae44` P2 fallback-honesty UI (real-provider fallback surfaces degraded strip with retry), P1 eval rerun 12/12 passes on live Groq
 Remote `origin/main` == local HEAD at every step (verified via `git ls-remote` after each push). Repo: `https://github.com/rishibagale/yentellect.git`.
 
 ---
