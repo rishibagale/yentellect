@@ -13,7 +13,6 @@ import ActivityBar from "./ActivityBar";
 import SidePanelView from "./SidePanelView";
 import LensPanel from "./LensPanel";
 import EditorArea from "./EditorArea";
-import ConnectionsDrawer from "./ConnectionsDrawer";
 import StatusBar from "./StatusBar";
 import Splitter from "./Splitter";
 import CommandPalette from "./CommandPalette";
@@ -27,7 +26,7 @@ import { useShellKeys } from "./shell-keys";
 import { useState } from "react";
 
 function ShellInner() {
-  const { layout, update, toggleExplorer, toggleLens, toggleDrawer, setActivity, setPaletteOpen } =
+  const { layout, update, toggleExplorer, toggleLens, setActivity, setPaletteOpen } =
     useLayout();
   const {
     activeLens,
@@ -54,7 +53,6 @@ function ShellInner() {
     setPaletteOpen,
     toggleExplorer,
     toggleLens,
-    toggleDrawer,
     setActiveLens,
   });
 
@@ -87,11 +85,11 @@ function ShellInner() {
             className="fixed inset-y-0 left-0 z-40 w-[280px] max-w-[85vw] bg-[var(--bg-1)] border-r border-[var(--border)] transform transition-transform duration-200"
             style={{ transform: layout.explorerOpen ? "translateX(0)" : "translateX(-100%)" }}
             role="region"
-            aria-label="Explorer"
+            aria-label="Library"
           >
             <div className="h-full flex flex-col">
               <div className="p-2 border-b border-[var(--border)] flex items-center justify-between">
-                <h3 className="text-sm font-medium text-[var(--text)]">Explorer</h3>
+                <h3 className="text-sm font-medium text-[var(--text)]">Library</h3>
                 <button
                   type="button"
                   onClick={toggleExplorer}
@@ -106,6 +104,7 @@ function ShellInner() {
                   activity={layout.activity}
                   betaModes={betaModes}
                   onToggleBetaModes={setBetaModes}
+                  doc={doc}
                 />
               </div>
             </div>
@@ -131,11 +130,12 @@ function ShellInner() {
                     activity={layout.activity}
                     betaModes={betaModes}
                     onToggleBetaModes={setBetaModes}
+                    doc={doc}
                   />
                 </div>
                 <Splitter
                   orientation="vertical"
-                  label="Explorer"
+                  label="Library"
                   paneId="pane-explorer"
                   value={25}
                   open={layout.explorerOpen}
@@ -180,23 +180,6 @@ function ShellInner() {
                   </>
                 )}
               </div>
-              {/* Connections drawer - desktop only */}
-              {isDesktop && layout.drawerOpen && (
-                <>
-                  <Splitter
-                    orientation="horizontal"
-                    label="Connections"
-                    paneId="pane-connections"
-                    value={60}
-                    open={layout.drawerOpen}
-                    onToggle={toggleDrawer}
-                    onChange={(v) => update({ drawerHeight: Math.round(480 - (v / 100) * 360) })}
-                  />
-                  <div style={{ height: layout.drawerHeight }} className="shrink-0 min-h-0">
-                    <ConnectionsDrawer />
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>

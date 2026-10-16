@@ -40,7 +40,7 @@ export function useViewport(): ViewportSize {
 }
 
 export function useShellState() {
-  const { layout, update, toggleExplorer, toggleLens, toggleDrawer, setPaletteOpen } =
+  const { layout, update, toggleExplorer, toggleLens, setPaletteOpen } =
     useLayout();
   const router = useRouter();
   const [activeLens, setActiveLensState] = useState<ThinkingMode>("ANALOGICAL");
@@ -134,7 +134,6 @@ export function useShellState() {
   const ctx: CommandContext = {
     toggleExplorer,
     toggleLens,
-    toggleDrawer,
     openPaletteOnly,
     betaModes,
     setBetaModes,

@@ -30,8 +30,7 @@ export type CommandId =
   | "open-graph"
   | "toggle-beta"
   | "toggle-explorer"
-  | "toggle-lens"
-  | "toggle-drawer";
+  | "toggle-lens";
 
 export interface WorkbenchCommand {
   id: CommandId;
@@ -46,7 +45,6 @@ export interface WorkbenchCommand {
 export interface CommandContext {
   toggleExplorer: () => void;
   toggleLens: () => void;
-  toggleDrawer: () => void;
   openPaletteOnly: () => void;
   betaModes: boolean;
   setBetaModes: (on: boolean) => void;
@@ -102,7 +100,7 @@ export function buildCommands(ctx: CommandContext): WorkbenchCommand[] {
       hint: "Cmd+2",
       run: () => ctx.setActiveLens("SYSTEMS"),
     }),
-    cmd("open-graph", "Open graph", {
+    cmd("open-graph", "Open graph (profile)", {
       hint: "Knowledge graph",
       run: () => ctx.navigate("/profile"),
     }),
@@ -116,10 +114,6 @@ export function buildCommands(ctx: CommandContext): WorkbenchCommand[] {
     cmd("toggle-lens", "Toggle lens panel", {
       hint: "Cmd+Shift+L",
       run: ctx.toggleLens,
-    }),
-    cmd("toggle-drawer", "Toggle drawer", {
-      hint: "Cmd+J",
-      run: ctx.toggleDrawer,
     }),
   ];
 }

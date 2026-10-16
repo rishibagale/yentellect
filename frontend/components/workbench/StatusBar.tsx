@@ -23,11 +23,19 @@ export default function StatusBar({ activeLens, words, kept, saved }: StatusBarP
       aria-label="Status"
       className="h-6 shrink-0 flex items-center gap-4 px-3 border-t border-[var(--border)] bg-[var(--bg-1)] text-[11px] text-[var(--text-dim)]"
     >
-      <span aria-label={`Active lens: ${lens.label}`} className="text-[var(--text)]">
+      <span
+        aria-label={`Active lens: ${lens.label}`}
+        title={`Active lens: ${lens.label}`}
+        className="text-[var(--text)]"
+      >
         ◈ {lens.label}
       </span>
-      <span aria-label={`${words} words`}>{words} words</span>
-      <span aria-label={`${kept} kept connections`}>{kept} kept</span>
+      <span aria-label={`${words} words`} title={`${words} words`}>
+        {words} words
+      </span>
+      <span aria-label={`${kept} kept connections`} title={`${kept} kept connections`}>
+        {kept} kept
+      </span>
       <span className="ml-auto" role="status" aria-live="polite">
         {saved ? "saved" : "unsaved"}
       </span>

@@ -1,8 +1,8 @@
 /**
  * Yentellect workbench — Activity bar (Stage 1).
- * 48px wide, icons only: Explorer, Graph, Search, Settings.
- * Graph/Search/Settings set the activity; their views land in later stages,
- * so the explorer stays visible and a note names the pending view.
+ * 48px wide, icons only: Library, Settings.
+ * Only activities whose view is live appear here; Graph and Search return
+ * when their stages land, so the bar never offers a dead end.
  */
 "use client";
 
@@ -19,9 +19,7 @@ const ITEMS: Array<{
   label: string;
   icon: (props: { active: boolean }) => React.ReactNode;
 }> = [
-  { id: "explorer", label: "Explorer", icon: ({ active }) => <ExplorerIcon active={active} /> },
-  { id: "graph", label: "Graph", icon: ({ active }) => <GraphIcon active={active} /> },
-  { id: "search", label: "Search", icon: ({ active }) => <SearchIcon active={active} /> },
+  { id: "explorer", label: "Library", icon: ({ active }) => <ExplorerIcon active={active} /> },
   { id: "settings", label: "Settings", icon: ({ active }) => <SettingsIcon active={active} /> },
 ];
 
