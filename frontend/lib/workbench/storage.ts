@@ -9,7 +9,7 @@ import type { ImportedDoc } from "./import-client";
 
 export const LAYOUT_STORAGE_KEY = "yentellect.layout.v1";
 
-export type Activity = "explorer" | "graph" | "search" | "settings";
+export type Activity = "explorer" | "settings";
 
 export interface LayoutState {
   activity: Activity;
@@ -56,7 +56,7 @@ export function clampLayout(base: LayoutState, patch: Partial<LayoutState>): Lay
   };
 }
 
-const ACTIVITIES: Activity[] = ["explorer", "graph", "search", "settings"];
+const ACTIVITIES: Activity[] = ["explorer", "settings"];
 
 /** Read persisted layout; never throws, never returns invalid data. */
 export function loadLayout(): LayoutState {

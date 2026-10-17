@@ -39,25 +39,6 @@ function ExplorerIcon({ active }: { active: boolean }) {
   );
 }
 
-function GraphIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2 : 1.5} aria-hidden="true">
-      <circle cx="6" cy="6" r="2.5" />
-      <circle cx="18" cy="8" r="2.5" />
-      <circle cx="10" cy="18" r="2.5" />
-      <path strokeLinecap="round" d="M8.2 7.1l7.3.6M7 8.4l2 7M16.1 10l-4.4 6" />
-    </svg>
-  );
-}
-
-function SearchIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2 : 1.5} aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z" />
-    </svg>
-  );
-}
-
 function SettingsIcon({ active }: { active: boolean }) {
   return (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2 : 1.5} aria-hidden="true">

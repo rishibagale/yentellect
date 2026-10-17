@@ -32,7 +32,6 @@ interface LayoutContextValue {
   update: (patch: Partial<LayoutState>) => void;
   toggleExplorer: () => void;
   toggleLens: () => void;
-  toggleDrawer: () => void;
   setActivity: (a: Activity) => void;
   setPaletteOpen: (open: boolean) => void;
 }
@@ -68,10 +67,6 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
     () => setLayout((prev) => ({ ...prev, lensOpen: !prev.lensOpen })),
     []
   );
-  const toggleDrawer = useCallback(
-    () => setLayout((prev) => ({ ...prev, drawerOpen: !prev.drawerOpen })),
-    []
-  );
   const setActivity = useCallback(
     (activity: Activity) => setLayout((prev) => ({ ...prev, activity })),
     []
@@ -82,8 +77,8 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ layout, update, toggleExplorer, toggleLens, toggleDrawer, setActivity, setPaletteOpen }),
-    [layout, update, toggleExplorer, toggleLens, toggleDrawer, setActivity, setPaletteOpen]
+    () => ({ layout, update, toggleExplorer, toggleLens, setActivity, setPaletteOpen }),
+    [layout, update, toggleExplorer, toggleLens, setActivity, setPaletteOpen]
   );
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;
