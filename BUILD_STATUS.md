@@ -1,13 +1,56 @@
 # BUILD_STATUS — as-built vs as-planned
 
-> Snapshot of the two work plans as of commit `749d889` (2026-10-06),
+> Snapshot of the two work plans as of the working tree after commit `4f5f948` (2026-10-06; Stage 2 library + Stage 3 editor/tabs uncommitted in working tree),
 > updated by the PASS LOG below (verify cells against the current tree).
 > Read straight from the specs: **Prompt #1** = workbench master, **Prompt #2** = lens spec.
-> Verdict: **Prompt #2 is built and passing; Prompt #1 partially built — Stage 1 (shell, palette, prompts, tokens) is exact; minimal Stage 4 import + Phase C chat shipped; Stages 2, 3, 6 outstanding.**
+> Verdict: **Prompt #2 is built and passing; Prompt #1 partially built — Stage 1 (shell, palette, prompts, tokens) is exact; minimal Stage 4 import + Phase C chat shipped; Stage 2 data model and Stage 3 editor/tabs now shipped; Stages 3-toolbar and 6 outstanding.**
 
 ---
 
-## PASS LOG — 10/2026 (working tree after `8f761f1`)
+## PASS LOG — 10/2026 (working tree: Stage 2 library + Stage 3 editor/tabs, uncommitted)
+
+What shipped this pass. Verification: project `tsc --noEmit` clean, `next lint` clean (0 warnings),
+`next build` EXIT=0 with all 14 routes, tab-rule unit check 16/16 pass (scratch script, deleted after).
+
+- **Stage 3 editor** — `frontend/components/workbench/DocEditorPane.tsx`: CodeMirror 6 (markdown,
+  history, line-wrapping, placeholder) + KaTeX preview mode. New deps: `@codemirror/state`,
+  `@codemirror/view`, `@codemirror/commands`, `@codemirror/lang-markdown`, `katex`, `dexie`.
+  The old read-only paper pane (title/byline/abstract in `EditorArea`) is gone; the paper is now an
+  editable note, and its abstract seeds the body on first import.
+- **Autosave that actually saves** — two real bugs in the pre-existing pane, both fixed:
+  the CodeMirror update listener never set the dirty flag, so typing after the first save was
+  **never persisted**; and the debounce effect returned early on `savedAt !== null`, which
+  compounded it. Now: dirty is set on every change, the debounce only fires when dirty, and an
+  unmount flush writes the last keystrokes when the user switches tabs (a React ref would lag a
+  render and could rewrite an older body over a newer one — the flush reads the synchronous
+  pending-body registry instead).
+- **Stage 2 library (Dexie)** — `frontend/lib/workbench/db.ts`: `yentellect.library.v1`,
+  `docs: "id, kind, updatedAt"`, `WorkDoc { id, kind: paper|concept|note, title, body, timestamps, paper metadata }`.
+  `liveDocs()` (liveQuery) feeds the Explorer list. Re-importing a paper refreshes its metadata
+  and **keeps** the body the user wrote (`upsertImportedDoc`).
+- **Tab strip (Stage 3)** — `frontend/lib/workbench/tabs.ts` + `EditorArea` tab row + `Shell` wiring.
+  Tabs hold ids and labels only; bodies live in Dexie, so a tab can never hold a stale copy of a note.
+  Open/select/close rules are pure functions (16/16 assertions pass): closing the active tab moves
+  to the right neighbour, or the left one when the rightmost was closed; closing the last tab leaves
+  no active document. Persisted in `localStorage` `yentellect.tabs.v1`.
+- **Pending-body registry** (`db.ts`) — the newest body per doc, written synchronously on every
+  keystroke. It is the source of truth for "what the user sees", so a tab switch can never show (and
+  then re-save) an older body as the newest one. Cleared only when the doc is deleted.
+- **Explorer is real** — the Activity → Explorer pane now lists the live Dexie library, the active
+  document is marked, and clicking a doc opens it in a tab. The old "file tree lands Stage 2"
+  placeholder is gone. Still a flat list: no tree, context menu, inline rename, or icons (item 13).
+- **Legacy pinned-paper migration** — the pre-Stage-3 build kept one paper in `localStorage`
+  `yentellect.doc.v1`. It is now read exactly once, folded into the library as a tab, and the key is
+  deleted. There is deliberately **no writer** for that key any more.
+- **"New concept" / "New note" now work** — the palette commands create a blank doc in the library
+  and open it in a tab (they were disabled-with-reason in the committed tree).
+- **Not in this pass** (still outstanding): middle-click-to-close tabs, the floating
+  Analogical/Systems selection toolbar over the editor, inline rename, the Explorer tree, and
+  Stage 6 (connections drawer, 2D graph tab, kept→edges).
+
+---
+
+## PASS LOG — 10/2026 (working tree after `4f5f948`)
 
 What shipped this pass. Verification: project `tsc` clean, `next build` EXIT=0 with all 14 routes,
 copy audit clean, **zero new deps** (package.json untouched).
@@ -44,7 +87,7 @@ copy audit clean, **zero new deps** (package.json untouched).
 | 1 | Full viewport, no page scroll, region table (36/48/240/flex/360/200/24) | ✅ `Shell.tsx`, exact |
 | 2 | Splitters pointer-draggable, persist sizes/state | ✅ `Splitter.tsx` + `storage.ts` (clamped read+write) |
 | 3 | Min width 1024 → plain notice | ✅ `MinWidthNotice.tsx` |
-| 4 | Command palette Cmd+K fuzzy, 10 commands | ✅ all 13 exist; Import paper live, 2 disabled-with-reason (New concept/New note → "Creating notes is coming soon") |
+| 4 | Command palette Cmd+K fuzzy, 10 commands | ✅ all 13 exist; Import paper live, New concept/New note now live (create a doc + open a tab) |
 | 5 | Keyboard: K/B/J/Shift+L/1/2 | ✅ `shell-keys.ts` |
 | 6 | First-run prompt exact string | ✅ `EditorArea.tsx` |
 
@@ -58,20 +101,20 @@ copy audit clean, **zero new deps** (package.json untouched).
 ### Data & persistence
 | # | Requirement | Status |
 |---|---|---|
-| 10 | `Doc` / `Connection` types exactly as specified | ❌ **not built** (Stage 2) |
-| 11 | IndexedDB via Dexie (say so if replacing persistence) | ❌ not built |
-| 12 | Reuse existing persistence "where it fits" | ⚠️ layout/prefs persisted via localStorage only |
+| 10 | `Doc` / `Connection` types exactly as specified | ⚠️ `WorkDoc` shipped (id/kind/title/body/timestamps + paper metadata) — not the spec's literal `Doc` shape; `Connection` is the lens schema's, persisted only in-thread (kept→edges is Stage 6) |
+| 11 | IndexedDB via Dexie (say so if replacing persistence) | ✅ Dexie `yentellect.library.v1` (`db.ts`); docs + bodies live there |
+| 12 | Reuse existing persistence "where it fits" | ✅ Dexie for documents, `localStorage` for layout/prefs/open tabs (geometry still `localStorage`) |
 
 ### Components (spec, item by item)
 | # | Requirement | Status |
 |---|---|---|
-| 13 | Explorer: tree, context menu, inline rename, icons | ❌ 23-line placeholder |
-| 14 | Editor: CodeMirror 6, KaTeX `$…$`/`$$…$$`, tabs dirty/middle-click, floating Analogical/Systems selection toolbar | ❌ no `@codemirror`/`katex` in deps at all |
+| 13 | Explorer: tree, context menu, inline rename, icons | ⚠️ real list over the live Dexie library (active doc marked, click opens a tab) — **not** a tree; no context menu, inline rename, or icons |
+| 14 | Editor: CodeMirror 6, KaTeX `$…$`/`$$…$$`, tabs dirty/middle-click, floating Analogical/Systems selection toolbar | ⚠️ CodeMirror 6 ✅, KaTeX preview ✅, tab strip ✅, dirty/saved indicator ✅; middle-click-to-close ❌, floating selection toolbar ❌ (footer "Send note to lens" instead) |
 | 15 | Import: Cmd+K, arXiv URL or DOI, Crossref fetch, no PDF v1 | ✅ minimal v1 shipped 10/2026: arXiv via server route, DOI via Crossref, no PDF — NOT full Stage 4 (no tabs/notes) |
 | 16 | Lens panel: segmented control / collapsed selection card / thread / connection cards with Keep–Discard–Ask-why / composer / **calls POST /api/lens** | ✅ Phase C (10/2026): switcher + selection card + thread + cards + composer, wired to `/api/lens`; "New thread" clears; error strip for 500/502 |
 | 17 | Connections drawer: table, jump-to-range, keep/discard, kept→edges | ❌ 23-line placeholder |
 | 18 | Graph tab as editor tab, react-force-graph-**2d**, dashed/solid edges, human titles, empty state | ❌ `open-graph` → `/profile` (3D legacy); **`react-force-graph-2d` not installed** (only 3d) |
-| 19 | Data model + persistence (overlaps 10) | ❌ |
+| 19 | Data model + persistence (overlaps 10) | ⚠️ docs ✅ (Dexie + tab list); connections/edges ❌ (Stage 6) |
 
 ### Remove list (explicit "Remove")
 | # | Requirement | Status |
@@ -85,7 +128,7 @@ copy audit clean, **zero new deps** (package.json untouched).
 | # | Requirement | Status |
 |---|---|---|
 | 24 | CSS-block tokens verbatim | ✅ byte-identical `:root` |
-| 25 | JetBrains Mono 12–13 chrome; Source Serif 4/Inter 15–16 body | ✅ fonts loaded in `layout.tsx`; body class not yet applied (no doc view yet) |
+| 25 | JetBrains Mono 12–13 chrome; Source Serif 4/Inter 15–16 body | ✅ fonts loaded in `layout.tsx`; doc pane uses `.font-doc` (Source Serif 4, 15px, 1.6, 72ch) |
 | 26 | One accent; lenses by icon/label not colour; edges dashed/solid | ✅ one `--accent`; edge dash rule awaits Stage 6 |
 | 27 | 1px borders, no gradients/glows/shadows except palette | ✅ |
 | 28 | Motion 120–160ms ease-out, reduced-motion honoured | ✅ globals reduced-motion block; thread motion ships (120ms easeOut, honoured under reduced motion) |
@@ -94,20 +137,20 @@ copy audit clean, **zero new deps** (package.json untouched).
 | # | Requirement | Status |
 |---|---|---|
 | 29 | Stage 1 shell | ✅ |
-| 30 | Stage 2 data model/Explorer/new concept-note | ❌ |
-| 31 | Stage 3 editor/KaTeX/tabs/toolbar | ❌ |
+| 30 | Stage 2 data model/Explorer/new concept-note | ⚠️ data model + Dexie ✅, New concept/New note ✅ (create + open a tab); Explorer **tree** ❌ (flat live list) |
+| 31 | Stage 3 editor/KaTeX/tabs/toolbar | ⚠️ editor ✅, KaTeX ✅, tabs ✅, dirty indicator ✅; floating selection toolbar ❌, middle-click close ❌, inline rename ❌ |
 | 32 | Stage 4 import | ✅ minimal v1 (no PDF/tabs); full Stage 4 follows the editor |
 | 33 | Stage 5 lens panel wired + cards | ✅ Phase C: composer, thread, connection cards, `New thread`, error strip — `/api/lens` reachable end-to-end |
 | 34 | Stage 6 drawer/graph/shortcuts/empty states | ❌ (shortcuts ✅ part of Stage 1) |
 | 35 | No zero-metric/ID screens | ✅ metric displays removed (Phase D) |
-| 36 | Fresh workspace → lens result in 5 actions | ⚠️ reachable end-to-end now (import → select → Ask lens → thread); exact 5-action count not re-audited |
+| 36 | Fresh workspace → lens result in 5 actions | ⚠️ reachable end-to-end (import → tab → write → Send note to lens → thread); exact 5-action count not re-audited |
 | 37 | Panels toggle by keyboard, remember state | ✅ |
 | 38 | Beta off → only 2 lenses visible | ✅ |
 | 39 | Kept → drawer + edges; discarded → not | ❌ Stage 6 |
 | 40 | Lighthouse a11y 90+ / focus rings | ⚠️ `:focus-visible` + aria in shell; Lighthouse never run |
 | 41 | Out of scope respected (terminal, PDF, mobile…) | ✅ |
 
-**Prompt #1 scorecard: ✅ 25 · ⚠️ 5 · ❌ 11**
+**Prompt #1 scorecard: ✅ 27 · ⚠️ 10 · ❌ 4**
 
 ---
 
@@ -142,22 +185,24 @@ copy audit clean, **zero new deps** (package.json untouched).
 
 | Tab / pane | Opens | State |
 |---|---|---|
-| Activity → **Explorer** | `ExplorerPanel` | placeholder ("file tree lands Stage 2") |
+| Activity → **Explorer** | `ExplorerPanel` | ✅ **live** — the live Dexie library; active doc marked, click opens a tab. Flat list: no tree / context menu / rename / icons yet |
 | Activity → **Graph** | `SidePanelView` graph slot | honest placeholder + "Open knowledge graph" → `/profile` |
 | Activity → **Search** | search slot | placeholder ("Stage 2") |
 | Activity → **Settings** | `SettingsForm` | ✅ **live** — Profile, Research (userField), Lenses (beta toggle) |
 | **Lens panel** tabs | Analogical \| Systems (+4 beta when on) | ✅ Phase C: switcher + thread + connection cards (Keep/Discard/Ask-why) + composer; "New thread" clears |
 | **Drawer** | Connections | placeholder ("Stage 6") |
-| **Editor tabs** | — | ❌ Stage 3 doesn't exist yet (no tab strip) |
-| **Cmd+K palette** | 13 commands | ✅ live; 2 disabled-with-reason (New concept/New note) |
+| **Editor tabs** | `EditorArea` tab row | ✅ **live** — open documents as tabs (ids + labels only; bodies in Dexie); close button, active marker, persisted across reloads |
+| **Cmd+K palette** | 13 commands | ✅ live; New concept/New note now live (create a doc + open a tab) |
 | Status bar | lens/words/kept/save | ✅ static zeros (honest, per C8) |
 | Routes `/session /history /settings /profile` | legacy screens | ✅ live, re-skinned, scrollable |
 
-**Interactive today beyond chrome: Settings, the Lens panel chat, and the Editor import/doc pane.** Explorer, Search and the Drawer remain shell awaiting their stage.
+**Interactive today beyond chrome: Settings, the Lens panel chat, the Editor (import → editable note → tabs), and the Library list.** Search and the Drawer remain shell awaiting their stage.
 
 ---
 
 ## Bottom line
 - **Lens spec (Prompt #2): built, graded, passing, UI wired — only real papers and the 3-item verdict remain.**
-- **Workbench spec (Prompt #1): shell + palette + keyboard + tokens + first-run exact; the core research loop is now reachable (minimal import + Phase C chat).**
-  Critical path: **Stages 2 → 3 → 6** (minimal Stage 4 import already shipped; full Stage 4 with tabs/notes follows the editor).
+- **Workbench spec (Prompt #1): shell + palette + keyboard + tokens + first-run exact; the core research loop is now reachable
+  (import → editable note in a tab → send to lens → thread), with the document library and tab strip live.**
+  Critical path: **Stage 3 toolbar (floating selection toolbar, middle-click close, inline rename) → 6** (connections drawer, 2D graph tab, kept→edges);
+  the Explorer **tree** (item 13) is the other open piece of Stage 2.

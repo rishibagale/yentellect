@@ -39,13 +39,19 @@ function ShellInner() {
     isPhone,
     isTablet,
     isDesktop,
-    importOpen,
-    importStatus,
-    importError,
-    doc,
-    closeImport,
-    submitImport,
-  } = useShellState();
+  importOpen,
+  importStatus,
+  importError,
+  doc,
+  tabs,
+  activeTabId,
+  library,
+  openDoc,
+  selectTab,
+  closeTab,
+  closeImport,
+  submitImport,
+} = useShellState();
   const commands = buildCommands(ctx);
 
   useShellKeys({
@@ -58,11 +64,15 @@ function ShellInner() {
 
   const lens = thinkingModeToLensId(activeLens);
   const docContext = doc
-    ? { title: doc.title, kind: "paper", ...(doc.abstract ? { abstract: doc.abstract } : {}) }
+    ? {
+        title: doc.title,
+        kind: doc.kind,
+        ...(doc.abstract ? { abstract: doc.abstract } : {}),
+      }
     : null;
   const thread = useLensThread({ lens, doc: docContext });
 
-  /** "Ask lens about selection": open the panel, then send the captured text. */
+  /** "Send note to lens": open the panel, then send the note as the selection. */
   const askLens = (text: string): void => {
     update({ lensOpen: true });
     void thread.send(text);
@@ -105,6 +115,8 @@ function ShellInner() {
                   betaModes={betaModes}
                   onToggleBetaModes={setBetaModes}
                   doc={doc}
+                  docs={library}
+                  openDoc={openDoc}
                 />
               </div>
             </div>
@@ -125,14 +137,16 @@ function ShellInner() {
             {/* Explorer pane on desktop */}
             {isDesktop && layout.explorerOpen && (
               <>
-                <div style={{ width: layout.explorerWidth }} className="shrink-0 min-w-0">
-                  <SidePanelView
-                    activity={layout.activity}
-                    betaModes={betaModes}
-                    onToggleBetaModes={setBetaModes}
-                    doc={doc}
-                  />
-                </div>
+        <div style={{ width: layout.explorerWidth }} className="shrink-0 min-w-0">
+            <SidePanelView
+              activity={layout.activity}
+              betaModes={betaModes}
+              onToggleBetaModes={setBetaModes}
+              doc={doc}
+              docs={library}
+              openDoc={openDoc}
+            />
+          </div>
                 <Splitter
                   orientation="vertical"
                   label="Library"
@@ -149,6 +163,10 @@ function ShellInner() {
                 <EditorArea
                   onOpenPalette={() => setPaletteOpen(true)}
                   doc={doc}
+                  tabs={tabs}
+                  activeTabId={activeTabId}
+                  onSelectTab={selectTab}
+                  onCloseTab={closeTab}
                   importOpen={importOpen}
                   importStatus={importStatus}
                   importError={importError}

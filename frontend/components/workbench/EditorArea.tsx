@@ -1,19 +1,32 @@
 /**
- * Yentellect workbench — Editor area (Stages 1 + 4).
- * Flexible. Tabs and a real editor land in Stage 3; for now the pane has
- * exactly three states: the import prompt (arXiv URL / DOI), a read-only
- * paper view whose selection can be sent to the lens, and the first-run
- * prompt in the palette style (spec):
+ * Yentellect workbench — Editor area (Stage 3).
+ * Three states: the import prompt (arXiv URL / DOI), the editable
+ * doc pane (CodeMirror + KaTeX, saved to the local library), and the
+ * first-run prompt in the palette style (spec):
  * "Import a paper or write a concept to begin."
+ *
+ * The top row is the TAB STRIP: every open document, with the active one
+ * focused. Tabs hold ids only — the body lives in the Dexie library, so
+ * switching tabs never shows a stale copy of a note.
  */
+
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ImportedDoc } from "@/lib/workbench/import-client";
+import type { WorkDoc } from "@/lib/workbench/db";
+import type { TabMeta } from "@/lib/workbench/tabs";
+import DocEditorPane from "./DocEditorPane";
 
 interface EditorAreaProps {
   onOpenPalette: () => void;
-  doc?: ImportedDoc | null;
+  /** The active document, or null when no tab is focused. */
+  doc?: WorkDoc | null;
+  /** Open documents, in tab order. */
+  tabs?: TabMeta[];
+  /** Id of the focused tab. */
+  activeTabId?: string | null;
+  onSelectTab?: (id: string) => void;
+  onCloseTab?: (id: string) => void;
   importOpen?: boolean;
   importStatus?: "idle" | "loading" | "error";
   importError?: string | null;
@@ -22,12 +35,19 @@ interface EditorAreaProps {
   onAskLens?: (text: string) => void;
 }
 
-/** A selection must be a real passage before it is worth sending. */
-const MIN_SELECTION = 20;
+const KIND_LABEL: Record<TabMeta["kind"], string> = {
+  paper: "Paper",
+  concept: "Concept",
+  note: "Note",
+};
 
 export default function EditorArea({
   onOpenPalette,
   doc = null,
+  tabs = [],
+  activeTabId = null,
+  onSelectTab,
+  onCloseTab,
   importOpen = false,
   importStatus = "idle",
   importError = null,
@@ -36,7 +56,6 @@ export default function EditorArea({
   onAskLens,
 }: EditorAreaProps) {
   const [draft, setDraft] = useState("");
-  const [selection, setSelection] = useState<string | null>(null);
 
   const loading = importStatus === "loading";
 
@@ -52,20 +71,7 @@ export default function EditorArea({
     onSubmitImport?.(raw);
   }
 
-  /** Mouse-up = the user just finished (or cleared) a text selection. */
-  function handleMouseUp(): void {
-    const selected = window.getSelection();
-    const text = selected ? selected.toString().trim() : "";
-    setSelection(text.length >= MIN_SELECTION ? text : null);
-  }
-
-  function handleAskLens(): void {
-    if (!selection) return;
-    const text = selection;
-    window.getSelection()?.removeAllRanges();
-    setSelection(null);
-    onAskLens?.(text);
-  }
+  const waitingForDoc = activeTabId !== null && doc === null;
 
   return (
     <main
@@ -73,11 +79,55 @@ export default function EditorArea({
       aria-label="Editor"
       className="h-full flex-1 min-w-0 flex flex-col bg-[var(--bg-0)]"
     >
+      {/* Tab strip — one row, so the editor's vertical budget is unchanged. */}
       <div
-        aria-label="Breadcrumb"
-        className="h-8 shrink-0 flex items-center px-3 border-b border-[var(--border)] text-[11px] text-[var(--text-dim)] truncate"
+        role="tablist"
+        aria-label="Open documents"
+        className="h-8 shrink-0 flex items-stretch overflow-x-auto border-b border-[var(--border)] bg-[var(--bg-1)]"
       >
-        {doc ? doc.title : "No document open"}
+        {tabs.length === 0 ? (
+          <span className="flex items-center px-3 text-[11px] text-[var(--text-dim)]">
+            No document open
+          </span>
+        ) : (
+          tabs.map((tab) => {
+            const isActive = tab.id === activeTabId;
+            return (
+              <div
+                key={tab.id}
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => onSelectTab?.(tab.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectTab?.(tab.id);
+                  }
+                }}
+                title={`${tab.title} — ${KIND_LABEL[tab.kind]}`}
+                className={`group flex shrink-0 cursor-pointer items-center gap-2 border-r border-[var(--border)] px-3 text-[11px] transition-colors duration-150 ${
+                  isActive
+                    ? "bg-[var(--bg-0)] text-[var(--text)] shadow-[inset_0_-1px_0_0_var(--accent)]"
+                    : "text-[var(--text-dim)] hover:bg-[var(--bg-2)] hover:text-[var(--text)]"
+                }`}
+              >
+                <span className="max-w-[24ch] truncate">{tab.title || "(untitled)"}</span>
+                <button
+                  type="button"
+                  aria-label={`Close ${tab.title || "document"}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCloseTab?.(tab.id);
+                  }}
+                  className="rounded-[2px] px-1 text-[var(--text-dim)] opacity-0 transition-opacity duration-150 hover:text-[var(--danger)] focus:opacity-100 group-hover:opacity-100"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {importOpen ? (
@@ -120,47 +170,15 @@ export default function EditorArea({
           </div>
         </div>
       ) : doc ? (
-        <div className="flex-1 min-h-0 relative" onMouseUp={handleMouseUp}>
-          <div className="h-full overflow-y-auto px-6 py-8">
-            <article className="mx-auto max-w-[72ch] font-doc">
-              <h1 className="text-[22px] leading-[1.35] text-[var(--text)]">{doc.title}</h1>
-              <p className="mt-2 text-[14px] text-[var(--text-dim)]">
-                {doc.authors.join(", ")}
-                {doc.year ? ` · ${doc.year}` : ""}
-              </p>
-              <a
-                href={doc.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-block text-[12px] text-[var(--accent)] hover:underline"
-              >
-                {doc.source === "arxiv" ? "arXiv" : "DOI"}
-              </a>
-              {doc.abstract ? (
-                doc.abstract.split(/\n{2,}/).map((paragraph, i) => (
-                  <p
-                    key={`abstract-${i}`}
-                    className="mt-4 whitespace-pre-wrap break-words max-w-[72ch] font-doc text-[var(--text)]"
-                  >
-                    {paragraph}
-                  </p>
-                ))
-              ) : (
-                <p className="mt-4 text-[13px] text-[var(--text-dim)]">
-                  No abstract in the registry record — paste a passage into the lens composer.
-                </p>
-              )}
-            </article>
-          </div>
-          {selection && (
-            <button
-              type="button"
-              onClick={handleAskLens}
-              className="absolute bottom-4 right-4 rounded-[var(--radius)] bg-[var(--accent)] px-2.5 py-1.5 text-[11px] text-[var(--bg-1)] transition-opacity duration-150 hover:opacity-90"
-            >
-              Ask lens about selection
-            </button>
-          )}
+        <DocEditorPane
+          key={doc.id}
+          doc={doc}
+          initialBody={doc.body}
+          onAskLens={onAskLens}
+        />
+      ) : waitingForDoc ? (
+        <div className="flex-1 flex items-center justify-center px-4 text-[12px] text-[var(--text-dim)]">
+          Loading document…
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center px-4">

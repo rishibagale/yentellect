@@ -53,6 +53,7 @@ export interface CommandContext {
   navigate: (path: string) => void;
   openActivity: (a: Activity) => void;
   openImport: () => void;
+  createDoc: (kind: "concept" | "note", title?: string) => void;
 }
 
 /**
@@ -71,16 +72,12 @@ export function buildCommands(ctx: CommandContext): WorkbenchCommand[] {
       hint: "arXiv URL or DOI",
       run: () => ctx.openImport(),
     }),
-    cmd("new-concept", "New concept", {
-      enabled: false,
-      disabledReason: "Creating notes is coming soon",
-      run: () => {},
-    }),
-    cmd("new-note", "New note", {
-      enabled: false,
-      disabledReason: "Creating notes is coming soon",
-      run: () => {},
-    }),
+		cmd("new-concept", "New concept", {
+			run: () => ctx.createDoc("concept"),
+		}),
+		cmd("new-note", "New note", {
+			run: () => ctx.createDoc("note"),
+		}),
     cmd("new-session", "New session", {
       hint: "Guided dialogue",
       run: () => ctx.navigate("/session"),

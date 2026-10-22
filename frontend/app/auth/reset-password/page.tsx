@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
           </div>
           <h1 className="text-2xl font-bold text-[var(--text)] mb-2">Check your email</h1>
           <p className="text-sm text-slate-400">
-            If an account exists for {email}, you'll receive a password reset link shortly.
+            If an account exists for {email}, you&apos;ll receive a password reset link shortly.
           </p>
         </div>
       </main>
@@ -53,7 +53,7 @@ export default function ResetPasswordPage() {
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-[var(--text)]">Reset password</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Enter your email and we'll send you a reset link
+            Enter your email and we&apos;ll send you a reset link
           </p>
         </div>
 

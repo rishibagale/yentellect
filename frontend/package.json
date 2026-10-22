@@ -10,6 +10,10 @@
     "eval:lenses": "tsx scripts/eval-lenses.ts"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
     "@types/d3": "^7.4.3",
@@ -18,7 +22,9 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.19",
     "d3": "^7.9.0",
+    "dexie": "^4.4.6",
     "framer-motion": "^12.40.0",
+    "katex": "^0.19.0",
     "next": "^14.2.3",
     "openai": "^7.25.0",
     "postcss": "^8.4.38",

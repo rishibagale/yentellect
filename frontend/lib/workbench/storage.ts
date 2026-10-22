@@ -134,9 +134,13 @@ export function writeBetaModes(on: boolean): void {
 }
 
 /* ------------------------------------------------------------------ */
-/* Imported paper (Stage 4). Type-only import keeps this module free   */
-/* of a runtime cycle with import-client.ts. All readers validate the  */
-/* minimal shape, so a hand-edited or stale value never throws.        */
+/* Legacy pinned paper (Stage 4) — MIGRATION ONLY.                      */
+/*                                                                     */
+/* The pinned paper was the single open document before tabs. Stage 3 */
+/* folded it into the library and the tab list, so this key is READ   */
+/* exactly once (to migrate an existing paper) and then deleted.      */
+/* There is deliberately NO writer: writing it again would resurrect  */
+/* a key nothing reads.                                                */
 /* ------------------------------------------------------------------ */
 
 export const DOC_STORAGE_KEY = "yentellect.doc.v1";
@@ -154,7 +158,7 @@ function isImportedDoc(value: unknown): value is ImportedDoc {
   return true;
 }
 
-/** The last imported paper, or null. Never throws. */
+/** The last imported paper, or null. Never throws. Migration only. */
 export function readDoc(): ImportedDoc | null {
   if (typeof window === "undefined") return null;
   try {
@@ -164,15 +168,6 @@ export function readDoc(): ImportedDoc | null {
     return isImportedDoc(parsed) ? parsed : null;
   } catch {
     return null;
-  }
-}
-
-export function writeDoc(doc: ImportedDoc): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(DOC_STORAGE_KEY, JSON.stringify(doc));
-  } catch {
-    /* best-effort */
   }
 }
 

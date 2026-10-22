@@ -13,20 +13,24 @@
 import ExplorerPanel from "./ExplorerPanel";
 import SettingsForm from "@/components/SettingsForm";
 import type { Activity } from "@/lib/workbench/layout";
-import type { ImportedDoc } from "@/lib/workbench/import-client";
+import type { WorkDoc } from "@/lib/workbench/db";
 
 export default function SidePanelView({
   activity,
   betaModes,
   onToggleBetaModes,
   doc,
+  docs,
+  openDoc,
 }: {
   activity: Activity;
   betaModes: boolean;
   onToggleBetaModes: (on: boolean) => void;
-  doc?: ImportedDoc | null;
+  doc?: WorkDoc | null;
+  docs?: WorkDoc[];
+  openDoc: (doc: WorkDoc) => void;
 }) {
-  if (activity !== "settings") return <ExplorerPanel doc={doc} />;
+  if (activity !== "settings")   return <ExplorerPanel doc={doc} docs={docs} openDoc={openDoc} />;
 
   return (
     <section
