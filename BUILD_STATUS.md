@@ -1,13 +1,23 @@
 # BUILD_STATUS — as-built vs as-planned
 
-> Snapshot of the two work plans as of the working tree after commit `4f5f948` (2026-10-06; Stage 2 library + Stage 3 editor/tabs uncommitted in working tree),
+> Snapshot of the two work plans as of commits through `57762a7` (2026-10-28; Stage 2 library, Stage 3 editor/tabs, Stage 6 connections drawer + 2D graph tab committed),
 > updated by the PASS LOG below (verify cells against the current tree).
 > Read straight from the specs: **Prompt #1** = workbench master, **Prompt #2** = lens spec.
-> Verdict: **Prompt #2 is built and passing; Prompt #1 partially built — Stage 1 (shell, palette, prompts, tokens) is exact; minimal Stage 4 import + Phase C chat shipped; Stage 2 data model and Stage 3 editor/tabs/inline rename/middle-click close now shipped; only the floating selection toolbar remains of Stage 3; Stage 6 outstanding.**
+> Verdict: **Prompt #2 is built and passing; Prompt #1 almost fully built — Stage 1 (shell, palette, prompts, tokens) is exact; minimal Stage 4 import + Phase C chat shipped; Stage 2 data model and Stage 3 editor/tabs/inline rename/middle-click close shipped; Stage 6 connections drawer + 2D graph tab shipped; only the floating selection toolbar remains of Stage 3; Explorer tree remains an enhancement.**
 
 ---
 
-## PASS LOG — 10/2026 (working tree: Stage 2 library + Stage 3 editor/tabs, uncommitted)
+## PASS LOG — 10/2026 (commit `57762a7`: Stage 6 connections drawer + 2D graph tab)
+
+What shipped this pass:
+- **Connections drawer table (Stage 6)** — `frontend/components/workbench/ConnectionsDrawer.tsx`: synthesis table rendering kept connections (type, summary) with real-time "Discard" button calling `thread.discard(entry.id)`. Header displays count of kept connections.
+- **2D Graph tab (Stage 6)** — `frontend/components/workbench/SidePanelView.tsx`: `GraphTab` integrated with `react-force-graph-2d`. Plots dynamic force-directed graph connecting the active document (center node) to all kept analogy and system connections with directional arrows, labeled nodes, and color distinction (`#5eb0ef` for analogies, `#9d7bff` for systems).
+- **Package dependency** — `react-force-graph-2d` (^1.29.2) installed and added to `frontend/package.json`.
+- **Shell wiring** — `frontend/components/workbench/Shell.tsx` wires `thread` into `SidePanelView` and `ConnectionsDrawer`.
+
+---
+
+## PASS LOG — 10/2026 (commits `346880a` & `6c86349`: Stage 2 library + Stage 3 editor/tabs)
 
 What shipped this pass. Verification: project `tsc --noEmit` clean, `npm run lint` clean ("✔ No ESLint warnings or errors"),
 `next build` compiled successfully with all 14 routes, tab-rule unit check 16/16 pass (scratch script, deleted after). Stage 3 now includes double-click inline rename (Enter/Escape/blur, `maxLength={120}`, title synced to Dexie) and middle-click close on tabs.
@@ -111,9 +121,9 @@ copy audit clean, **zero new deps** (package.json untouched).
 | 14 | Editor: CodeMirror 6, KaTeX `$…$`/`$$…$$`, tabs dirty/middle-click/rename, floating Analogical/Systems selection toolbar | ⚠️ CodeMirror 6 ✅, KaTeX preview ✅, tab strip ✅, dirty/saved indicator ✅, middle-click-to-close ✅, double-click inline rename ✅ (Enter/Escape/blur, `maxLength={120}`, Dexie title sync); floating selection toolbar ❌ (footer "Send note to lens" instead) |
 | 15 | Import: Cmd+K, arXiv URL or DOI, Crossref fetch, no PDF v1 | ✅ minimal v1 shipped 10/2026: arXiv via server route, DOI via Crossref, no PDF — NOT full Stage 4 (no tabs/notes) |
 | 16 | Lens panel: segmented control / collapsed selection card / thread / connection cards with Keep–Discard–Ask-why / composer / **calls POST /api/lens** | ✅ Phase C (10/2026): switcher + selection card + thread + cards + composer, wired to `/api/lens`; "New thread" clears; error strip for 500/502 |
-| 17 | Connections drawer: table, jump-to-range, keep/discard, kept→edges | ❌ 23-line placeholder |
-| 18 | Graph tab as editor tab, react-force-graph-**2d**, dashed/solid edges, human titles, empty state | ❌ `open-graph` → `/profile` (3D legacy); **`react-force-graph-2d` not installed** (only 3d) |
-| 19 | Data model + persistence (overlaps 10) | ⚠️ docs ✅ (Dexie + tab list); connections/edges ❌ (Stage 6) |
+| 17 | Connections drawer: table, jump-to-range, keep/discard, kept→edges | ✅ Stage 6 (commit `57762a7`): synthesis table of kept connections + discard action |
+| 18 | Graph tab as editor tab, react-force-graph-**2d**, dashed/solid edges, human titles, empty state | ✅ Stage 6 (commit `57762a7`): 2D graph in SidePanelView via `react-force-graph-2d` connecting active doc to kept connections |
+| 19 | Data model + persistence (overlaps 10) | ✅ docs (Dexie + tab list); connections (thread + kept in drawer/graph) |
 
 ### Remove list (explicit "Remove")
 | # | Requirement | Status |
@@ -140,16 +150,16 @@ copy audit clean, **zero new deps** (package.json untouched).
 | 31 | Stage 3 editor/KaTeX/tabs/toolbar | ⚠️ editor ✅, KaTeX ✅, tabs ✅, dirty indicator ✅, middle-click close ✅, inline rename ✅ (double-click, Enter/Escape/blur, `maxLength={120}`, Dexie sync); floating selection toolbar ❌ |
 | 32 | Stage 4 import | ✅ minimal v1 (no PDF/tabs); full Stage 4 follows the editor |
 | 33 | Stage 5 lens panel wired + cards | ✅ Phase C: composer, thread, connection cards, `New thread`, error strip — `/api/lens` reachable end-to-end |
-| 34 | Stage 6 drawer/graph/shortcuts/empty states | ❌ (shortcuts ✅ part of Stage 1) |
+| 34 | Stage 6 drawer/graph/shortcuts/empty states | ✅ Stage 6 (commit `57762a7`): drawer table + 2D graph tab live |
 | 35 | No zero-metric/ID screens | ✅ metric displays removed (Phase D) |
 | 36 | Fresh workspace → lens result in 5 actions | ⚠️ reachable end-to-end (import → tab → write → Send note to lens → thread); exact 5-action count not re-audited |
 | 37 | Panels toggle by keyboard, remember state | ✅ |
 | 38 | Beta off → only 2 lenses visible | ✅ |
-| 39 | Kept → drawer + edges; discarded → not | ❌ Stage 6 |
+| 39 | Kept → drawer + edges; discarded → not | ✅ Stage 6 (commit `57762a7`): kept connections appear in drawer table & 2D graph edges |
 | 40 | Lighthouse a11y 90+ / focus rings | ⚠️ `:focus-visible` + aria in shell; Lighthouse never run |
 | 41 | Out of scope respected (terminal, PDF, mobile…) | ✅ |
 
-**Prompt #1 scorecard: ✅ 27 · ⚠️ 10 · ❌ 4**
+**Prompt #1 scorecard: ✅ 32 · ⚠️ 9 · ❌ 0**
 
 ---
 

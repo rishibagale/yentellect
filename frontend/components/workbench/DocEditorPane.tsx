@@ -261,13 +261,18 @@ export default function DocEditorPane({
         )}
       </div>
       {onAskLens ? (
-        <footer className="flex-shrink-0 border-t border-[var(--border)] px-4 py-2">
+        <footer className="flex-shrink-0 border-t border-[var(--border)] px-4 py-2 bg-[var(--bg-1)] flex items-center justify-between">
+          <span className="text-[11px] text-[var(--text-dim)]">
+            Probe this note with Socratic AI lenses
+          </span>
           <button
             type="button"
             onClick={() => askSelection(body)}
-            className="text-xs text-[var(--accent)] hover:underline"
+            className="flex items-center gap-1.5 text-xs font-medium text-[var(--accent)] hover:text-[var(--text)] bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 border border-[var(--accent)]/30 px-2.5 py-1 rounded-[var(--radius)] transition-colors"
           >
-            Send note to lens
+            <span>◈</span>
+            <span>Send to lens chat</span>
+            <span aria-hidden="true">→</span>
           </button>
         </footer>
       ) : null}

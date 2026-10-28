@@ -87,7 +87,11 @@ function ShellInner() {
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--bg-0)] text-[var(--text)]">
-      <TitleBar onOpenPalette={() => setPaletteOpen(true)} />
+      <TitleBar
+        onOpenPalette={() => setPaletteOpen(true)}
+        onToggleLens={toggleLens}
+        lensOpen={layout.lensOpen}
+      />
       <div className="flex-1 flex min-h-0 relative">
         <ActivityBar activity={layout.activity} onSelect={setActivity} />
         
@@ -189,7 +193,7 @@ function ShellInner() {
                       value={72}
                       open={layout.lensOpen}
                       onToggle={toggleLens}
-                      onChange={(v) => update({ lensWidth: Math.round(640 - (v / 100) * 400) })}
+                      onChange={(v) => update({ lensWidth: Math.round(800 - (v / 100) * 520) })}
                     />
                     <div style={{ width: layout.lensWidth }} className="shrink-0 min-w-0 flex flex-col">
                       <div className="flex-1 min-h-0">

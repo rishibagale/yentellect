@@ -26,14 +26,14 @@ export const DEFAULT_LAYOUT: LayoutState = {
   explorerOpen: true,
   explorerWidth: 240,
   lensOpen: true,
-  lensWidth: 360,
+  lensWidth: 420,
   drawerOpen: true,
   drawerHeight: 200,
 };
 
 const LIMITS = {
   explorerWidth: [160, 760] as const,
-  lensWidth: [240, 560] as const,
+  lensWidth: [280, 800] as const,
   drawerHeight: [120, 520] as const,
 };
 

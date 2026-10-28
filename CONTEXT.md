@@ -6,7 +6,7 @@
 > Full refresh **10/6/2026** (commits through `ae28fb2`): the app is now a research workbench, not a training app. Sections 1, 2, 3, 4, 5, 8, 10, 11, 12 rewritten or extended; new Sections 13 (lens system), 14 (eval harness + verdict), 15 (session commit history), 16 (standing user decisions). Sections 6, 7, 9 (backend API, VSA, Supabase) verified still accurate and kept.
 > Extended **10/2026** (working tree after `8f761f1`): lens config honesty (no mock-as-answer), minimal paper import (Stage 4 lite), copy sweep, Phase D remove-list sweep. Sections 2, 5, 8, 11, 13, 16 updated to match.
 > Extended **10/2026** (commits through `610ae44`): P2 fallback-honesty UI (real-provider fallback surfaces as "Couldn't structure a response — retry?"), P1 eval rerun 12/12 passes on live Groq. Sections 11, 13, 15 updated.
-> Extended **10/2026** (working tree after `4f5f948`; Stage 2 + Stage 3 UNCOMMITTED): Stage 2 Dexie library (`lib/workbench/db.ts`) and Stage 3 editor + tab strip (`DocEditorPane.tsx`, `lib/workbench/tabs.ts`). Sections 2, 5, 11, 12, 13 updated to match. `BUILD_STATUS.md` carries the as-built requirement grid.
+> Extended **10/2026** (commits through `57762a7`): Stage 2 Dexie library (`lib/workbench/db.ts`), Stage 3 editor + tab strip (`DocEditorPane.tsx`, `lib/workbench/tabs.ts`, double-click inline rename, middle-click close), and Stage 6 connections drawer (`ConnectionsDrawer.tsx` kept table) + 2D graph tab (`SidePanelView.tsx`, `react-force-graph-2d`). Sections 2, 5, 11, 12, 15 updated. `BUILD_STATUS.md` carries the as-built requirement grid.
 
 ---
 
@@ -43,7 +43,7 @@ The other four modes (Convergent, Divergent, Metacognitive, DMN) stay in the cod
 
 ```
 yentellect/
-├── CONTEXT.md                          # ← this file (full refresh 10/6/2026 through `ae28fb2`; extended 10/2026 through `610ae44`, see blockquote)
+├── CONTEXT.md                          # ← this file (full refresh 10/6/2026 through `ae28fb2`; extended 10/2026 through `57762a7`, see blockquote)
 ├── README.md                           # project readme (repo: github.com/rishibagale/yentellect)
 ├── LICENSE                             # MIT
 ├── .env.example                        # backend env template
@@ -65,12 +65,12 @@ yentellect/
 │   │   │   ├── Shell.tsx               # grid root 36/48/240/flex/360/200/24, state+keys
 │   │   │   ├── TitleBar.tsx            # 36px: workspace name left, Cmd+K hint right
 │   │   │   ├── ActivityBar.tsx         # 48px icons: Explorer, Graph, Search, Settings
-│   │   │   ├── SidePanelView.tsx       # activity router (settings live, rest placeholders)
+│   │   │   ├── SidePanelView.tsx       # activity router (explorer live, settings live, graph live with 2D force graph)
 │   │   │   ├── ExplorerPanel.tsx       # LIVE: live Dexie library list; click opens a doc in a tab
 │   │   │   ├── EditorArea.tsx          # import form + TAB STRIP + editable doc pane (CodeMirror+KaTeX)
 │   │   │   ├── DocEditorPane.tsx       # Stage 3 (live): CodeMirror 6 + KaTeX preview, debounce autosave
 │   │   │   ├── LensPanel.tsx           # Phase C (live): switcher + thread + connection cards + composer
-│   │   │   ├── ConnectionsDrawer.tsx   # PLACEHOLDER (table = Stage 6)
+│   │   │   ├── ConnectionsDrawer.tsx   # Stage 6 (live): synthesis table of kept connections + discard action
 │   │   │   ├── StatusBar.tsx           # 24px: lens, words, kept, save state
 │   │   │   ├── CommandPalette.tsx      # Cmd+K fuzzy palette, stage-gated commands
 │   │   │   ├── Splitter.tsx            # draggable, persisted sizes
@@ -104,7 +104,7 @@ yentellect/
 │   ├── eval/report.md                  # graded master report (use --out for reruns, never clobber)
 │   ├── eval/report-systems-rerun.md    # prompt-hardening evidence
 │   ├── .env.example                    # server-only LENS_* template (keys NEVER committed)
-│   └── package.json                    # next, react, openai, zod, tsx(dev), dexie, @codemirror/*, katex
+│   └── package.json                    # next, react, openai, zod, tsx(dev), dexie, @codemirror/*, katex, react-force-graph-2d, react-force-graph-3d
 │
 ├── backend/                            # FastAPI service (Python)
 │   ├── pyproject.toml                  # uv-managed
@@ -223,9 +223,9 @@ $env:EVAL_DELAY_MS='15000'   # free-tier TPM pacing (Groq on_demand = 8000 TPM);
 
 ---
 
-## 5. UI Status (frontend) -- Last rewrite 10/2026 (workbench, working tree after `4f5f948`: Stage 2 library + Stage 3 editor/tabs UNCOMMITTED)
+## 5. UI Status (frontend) -- Last rewrite 10/2026 (workbench, commits through `57762a7`: Stage 2 library, Stage 3 editor/tabs, Stage 6 drawer + 2D graph)
 
-The Yentellect UI is now the **research workbench**. The old dashboard/training screens are gone as a product; four routes (session, history, settings, profile) were restored and re-skinned, NOT kept as training UI -- they are reform hosts that will dissolve into workbench panels stage by stage (standing user decision, Section 16). The workbench shell (Stage 1) is fully live. Phase C (lens chat box) and a minimal paper import (Stage 4 lite) shipped after `ae28fb2`. **Stage 2 (Dexie library) and most of Stage 3 (CodeMirror + KaTeX editor, tab strip) shipped in the current working tree.** `EditorArea` hosts the import form + a TAB STRIP + the editable doc pane (`DocEditorPane`), `LensPanel` hosts the thread/composer/connection cards, and `ExplorerPanel` is now a real list over the live Dexie library. Search and the Drawer remain honest placeholders; the floating selection toolbar is Stage 3 remainder, the drawer table is Stage 6.
+The Yentellect UI is now the **research workbench**. The old dashboard/training screens are gone as a product; four routes (session, history, settings, profile) were restored and re-skinned, NOT kept as training UI -- they are reform hosts that will dissolve into workbench panels stage by stage (standing user decision, Section 16). The workbench shell (Stage 1) is fully live. Phase C (lens chat box) and a minimal paper import (Stage 4 lite) shipped after `ae28fb2`. **Stage 2 (Dexie library), Stage 3 (CodeMirror + KaTeX editor, tab strip with double-click inline rename and middle-click close), and Stage 6 (Connections drawer synthesis table + 2D Graph tab in side panel via `react-force-graph-2d`) are all committed and live.** `EditorArea` hosts the import form + a TAB STRIP + the editable doc pane (`DocEditorPane`), `LensPanel` hosts the thread/composer/connection cards, `ExplorerPanel` is a real list over the live Dexie library, `ConnectionsDrawer` hosts the interactive synthesis table of kept connections with Discard actions, and `SidePanelView` hosts the 2D Graph view (`react-force-graph-2d`) connecting kept connections to the active document. Search remains an honest placeholder; the floating selection toolbar is Stage 3 remainder.
 
 ### Routes
 | Route | Description |
@@ -367,19 +367,20 @@ New (workbench + lens era):
 - [x] **Phase C -- lens chat box DONE** (commit `8f761f1`, hardened this pass): composer, thread, connection cards (Keep/Discard/Ask-why), "New thread", error strip, no-doc mode (the first typed thought IS the selection), provider/model readout. `POST /api/lens` is reachable end-to-end; no approved-but-unbuilt panel remains.
 - [x] **Phase D -- Remove-list sweep DONE** (this pass): `ProgressChart.tsx` deleted (zero refs; README clean too). Training metrics/wording gone from the UI ("Modes activated", "Overall score", "Weakest mode (target)", "Training focus", "Signal clarity", 🧠, "Training history", "Your cognitive profile", "neural map", "Start training your thinking", "Sign in to continue training"). Routes stay (standing decision); `lib/modes.ts` untouched.
 - [x] **Minimal paper import DONE** (this pass, Stage 4 lite, no PDF, zero new deps): see Section 5. This is NOT full Stage 4 (no PDF).
-- [x] **Stage 2 data model + Dexie library DONE** (this pass, working tree): `lib/workbench/db.ts` -- `yentellect.library.v1`, `WorkDoc { id, kind: paper|concept|note, title, body, timestamps, paper metadata }`, `liveDocs()` liveQuery, `upsertImportedDoc` (re-import keeps your body). The Explorer pane is now a real list over it. NOT DONE: the Explorer **tree** (item 13 in BUILD_STATUS: context menu, inline rename, icons).
-- [x] **Stage 3 editor + tabs DONE** (this pass, working tree): `DocEditorPane.tsx` (CodeMirror 6 + KaTeX, edit/preview, debounce autosave) + `lib/workbench/tabs.ts` (open/select/close rules, persisted in `yentellect.tabs.v1`) + the `EditorArea` tab strip. Two real autosave bugs fixed (the dirty flag was never set, so typing after the first save was never persisted; and the debounce returned early once `savedAt` was set). NOT DONE: middle-click-to-close, inline rename, and the floating Analogical/Systems selection toolbar over the editor.
-- [ ] **Stage 6**: drawer table + 2D graph tab + kept->edges. Dep still needed: `react-force-graph-2d` (only the 3D variant is installed).
+- [x] **Stage 2 data model + Dexie library DONE** (commit `346880a`): `lib/workbench/db.ts` -- `yentellect.library.v1`, `WorkDoc { id, kind: paper|concept|note, title, body, timestamps, paper metadata }`, `liveDocs()` liveQuery, `upsertImportedDoc` (re-import keeps your body). The Explorer pane is now a real list over it. NOT DONE: the Explorer **tree** (item 13 in BUILD_STATUS: context menu, inline rename, icons).
+- [x] **Stage 3 editor + tabs DONE** (commits `346880a`, `6c86349`): `DocEditorPane.tsx` (CodeMirror 6 + KaTeX, edit/preview, debounce autosave) + `lib/workbench/tabs.ts` (open/select/close rules, persisted in `yentellect.tabs.v1`) + the `EditorArea` tab strip with double-click inline rename (maxLength 120, Dexie title sync) and middle-click-to-close. NOT DONE: floating Analogical/Systems selection toolbar over the editor.
+- [x] **Stage 6 -- Connections drawer + 2D Graph tab DONE** (commit `57762a7`): `ConnectionsDrawer.tsx` synthesis table for kept connections with Discard action; `SidePanelView.tsx` GraphTab powered by `react-force-graph-2d` showing kept analogy/systems connections and links to the active doc; `Shell.tsx` wiring.
 - [x] **Lens config honesty DONE** (this pass): an unconfigured server never renders a mock as a lens answer. See Section 13.
 - [x] **Copy sweep DONE** (this pass): developer "Stage N / lands in" jargon removed from all user-visible strings; stage-gated entries now say "Creating notes is coming soon".
 - [x] **P2 fallback-honesty UI DONE** (commit `610ae44`): real-provider fallback (invalid model output) now surfaces a degraded strip "Couldn't structure a response — retry?" with a Retry button, distinct from the red transport/config error strip. Threads `usedFallback` through `lens-client.ts` → `lens-thread.ts` → `LensPanel.tsx`.
 - [x] **P1 eval rerun DONE** (commit `610ae44`): 12/12 passes on live Groq (`openai/gpt-oss-120b`), 0 fallbacks, 0 errors. Report at `eval/audit-rerun.md`.
-- [ ] **Stage 3 remainder + Stage 6**: middle-click-to-close, inline rename and the floating Analogical/Systems selection toolbar over the editor (3); drawer table + 2D graph tab + kept->edges (6). Dep still needed for 6: `react-force-graph-2d` (only the 3D variant is installed).
+- [ ] **Stage 3 remainder**: floating Analogical/Systems selection toolbar over the editor.
+- [ ] **Explorer tree**: tree view, context menu, and icons (currently a flat list over Dexie).
 - [ ] **Vercel env vars (or lenses are honestly down on prod)**: set `GROQ_API_KEY` + `LENS_PROVIDER=groq` (+ `LENS_MODEL=openai/gpt-oss-120b`) in the Vercel project env vars. Without them every `/api/lens` call returns `500 "Lens provider is not configured."` -- intended honesty, not a bug.
 - [ ] **Eval seed data**: `eval/items.json` is a 6-item starter set of famous-paper paraphrases, NOT the user's papers. Bar transfers only if the user's own material grades as well. User owes real passages + the "wouldn't-have-found-alone" verdict on >= 3 items.
 - [ ] **npm installs are unreliable on this machine**: `tsx`/`zod`/`openai` had to be hand-placed; `tsx` runs only via the `node_modules/.bin/tsx.cmd` shim (`%TEMP%/tsx-bin`). Verify install health at the start of Stage 2 before promising dates. Also `npm run <script> -- <flags>` misparses flags; invoke `.bin` shims directly.
 - [ ] **Groq key was shared in chat**: rotate it in the Groq console when convenient, then update Render dashboard + `frontend/.env.local`. Repo-local git transport tunings were set during flaky pushes (`http.postBuffer`, `http.version=HTTP/1.1`, low-speed overrides) -- harmless, revert if unwanted.
-- [ ] **`frontend/tsconfig.tsbuildinfo` is TRACKED and churns on every build**: deliberately left out of every commit. Consider untracking it (`git rm --cached`).
+- [x] **`frontend/tsconfig.tsbuildinfo` untracked DONE** (commit `4f5f948`): untracked from git.
 
 ---
 
@@ -390,7 +391,7 @@ New (workbench + lens era):
 - **Eval-before-UI is a hard rule**: the lens spec forbids polished UI on a lens that fails the >=6/8 bar. Any prompt change -> rerun (`--out` a separate file) -> regrade -> then UI. `eval/report.md` is the graded master; treat it as append-only evidence.
 - **The prompts are verbatim to spec** (`lib/lens/prompts-base.ts`): Analogical + Systems system prompts are character-identical to the lens spec. The ONLY sanctioned addition is the "Diagram discipline" paragraph in the Systems prompt (added `ae28fb2`, verified by rerun). Do not improvise prompt changes without a rerun.
 - **Beta modes live in `frontend/lib/modes.ts` and MUST NOT be deleted.** Only the lens switcher and the Settings toggle may import it.
-- **Don't add new dependencies lightly** -- and verify npm health first (Section 11). `dexie`, `@codemirror/*`, `katex` are now installed; Stage 6 still needs `react-force-graph-2d`.
+- **Don't add new dependencies lightly** -- and verify npm health first (Section 11). `dexie`, `@codemirror/*`, `katex`, and `react-force-graph-2d` are now installed.
 - **The document library is Dexie, the tab list is localStorage**: bodies live in `lib/workbench/db.ts` (`yentellect.library.v1`); open tabs are ids+labels in `lib/workbench/tabs.ts` (`yentellect.tabs.v1`). Never store a body in a tab, and never let a tab hold a copy of a note -- read the body from Dexie. `db.ts` also owns the **pending-body registry** (`pendingBody`/`setPendingBody`): the newest body per doc, written synchronously on every keystroke, so a tab switch can never show (and then re-save) an older body. It is cleared only when the doc is deleted.
 - **VSA vectors**: 512-dimensional float arrays stored as JSON in `sessions.vector`. The frontend and backend both have VSA math modules that must stay in sync.
 - **Supabase**: Auth is fully wired. `/api/lens` uses `createClient` from `@/utils/supabase/server` + `auth.getUser()` (NOT middleware).
@@ -445,6 +446,10 @@ Gotchas (all bitten once, documented so they are never re-bitten): report clobbe
 `2b39a3f` scroll fix part 2 (layout.tsx body class) -- the one that actually fixed it
 `ae28fb2` lens eval PASS (live key, gpt-oss-120b, diagram discipline, 24/24 graded) + Phase A (beta toggle, userField, storage prefs, harness flags)
 `610ae44` P2 fallback-honesty UI (real-provider fallback surfaces degraded strip with retry), P1 eval rerun 12/12 passes on live Groq
+`4f5f948` chore: untrack tsconfig.tsbuildinfo
+`346880a` Stage 2+3: Dexie library, CodeMirror editor, tab strip
+`6c86349` Stage 3: tab inline rename + middle-click close; update BUILD_STATUS
+`57762a7` Stage 6: connections drawer + 2D graph tab with kept edges
 Remote `origin/main` == local HEAD at every step (verified via `git ls-remote` after each push). Repo: `https://github.com/rishibagale/yentellect.git`.
 
 ---
