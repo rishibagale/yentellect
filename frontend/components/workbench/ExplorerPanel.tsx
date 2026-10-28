@@ -16,6 +16,8 @@ const KIND_LABEL: Record<WorkDoc["kind"], string> = {
   paper: "Paper",
   concept: "Concept",
   note: "Note",
+  article: "Article",
+  dataset: "Dataset",
 };
 
 export default function ExplorerPanel({ doc, docs = [], openDoc }: Props) {

@@ -5,7 +5,7 @@
 import Dexie, { type EntityTable, liveQuery, type Observable } from "dexie";
 import type { ImportedDoc } from "./import-client";
 
-export type DocKind = "paper" | "concept" | "note";
+export type DocKind = "paper" | "concept" | "note" | "article" | "dataset";
 
 export interface WorkDoc {
   id: string;
@@ -14,11 +14,11 @@ export interface WorkDoc {
   body: string;
   createdAt: number;
   updatedAt: number;
-  // Paper-only metadata (absent on concepts/notes)
+  // Metadata (absent on plain concepts/notes)
   authors?: string[];
   year?: string | null;
   abstract?: string | null;
-  source?: "arxiv" | "crossref";
+  source?: "arxiv" | "crossref" | "pubmed" | "biorxiv" | "web" | "upload" | "dataset";
   url?: string;
 }
 
@@ -87,9 +87,9 @@ export function clearPendingBody(id: string): void {
 export function importedDocToWorkDoc(doc: ImportedDoc): WorkDoc {
   return {
     id: doc.id,
-    kind: "paper",
+    kind: doc.kind ?? "paper",
     title: doc.title,
-    body: doc.abstract ?? "",
+    body: doc.body ?? doc.abstract ?? "",
     createdAt: Date.now(),
     updatedAt: Date.now(),
     authors: doc.authors,
@@ -101,9 +101,9 @@ export function importedDocToWorkDoc(doc: ImportedDoc): WorkDoc {
 }
 
 /**
- * Store a freshly imported paper WITHOUT destroying work already done on it.
- * Re-importing the same paper refreshes the metadata but keeps the body the
- * user wrote, so an import is never a destructive act.
+ * Store a freshly imported paper/doc WITHOUT destroying work already done on it.
+ * Re-importing the same item refreshes the metadata but keeps the body the
+ * user wrote (unless the existing body was blank), so an import is never destructive.
  */
 export async function upsertImportedDoc(doc: ImportedDoc): Promise<WorkDoc> {
   const existing = await db.docs.get(doc.id);
@@ -114,7 +114,9 @@ export async function upsertImportedDoc(doc: ImportedDoc): Promise<WorkDoc> {
   }
   const next: WorkDoc = {
     ...existing,
+    kind: doc.kind ?? existing.kind,
     title: doc.title,
+    body: existing.body.trim() ? existing.body : (doc.body ?? doc.abstract ?? ""),
     authors: doc.authors,
     year: doc.year,
     abstract: doc.abstract,

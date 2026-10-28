@@ -119,7 +119,7 @@ copy audit clean, **zero new deps** (package.json untouched).
 |---|---|---|
 | 13 | Explorer: tree, context menu, icons | ⚠️ real list over the live Dexie library (active doc marked, click opens a tab) — **not** a tree; no context menu or icons |
 | 14 | Editor: CodeMirror 6, KaTeX `$…$`/`$$…$$`, tabs dirty/middle-click/rename, floating Analogical/Systems selection toolbar | ⚠️ CodeMirror 6 ✅, KaTeX preview ✅, tab strip ✅, dirty/saved indicator ✅, middle-click-to-close ✅, double-click inline rename ✅ (Enter/Escape/blur, `maxLength={120}`, Dexie title sync); floating selection toolbar ❌ (footer "Send note to lens" instead) |
-| 15 | Import: Cmd+K, arXiv URL or DOI, Crossref fetch, no PDF v1 | ✅ minimal v1 shipped 10/2026: arXiv via server route, DOI via Crossref, no PDF — NOT full Stage 4 (no tabs/notes) |
+| 15 | Import: Cmd+K, arXiv URL or DOI, Crossref fetch, no PDF v1 | ✅ Stage 4 full: arXiv, Crossref DOI, bioRxiv, PubMed, web/journal articles (`/api/import/article`), PDF uploads (`/api/import/pdf`), Markdown/Text, and CSV/JSON datasets |
 | 16 | Lens panel: segmented control / collapsed selection card / thread / connection cards with Keep–Discard–Ask-why / composer / **calls POST /api/lens** | ✅ Phase C (10/2026): switcher + selection card + thread + cards + composer, wired to `/api/lens`; "New thread" clears; error strip for 500/502 |
 | 17 | Connections drawer: table, jump-to-range, keep/discard, kept→edges | ✅ Stage 6 (commit `57762a7`): synthesis table of kept connections + discard action |
 | 18 | Graph tab as editor tab, react-force-graph-**2d**, dashed/solid edges, human titles, empty state | ✅ Stage 6 (commit `57762a7`): 2D graph in SidePanelView via `react-force-graph-2d` connecting active doc to kept connections |
@@ -148,7 +148,7 @@ copy audit clean, **zero new deps** (package.json untouched).
 | 29 | Stage 1 shell | ✅ |
 | 30 | Stage 2 data model/Explorer/new concept-note | ⚠️ data model + Dexie ✅, New concept/New note ✅ (create + open a tab); Explorer **tree** ❌ (flat live list) |
 | 31 | Stage 3 editor/KaTeX/tabs/toolbar | ⚠️ editor ✅, KaTeX ✅, tabs ✅, dirty indicator ✅, middle-click close ✅, inline rename ✅ (double-click, Enter/Escape/blur, `maxLength={120}`, Dexie sync); floating selection toolbar ❌ |
-| 32 | Stage 4 import | ✅ minimal v1 (no PDF/tabs); full Stage 4 follows the editor |
+| 32 | Stage 4 import | ✅ Stage 4 full: multi-platform (arXiv, DOI, bioRxiv, PubMed, Web articles), PDF uploads, and datasets |
 | 33 | Stage 5 lens panel wired + cards | ✅ Phase C: composer, thread, connection cards, `New thread`, error strip — `/api/lens` reachable end-to-end |
 | 34 | Stage 6 drawer/graph/shortcuts/empty states | ✅ Stage 6 (commit `57762a7`): drawer table + 2D graph tab live |
 | 35 | No zero-metric/ID screens | ✅ metric displays removed (Phase D) |

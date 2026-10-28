@@ -33,7 +33,13 @@ export const EMPTY_TABS: TabState = { tabs: [], activeId: null, migrated: false 
 export const MAX_TABS = 12;
 
 function isDocKind(value: unknown): value is DocKind {
-  return value === "paper" || value === "concept" || value === "note";
+  return (
+    value === "paper" ||
+    value === "concept" ||
+    value === "note" ||
+    value === "article" ||
+    value === "dataset"
+  );
 }
 
 function isTabMeta(value: unknown): value is TabMeta {

@@ -53,6 +53,8 @@ function ShellInner() {
   renameTab,
   closeImport,
   submitImport,
+  submitFileImport,
+  submitCustomDoc,
 } = useShellState();
   const commands = buildCommands(ctx);
 
@@ -180,6 +182,8 @@ function ShellInner() {
                   importStatus={importStatus}
                   importError={importError}
                   onSubmitImport={submitImport}
+                  onSubmitFileImport={submitFileImport}
+                  onSubmitCustomDoc={submitCustomDoc}
                   onCancelImport={closeImport}
                   onAskLens={askLens}
                 />

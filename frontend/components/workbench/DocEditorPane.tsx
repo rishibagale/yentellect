@@ -17,6 +17,8 @@ const KIND_LABEL: Record<WorkDoc["kind"], string> = {
   paper: "Paper",
   concept: "Concept",
   note: "Note",
+  article: "Article",
+  dataset: "Dataset",
 };
 
 function escapeHtml(text: string): string {

@@ -15,7 +15,7 @@ import {
   readDoc,
   clearDoc,
 } from "@/lib/workbench/storage";
-import { importPaper } from "@/lib/workbench/import-client";
+import { importPaper, importFile } from "@/lib/workbench/import-client";
 import {
   liveDocs,
   makeDocId,
@@ -23,6 +23,7 @@ import {
   putDoc,
   upsertImportedDoc,
   type WorkDoc,
+  type DocKind,
 } from "@/lib/workbench/db";
 import {
   closeTab as closeTabState,
@@ -249,6 +250,53 @@ export function useShellState() {
     [closeImport, openDoc]
   );
 
+  /**
+   * Parse and import a local file (PDF, Markdown, Text, or CSV/JSON Dataset).
+   */
+  const submitFileImport = useCallback(
+    async (file: File) => {
+      if (importingRef.current) return;
+      importingRef.current = true;
+      setImportStatus("loading");
+      setImportError(null);
+      try {
+        const next = await importFile(file);
+        const work = await upsertImportedDoc(next);
+        openDoc(work);
+        closeImport();
+      } catch (err) {
+        setImportStatus("error");
+        setImportError(
+          err instanceof Error && err.message ? err.message : "Couldn't parse that document."
+        );
+      } finally {
+        importingRef.current = false;
+      }
+    },
+    [closeImport, openDoc]
+  );
+
+  /**
+   * Save a pasted custom excerpt, abstract, or dataset text into the library.
+   */
+  const submitCustomDoc = useCallback(
+    async (payload: { title: string; body: string; kind: DocKind }) => {
+      const now = Date.now();
+      const newDoc: WorkDoc = {
+        id: makeDocId(payload.kind),
+        kind: payload.kind,
+        title: payload.title.trim() || `Untitled ${payload.kind}`,
+        body: payload.body,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await putDoc(newDoc);
+      openDoc(newDoc);
+      closeImport();
+    },
+    [closeImport, openDoc]
+  );
+
   /** Create a blank concept/note and open it as a tab. */
   const createDoc = useCallback(
     (kind: "concept" | "note", title?: string) => {
@@ -312,6 +360,8 @@ export function useShellState() {
     openImport,
     closeImport,
     submitImport,
+    submitFileImport,
+    submitCustomDoc,
     openDoc,
     selectTab,
     closeTab,

@@ -54,7 +54,9 @@ yentellect/
 │   │   ├── globals.css                 # workbench tokens (CSS vars, dark default) + scrollbar/focus styles
 │   │   ├── page.tsx                    # `/`: the AUTHE'd workbench (dynamic, ssr:false). NO marketing landing.
 │   │   ├── api/lens/route.ts           # POST /api/lens (401 gate, 400 validation, 502/500 transport, 500 on unconfigured provider)
-│   │   ├── api/import/arxiv/route.ts   # POST /api/import/arxiv (Stage 4 lite: arXiv Atom proxy, 401 self-gate, 400 bad id, 502 upstream)
+│   │   ├── api/import/arxiv/route.ts   # POST /api/import/arxiv (arXiv Atom proxy, 401 self-gate, 400 bad id, 502 upstream)
+│   │   ├── api/import/article/route.ts # POST /api/import/article (Web/journal article extractor, 401 gate, clean text)
+│   │   ├── api/import/pdf/route.ts     # POST /api/import/pdf (PDF paper text extractor via pdf-parse, 401 gate)
 │   │   ├── session/page.tsx            # Socratic chat flow (reform host; wording sweep done, Phase D)
 │   │   ├── profile/page.tsx            # knowledge graph (metric displays removed, Phase D)
 │   │   ├── history/page.tsx            # thin host over SessionHistoryList
@@ -237,6 +239,8 @@ The Yentellect UI is now the **research workbench**. The old dashboard/training 
 | `/settings` | Thin host: `AppShell` + `SettingsForm` (Profile + Research[userField] + Lenses[beta toggle]). Shares persistence keys with the workbench (Section 13 storage paragraph). |
 | `/api/lens` | POST only. NOT a page. 401 without Supabase session; 400 bad shape; 502/500 transport/config (never masked as lens output). Adds `X-Lens-Provider`/`X-Lens-Model` headers. On an unconfigured provider the route returns `500 "Lens provider is not configured."` and the client refuses to render a mock answer. |
 | `/api/import/arxiv` | POST only. NOT a page. 401 without Supabase session; 400 bad arXiv id; 502 upstream. arXiv has no CORS, so the fetch is server-side only; returns `{xml}` for the client to parse. |
+| `/api/import/article` | POST only. NOT a page. 401 without Supabase session; 400 bad URL; 502 upstream. Extracts title, abstract, and text from web publications and journals. |
+| `/api/import/pdf` | POST only. NOT a page. 401 without Supabase session; 400 bad file. Parses PDF papers and extracts title, abstract, and full text. |
 | `/auth/login`, `/auth/signup`, `/auth/reset-password`, `/auth/callback` | Supabase auth (unchanged). |
 | `/dashboard` | DELETED. Zero references remain anywhere (verified by grep in `3c99dee`). Old dashboard metrics are retired by design correction C8. |
 
@@ -366,7 +370,7 @@ Carried over (still true):
 New (workbench + lens era):
 - [x] **Phase C -- lens chat box DONE** (commit `8f761f1`, hardened this pass): composer, thread, connection cards (Keep/Discard/Ask-why), "New thread", error strip, no-doc mode (the first typed thought IS the selection), provider/model readout. `POST /api/lens` is reachable end-to-end; no approved-but-unbuilt panel remains.
 - [x] **Phase D -- Remove-list sweep DONE** (this pass): `ProgressChart.tsx` deleted (zero refs; README clean too). Training metrics/wording gone from the UI ("Modes activated", "Overall score", "Weakest mode (target)", "Training focus", "Signal clarity", 🧠, "Training history", "Your cognitive profile", "neural map", "Start training your thinking", "Sign in to continue training"). Routes stay (standing decision); `lib/modes.ts` untouched.
-- [x] **Minimal paper import DONE** (this pass, Stage 4 lite, no PDF, zero new deps): see Section 5. This is NOT full Stage 4 (no PDF).
+- [x] **Multi-platform research & dataset import DONE** (Stage 4 full): arXiv, Crossref DOI, bioRxiv, PubMed/PMC, web/journal articles (`/api/import/article`), PDF uploads (`/api/import/pdf` via `pdf-parse`), Markdown/Text notes, and CSV/JSON datasets with automatic schema and table preview generation.
 - [x] **Stage 2 data model + Dexie library DONE** (commit `346880a`): `lib/workbench/db.ts` -- `yentellect.library.v1`, `WorkDoc { id, kind: paper|concept|note, title, body, timestamps, paper metadata }`, `liveDocs()` liveQuery, `upsertImportedDoc` (re-import keeps your body). The Explorer pane is now a real list over it. NOT DONE: the Explorer **tree** (item 13 in BUILD_STATUS: context menu, inline rename, icons).
 - [x] **Stage 3 editor + tabs DONE** (commits `346880a`, `6c86349`): `DocEditorPane.tsx` (CodeMirror 6 + KaTeX, edit/preview, debounce autosave) + `lib/workbench/tabs.ts` (open/select/close rules, persisted in `yentellect.tabs.v1`) + the `EditorArea` tab strip with double-click inline rename (maxLength 120, Dexie title sync) and middle-click-to-close. NOT DONE: floating Analogical/Systems selection toolbar over the editor.
 - [x] **Stage 6 -- Connections drawer + 2D Graph tab DONE** (commit `57762a7`): `ConnectionsDrawer.tsx` synthesis table for kept connections with Discard action; `SidePanelView.tsx` GraphTab powered by `react-force-graph-2d` showing kept analogy/systems connections and links to the active doc; `Shell.tsx` wiring.

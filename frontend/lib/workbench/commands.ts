@@ -68,8 +68,8 @@ export function buildCommands(ctx: CommandContext): WorkbenchCommand[] {
   ): WorkbenchCommand => ({ id, title, enabled: true, ...rest });
 
   return [
-    cmd("import-paper", "Import paper", {
-      hint: "arXiv URL or DOI",
+    cmd("import-paper", "Import research or dataset", {
+      hint: "arXiv, DOI, bioRxiv, PubMed, Web, PDF, CSV",
       run: () => ctx.openImport(),
     }),
 		cmd("new-concept", "New concept", {
