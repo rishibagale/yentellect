@@ -49,6 +49,7 @@ function ShellInner() {
   openDoc,
   selectTab,
   closeTab,
+  renameTab,
   closeImport,
   submitImport,
 } = useShellState();
@@ -167,6 +168,7 @@ function ShellInner() {
                   activeTabId={activeTabId}
                   onSelectTab={selectTab}
                   onCloseTab={closeTab}
+                  onRenameTab={renameTab}
                   importOpen={importOpen}
                   importStatus={importStatus}
                   importError={importError}

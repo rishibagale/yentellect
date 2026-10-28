@@ -28,6 +28,7 @@ import {
   closeTab as closeTabState,
   openTab as openTabState,
   readTabs,
+  renameTab as renameTabState,
   selectTab as selectTabState,
   writeTabs,
   type TabMeta,
@@ -94,6 +95,18 @@ export function useShellState() {
   const closeTab = useCallback((id: string) => {
     setTabState((prev) => closeTabState(prev, id));
   }, []);
+
+  /** Rename a tab's title and sync it to the doc in Dexie. */
+  const renameTab = useCallback(
+    (id: string, title: string) => {
+      setTabState((prev) => renameTabState(prev, id, title));
+      const live = library.find((d) => d.id === id);
+      if (live && live.title !== title) {
+        void putDoc({ ...live, title, updatedAt: Date.now() });
+      }
+    },
+    [library],
+  );
 
   // Persist the tab list. Writing in an effect (not inside a state updater)
   // keeps the updater pure, so React's double-invoke in StrictMode cannot
@@ -302,5 +315,6 @@ export function useShellState() {
     openDoc,
     selectTab,
     closeTab,
+    renameTab,
   };
 }

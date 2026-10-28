@@ -3,14 +3,14 @@
 > Snapshot of the two work plans as of the working tree after commit `4f5f948` (2026-10-06; Stage 2 library + Stage 3 editor/tabs uncommitted in working tree),
 > updated by the PASS LOG below (verify cells against the current tree).
 > Read straight from the specs: **Prompt #1** = workbench master, **Prompt #2** = lens spec.
-> Verdict: **Prompt #2 is built and passing; Prompt #1 partially built — Stage 1 (shell, palette, prompts, tokens) is exact; minimal Stage 4 import + Phase C chat shipped; Stage 2 data model and Stage 3 editor/tabs now shipped; Stages 3-toolbar and 6 outstanding.**
+> Verdict: **Prompt #2 is built and passing; Prompt #1 partially built — Stage 1 (shell, palette, prompts, tokens) is exact; minimal Stage 4 import + Phase C chat shipped; Stage 2 data model and Stage 3 editor/tabs/inline rename/middle-click close now shipped; only the floating selection toolbar remains of Stage 3; Stage 6 outstanding.**
 
 ---
 
 ## PASS LOG — 10/2026 (working tree: Stage 2 library + Stage 3 editor/tabs, uncommitted)
 
-What shipped this pass. Verification: project `tsc --noEmit` clean, `next lint` clean (0 warnings),
-`next build` EXIT=0 with all 14 routes, tab-rule unit check 16/16 pass (scratch script, deleted after).
+What shipped this pass. Verification: project `tsc --noEmit` clean, `npm run lint` clean ("✔ No ESLint warnings or errors"),
+`next build` compiled successfully with all 14 routes, tab-rule unit check 16/16 pass (scratch script, deleted after). Stage 3 now includes double-click inline rename (Enter/Escape/blur, `maxLength={120}`, title synced to Dexie) and middle-click close on tabs.
 
 - **Stage 3 editor** — `frontend/components/workbench/DocEditorPane.tsx`: CodeMirror 6 (markdown,
   history, line-wrapping, placeholder) + KaTeX preview mode. New deps: `@codemirror/state`,
@@ -38,15 +38,14 @@ What shipped this pass. Verification: project `tsc --noEmit` clean, `next lint` 
   then re-save) an older body as the newest one. Cleared only when the doc is deleted.
 - **Explorer is real** — the Activity → Explorer pane now lists the live Dexie library, the active
   document is marked, and clicking a doc opens it in a tab. The old "file tree lands Stage 2"
-  placeholder is gone. Still a flat list: no tree, context menu, inline rename, or icons (item 13).
+  placeholder is gone. Still a flat list: no tree or context menu/icons yet (item 13).
 - **Legacy pinned-paper migration** — the pre-Stage-3 build kept one paper in `localStorage`
   `yentellect.doc.v1`. It is now read exactly once, folded into the library as a tab, and the key is
   deleted. There is deliberately **no writer** for that key any more.
 - **"New concept" / "New note" now work** — the palette commands create a blank doc in the library
   and open it in a tab (they were disabled-with-reason in the committed tree).
-- **Not in this pass** (still outstanding): middle-click-to-close tabs, the floating
-  Analogical/Systems selection toolbar over the editor, inline rename, the Explorer tree, and
-  Stage 6 (connections drawer, 2D graph tab, kept→edges).
+- **Not in this pass** (still outstanding): the floating Analogical/Systems selection toolbar over
+  the editor, the Explorer tree, and Stage 6 (connections drawer, 2D graph tab, kept→edges).
 
 ---
 
@@ -108,8 +107,8 @@ copy audit clean, **zero new deps** (package.json untouched).
 ### Components (spec, item by item)
 | # | Requirement | Status |
 |---|---|---|
-| 13 | Explorer: tree, context menu, inline rename, icons | ⚠️ real list over the live Dexie library (active doc marked, click opens a tab) — **not** a tree; no context menu, inline rename, or icons |
-| 14 | Editor: CodeMirror 6, KaTeX `$…$`/`$$…$$`, tabs dirty/middle-click, floating Analogical/Systems selection toolbar | ⚠️ CodeMirror 6 ✅, KaTeX preview ✅, tab strip ✅, dirty/saved indicator ✅; middle-click-to-close ❌, floating selection toolbar ❌ (footer "Send note to lens" instead) |
+| 13 | Explorer: tree, context menu, icons | ⚠️ real list over the live Dexie library (active doc marked, click opens a tab) — **not** a tree; no context menu or icons |
+| 14 | Editor: CodeMirror 6, KaTeX `$…$`/`$$…$$`, tabs dirty/middle-click/rename, floating Analogical/Systems selection toolbar | ⚠️ CodeMirror 6 ✅, KaTeX preview ✅, tab strip ✅, dirty/saved indicator ✅, middle-click-to-close ✅, double-click inline rename ✅ (Enter/Escape/blur, `maxLength={120}`, Dexie title sync); floating selection toolbar ❌ (footer "Send note to lens" instead) |
 | 15 | Import: Cmd+K, arXiv URL or DOI, Crossref fetch, no PDF v1 | ✅ minimal v1 shipped 10/2026: arXiv via server route, DOI via Crossref, no PDF — NOT full Stage 4 (no tabs/notes) |
 | 16 | Lens panel: segmented control / collapsed selection card / thread / connection cards with Keep–Discard–Ask-why / composer / **calls POST /api/lens** | ✅ Phase C (10/2026): switcher + selection card + thread + cards + composer, wired to `/api/lens`; "New thread" clears; error strip for 500/502 |
 | 17 | Connections drawer: table, jump-to-range, keep/discard, kept→edges | ❌ 23-line placeholder |
@@ -138,7 +137,7 @@ copy audit clean, **zero new deps** (package.json untouched).
 |---|---|---|
 | 29 | Stage 1 shell | ✅ |
 | 30 | Stage 2 data model/Explorer/new concept-note | ⚠️ data model + Dexie ✅, New concept/New note ✅ (create + open a tab); Explorer **tree** ❌ (flat live list) |
-| 31 | Stage 3 editor/KaTeX/tabs/toolbar | ⚠️ editor ✅, KaTeX ✅, tabs ✅, dirty indicator ✅; floating selection toolbar ❌, middle-click close ❌, inline rename ❌ |
+| 31 | Stage 3 editor/KaTeX/tabs/toolbar | ⚠️ editor ✅, KaTeX ✅, tabs ✅, dirty indicator ✅, middle-click close ✅, inline rename ✅ (double-click, Enter/Escape/blur, `maxLength={120}`, Dexie sync); floating selection toolbar ❌ |
 | 32 | Stage 4 import | ✅ minimal v1 (no PDF/tabs); full Stage 4 follows the editor |
 | 33 | Stage 5 lens panel wired + cards | ✅ Phase C: composer, thread, connection cards, `New thread`, error strip — `/api/lens` reachable end-to-end |
 | 34 | Stage 6 drawer/graph/shortcuts/empty states | ❌ (shortcuts ✅ part of Stage 1) |
@@ -185,7 +184,7 @@ copy audit clean, **zero new deps** (package.json untouched).
 
 | Tab / pane | Opens | State |
 |---|---|---|
-| Activity → **Explorer** | `ExplorerPanel` | ✅ **live** — the live Dexie library; active doc marked, click opens a tab. Flat list: no tree / context menu / rename / icons yet |
+| Activity → **Explorer** | `ExplorerPanel` | ✅ **live** — the live Dexie library; active doc marked, click opens a tab. Flat list: no tree / context menu / icons yet |
 | Activity → **Graph** | `SidePanelView` graph slot | honest placeholder + "Open knowledge graph" → `/profile` |
 | Activity → **Search** | search slot | placeholder ("Stage 2") |
 | Activity → **Settings** | `SettingsForm` | ✅ **live** — Profile, Research (userField), Lenses (beta toggle) |
@@ -203,6 +202,6 @@ copy audit clean, **zero new deps** (package.json untouched).
 ## Bottom line
 - **Lens spec (Prompt #2): built, graded, passing, UI wired — only real papers and the 3-item verdict remain.**
 - **Workbench spec (Prompt #1): shell + palette + keyboard + tokens + first-run exact; the core research loop is now reachable
-  (import → editable note in a tab → send to lens → thread), with the document library and tab strip live.**
-  Critical path: **Stage 3 toolbar (floating selection toolbar, middle-click close, inline rename) → 6** (connections drawer, 2D graph tab, kept→edges);
+  (import → editable note in a tab → send to lens → thread), with the document library and tab strip live (tabs support middle-click close and double-click inline rename).**
+  Critical path: **Stage 3 toolbar (floating selection toolbar) → 6** (connections drawer, 2D graph tab, kept→edges);
   the Explorer **tree** (item 13) is the other open piece of Stage 2.

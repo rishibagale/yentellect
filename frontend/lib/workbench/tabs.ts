@@ -100,6 +100,28 @@ export function selectTab(state: TabState, id: string): TabState {
   return { ...state, activeId: id };
 }
 
+function normalizeTitle(raw: string): string {
+  return raw.replace(/\s+/g, " ").trim().slice(0, 120);
+}
+
+/**
+ * Rename a tab's title. Normalizes the title (collapses whitespace, trims,
+ * caps at 120 chars). Marks `migrated: true` so the legacy pinned-paper key
+ * is treated as folded into the tabs. No-ops if the id is unknown or the
+ * normalized title is empty.
+ */
+export function renameTab(state: TabState, id: string, title: string): TabState {
+  if (!state || !id) return state;
+  const tab = state.tabs.find((t) => t.id === id);
+  if (!tab) return state;
+  const nextTitle = normalizeTitle(title);
+  if (!nextTitle) return state;
+  const tabs = state.tabs.map((t) =>
+    t.id === id ? { ...t, title: nextTitle } : t,
+  );
+  return { ...state, tabs, migrated: true };
+}
+
 /**
  * Close a tab. The active tab moves to the neighbour on its right, or the
  * one on its left when the rightmost tab was closed; closing the last tab

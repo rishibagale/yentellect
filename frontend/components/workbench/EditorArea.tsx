@@ -33,6 +33,7 @@ interface EditorAreaProps {
   onSubmitImport?: (raw: string) => void;
   onCancelImport?: () => void;
   onAskLens?: (text: string) => void;
+  onRenameTab?: (id: string, title: string) => void;
 }
 
 const KIND_LABEL: Record<TabMeta["kind"], string> = {
@@ -54,8 +55,11 @@ export default function EditorArea({
   onSubmitImport,
   onCancelImport,
   onAskLens,
+  onRenameTab,
 }: EditorAreaProps) {
   const [draft, setDraft] = useState("");
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState("");
 
   const loading = importStatus === "loading";
 
@@ -69,6 +73,23 @@ export default function EditorArea({
     const raw = draft.trim();
     if (!raw || loading) return;
     onSubmitImport?.(raw);
+  }
+
+  function commitRename(id: string): void {
+    const title = newTitle.trim();
+    if (!title || title === tabs.find((t) => t.id === id)?.title) {
+      setEditingTabId(null);
+      setNewTitle("");
+      return;
+    }
+    onRenameTab?.(id, title);
+    setEditingTabId(null);
+    setNewTitle("");
+  }
+
+  function cancelRename(): void {
+    setEditingTabId(null);
+    setNewTitle("");
   }
 
   const waitingForDoc = activeTabId !== null && doc === null;
@@ -112,13 +133,47 @@ export default function EditorArea({
                     : "text-[var(--text-dim)] hover:bg-[var(--bg-2)] hover:text-[var(--text)]"
                 }`}
               >
-                <span className="max-w-[24ch] truncate">{tab.title || "(untitled)"}</span>
+                {editingTabId === tab.id ? (
+                  <input
+                    autoFocus
+                    value={newTitle || tab.title}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        commitRename(tab.id);
+                      } else if (e.key === "Escape") {
+                        cancelRename();
+                      }
+                    }}
+                    onBlur={() => commitRename(tab.id)}
+                    className="flex-1 min-w-0 bg-transparent border-none px-2 py-0.5 text-xs text-[var(--text)] focus:outline-none focus:ring-0"
+                    maxLength={120}
+                  />
+                ) : (
+                  <span
+                    className="max-w-[24ch] truncate cursor-pointer select-none"
+                    onDoubleClick={() => {
+                      setEditingTabId(tab.id);
+                      setNewTitle(tab.title);
+                    }}
+                  >
+                    {tab.title || "(untitled)"}
+                  </span>
+                )}
                 <button
                   type="button"
                   aria-label={`Close ${tab.title || "document"}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onCloseTab?.(tab.id);
+                  }}
+                  onAuxClick={(e) => {
+                    if (e.button === 1) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onCloseTab?.(tab.id);
+                    }
                   }}
                   className="rounded-[2px] px-1 text-[var(--text-dim)] opacity-0 transition-opacity duration-150 hover:text-[var(--danger)] focus:opacity-100 group-hover:opacity-100"
                 >
