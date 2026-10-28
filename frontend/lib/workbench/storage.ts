@@ -27,7 +27,7 @@ export const DEFAULT_LAYOUT: LayoutState = {
   explorerWidth: 240,
   lensOpen: true,
   lensWidth: 420,
-  drawerOpen: true,
+  drawerOpen: false,
   drawerHeight: 200,
 };
 

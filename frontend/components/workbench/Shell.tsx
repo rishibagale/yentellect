@@ -207,6 +207,8 @@ function ShellInner() {
                           betaModes={betaModes}
                           thread={thread}
                           docTitle={doc?.title ?? null}
+                          drawerOpen={layout.drawerOpen}
+                          onToggleDrawer={() => update({ drawerOpen: !layout.drawerOpen })}
                         />
                       </div>
                       {layout.drawerOpen && (

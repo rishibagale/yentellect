@@ -1,15 +1,13 @@
 /**
- * Yentellect workbench — Lens panel (Phase C, enhanced prominence).
+ * Yentellect workbench — Lens panel (Phase C, clean minimalist interface).
  * Resizable, collapsible.
  *
- * Top to bottom:
- * 1. Header with "Socratic Lens Chat", status badge, and "New thread" action
- * 2. Segmented lens switcher (Analogical vs Systems + beta modes)
- * 3. Selection / Context bar (pinned document or thought origin)
- * 4. Interactive thread with role headers, message cards, and connection cards
- * 5. Welcoming empty state with curated starter prompts when empty
- * 6. Transport error and degraded fallback recovery strips
- * 7. Prominent multi-line composer with clear send CTA
+ * Streamlined, distraction-free architecture:
+ * 1. Single unified header (Socratic Lens title + compact mode toggle + actions)
+ * 2. Unobtrusive floating context indicator (no rigid horizontal dividing bars)
+ * 3. Fluid chat message stream with rounded cards and calm typography
+ * 4. Refined starter prompt suggestions with soft borders
+ * 5. Minimalist bottom composer with no internal divider lines or clutter
  */
 "use client";
 
@@ -26,10 +24,12 @@ interface LensPanelProps {
   betaModes: boolean;
   thread: LensThread;
   docTitle?: string | null;
+  drawerOpen?: boolean;
+  onToggleDrawer?: () => void;
 }
 
 const CARD_BTN =
-  "text-[11px] px-2.5 py-1 rounded-[var(--radius)] border border-[var(--border)] hover:border-[var(--text-dim)] transition-colors";
+  "text-[11px] px-2.5 py-1 rounded-lg border border-[var(--border)]/60 hover:border-[var(--text-dim)] transition-colors";
 const DIM_BTN = "text-[var(--text-dim)] hover:text-[var(--text)]";
 
 const STARTER_PROMPTS: Record<string, string[]> = {
@@ -44,12 +44,6 @@ const STARTER_PROMPTS: Record<string, string[]> = {
     "What systemic boundaries or assumptions are being taken for granted?",
   ],
 };
-
-/** One-line excerpt of the pinned selection, ~90 chars, whitespace flattened. */
-function excerpt(text: string, max = 90): string {
-  const flat = text.replace(/\s+/g, " ").trim();
-  return flat.length > max ? `${flat.slice(0, max)}…` : flat;
-}
 
 /**
  * Entrance wrapper: message entrance only, 120ms easeOut, skipped entirely
@@ -68,7 +62,7 @@ function Enter({
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 4 }}
+      initial={{ opacity: 0, y: 3 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.12, ease: "easeOut" }}
     >
@@ -91,16 +85,16 @@ function ConnectionCard({
 
   return (
     <div
-      className={`w-full max-w-[72ch] border rounded-[var(--radius)] p-3 bg-[var(--bg-0)] shadow-sm transition-all ${
+      className={`w-full max-w-[72ch] border rounded-xl p-3 bg-[var(--bg-0)] shadow-2xs transition-all ${
         isAnalogy
-          ? "border-l-2 border-l-[var(--accent)] border-[var(--border)]"
-          : "border-l-2 border-l-[#9d7bff] border-[var(--border)]"
-      } ${discarded ? "opacity-45" : ""}`}
+          ? "border-l-3 border-l-[var(--accent)] border-[var(--border)]/60"
+          : "border-l-3 border-l-[#9d7bff] border-[var(--border)]/60"
+      } ${discarded ? "opacity-40" : ""}`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
           <span
-            className={`text-[10px] font-semibold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-[var(--radius)] ${
+            className={`text-[10px] font-semibold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-md ${
               isAnalogy
                 ? "bg-[var(--accent)]/15 text-[var(--accent)]"
                 : "bg-[#9d7bff]/15 text-[#9d7bff]"
@@ -128,7 +122,7 @@ function ConnectionCard({
         {connection.summary}
       </p>
 
-      <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--border)]/60">
+      <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--border)]/40">
         <button
           type="button"
           onClick={() => thread.keep(entry.id)}
@@ -168,6 +162,8 @@ export default function LensPanel({
   betaModes,
   thread,
   docTitle = null,
+  drawerOpen = false,
+  onToggleDrawer,
 }: LensPanelProps) {
   const lenses = visibleLenses(betaModes);
   const [draft, setDraft] = useState("");
@@ -182,12 +178,12 @@ export default function LensPanel({
   // The document this thread started with wins over the currently open one.
   const shownTitle = thread.pinnedDocTitle ?? docTitle;
 
-  // Auto-resize the composer (min 48px -> max 180px).
+  // Auto-resize the composer (min 44px -> max 180px).
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(Math.max(el.scrollHeight, 48), 180)}px`;
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, 44), 180)}px`;
   }, [draft]);
 
   // Scroll to bottom only when already near bottom, or while sending.
@@ -224,105 +220,110 @@ export default function LensPanel({
       aria-label="Lens panel"
       className="h-full flex flex-col overflow-hidden bg-[var(--bg-1)] border-l border-[var(--border)]"
     >
-      {/* Top Header & Lens Switcher */}
-      <div className="border-b border-[var(--border)] bg-[var(--bg-0)] shrink-0">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border)]/50">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-[var(--text)] tracking-wide">
-              Socratic Lens Chat
-            </span>
-            <span className="text-[10px] font-medium text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded-[var(--radius)]">
-              Active
-            </span>
+      {/* 1. Single Unified Header Bar (No stacked lines or redundant badges) */}
+      <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-[var(--border)]/70 bg-[var(--bg-1)]">
+        {/* Left: Title + Mode Toggle Capsule */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-xs font-semibold text-[var(--text)] tracking-tight shrink-0">
+            Socratic Lens
+          </span>
+
+          <div
+            role="tablist"
+            aria-label="Lens mode"
+            className="flex items-center p-0.5 rounded-lg bg-[var(--bg-0)] border border-[var(--border)]/60"
+          >
+            {lenses.map((lens) => {
+              const info = MODES[lens];
+              const selected = lens === activeLens;
+              return (
+                <button
+                  key={lens}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => onSelect(lens)}
+                  className={`px-2.5 py-1 rounded-[6px] text-[11px] font-medium transition-all ${
+                    selected
+                      ? "bg-[var(--bg-2)] text-[var(--accent)] shadow-2xs font-semibold"
+                      : "text-[var(--text-dim)] hover:text-[var(--text)]"
+                  }`}
+                >
+                  {info.label}
+                </button>
+              );
+            })}
           </div>
+        </div>
+
+        {/* Right Actions: Connections Drawer Toggle + New Thread */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {thread.keptCount > 0 && onToggleDrawer && (
+            <button
+              type="button"
+              onClick={onToggleDrawer}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 ${
+                drawerOpen
+                  ? "bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/40 font-medium"
+                  : "text-[var(--text-dim)] border-[var(--border)]/60 hover:text-[var(--text)] hover:border-[var(--text-dim)]"
+              }`}
+              title={drawerOpen ? "Hide connections drawer" : "Show connections drawer"}
+            >
+              <span>☍</span>
+              <span>{thread.keptCount} kept</span>
+            </button>
+          )}
+
           {thread.turns.length > 0 && (
             <button
               type="button"
               onClick={() => thread.clear()}
-              className="text-[11px] text-[var(--text-dim)] hover:text-[var(--text)] transition-colors flex items-center gap-1"
+              className="text-[11px] text-[var(--text-dim)] hover:text-[var(--text)] px-1.5 py-0.5 rounded transition-colors flex items-center gap-1"
+              title="Start a new thread"
             >
-              <span>+</span>
-              <span>New thread</span>
+              <span>+ New</span>
             </button>
           )}
         </div>
-
-        {/* Lens selection segmented tabs */}
-        <div
-          role="tablist"
-          aria-label="Lens"
-          className="flex gap-1.5 p-2 bg-[var(--bg-1)]"
-        >
-          {lenses.map((lens) => {
-            const info = MODES[lens];
-            const selected = lens === activeLens;
-            const beta = lens !== "ANALOGICAL" && lens !== "SYSTEMS";
-            return (
-              <button
-                key={lens}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => onSelect(lens)}
-                className={`flex-1 rounded-[var(--radius)] px-3 py-1.5 text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
-                  selected
-                    ? "bg-[var(--bg-2)] text-[var(--accent)] border border-[var(--border)] shadow-sm"
-                    : "text-[var(--text-dim)] border border-transparent hover:text-[var(--text)] hover:bg-[var(--bg-2)]/50"
-                }`}
-              >
-                <span>{info.label}</span>
-                {beta && (
-                  <span className="rounded-[var(--radius)] border border-[var(--border)] px-1 text-[9px] text-[var(--text-dim)]">
-                    Beta
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      {/* Selection context bar */}
-      <div
-        className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-[var(--border)] text-[11px] bg-[var(--bg-1)] text-[var(--text-dim)]"
-        title={thread.turns.length > 0 ? thread.turns[0].content : undefined}
-      >
-        <span className="text-[var(--accent)] text-[12px]">●</span>
-        <span className="truncate min-w-0 flex-1">
-          {shownTitle === null ? (
-            <>No document attached — your thoughts anchor this thread.</>
-          ) : (
-            <>
-              <span className="text-[var(--text)] font-medium">{shownTitle}</span>
-              {thread.turns.length > 0 && ` — "${excerpt(thread.turns[0].content)}"`}
-            </>
-          )}
-        </span>
-      </div>
-
-      {/* Main Thread Area */}
+      {/* 2. Main Conversation Thread Area */}
       <div
         ref={scrollRef}
         aria-live="polite"
-        className="flex-1 overflow-y-auto min-h-0 px-3 py-3 space-y-4"
+        className="flex-1 overflow-y-auto min-h-0 px-3.5 py-3 space-y-4"
       >
+        {/* Floating Context Pill (Subtle, non-intrusive) */}
+        {shownTitle && (
+          <div className="flex justify-center pt-1 pb-1">
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-0)]/90 text-[11px] text-[var(--text-dim)] border border-[var(--border)]/50 max-w-[92%] truncate shadow-2xs"
+              title={shownTitle}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] shrink-0" />
+              <span className="truncate">{shownTitle}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State with Clean Suggestions */}
         {thread.turns.length === 0 && (
-          <div className="py-8 px-2 flex flex-col items-center text-center">
-            <div className="w-11 h-11 rounded-full bg-[var(--bg-2)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] mb-3 text-lg shadow-sm">
+          <div className="py-8 px-1 flex flex-col items-center text-center max-w-[340px] mx-auto">
+            <div className="w-10 h-10 rounded-full bg-[var(--bg-0)] border border-[var(--border)]/70 flex items-center justify-center text-[var(--accent)] mb-3 text-base shadow-2xs">
               {activeLens === "ANALOGICAL" ? "∿" : "⟳"}
             </div>
             <h3 className="text-[13px] font-semibold text-[var(--text)] mb-1">
-              {activeLens === "ANALOGICAL" ? "Analogical Thinking Partner" : "Systems Thinking Partner"}
+              {activeLens === "ANALOGICAL" ? "Analogical Lens" : "Systems Lens"}
             </h3>
-            <p className="text-[11px] text-[var(--text-dim)] max-w-[280px] leading-relaxed mb-5">
+            <p className="text-[11px] text-[var(--text-dim)] leading-relaxed mb-5">
               {activeLens === "ANALOGICAL"
-                ? "Explore deep structural isomorphs and cross-domain mappings to test conceptual clarity."
-                : "Map feedback loops, delays, and identify non-obvious systemic leverage points."}
+                ? "Discover structural parallels and cross-domain mappings to test conceptual clarity."
+                : "Analyze feedback loops, dependencies, and high-leverage systemic nodes."}
             </p>
 
             <div className="w-full flex flex-col gap-1.5 text-left">
-              <span className="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-medium px-1">
-                Suggested prompts
+              <span className="text-[10px] uppercase tracking-wider text-[var(--text-dim)]/60 font-medium px-1">
+                Suggested questions
               </span>
               {(STARTER_PROMPTS[activeLens] ?? STARTER_PROMPTS.ANALOGICAL).map((prompt) => (
                 <button
@@ -332,11 +333,11 @@ export default function LensPanel({
                     setDraft(prompt);
                     textareaRef.current?.focus();
                   }}
-                  className="text-xs text-[var(--text)] bg-[var(--bg-0)] hover:bg-[var(--bg-2)] border border-[var(--border)] hover:border-[var(--text-dim)] rounded-[var(--radius)] px-3 py-2 text-left transition-colors flex items-center justify-between group shadow-sm"
+                  className="group text-[12px] text-[var(--text-dim)] hover:text-[var(--text)] bg-[var(--bg-0)]/70 hover:bg-[var(--bg-2)] border border-[var(--border)]/50 hover:border-[var(--border)] rounded-xl px-3.5 py-2 text-left transition-all leading-snug cursor-pointer shadow-2xs flex items-center justify-between"
                 >
-                  <span className="truncate">{prompt}</span>
-                  <span className="text-[var(--text-dim)] group-hover:text-[var(--accent)] text-[11px] ml-2 shrink-0">
-                    ↵
+                  <span className="truncate pr-2">{prompt}</span>
+                  <span className="text-[var(--text-dim)]/40 group-hover:text-[var(--accent)] text-[11px] shrink-0 transition-colors">
+                    →
                   </span>
                 </button>
               ))}
@@ -344,10 +345,9 @@ export default function LensPanel({
           </div>
         )}
 
+        {/* Chat Messages */}
         {thread.turns.map((turn, i) => {
           const isUser = turn.role === "user";
-          // Assistant at index t answers the user turn at t-1; ids are
-          // `${userTurnIndex}-${i}` with userTurnIndex === t-1 (lens-thread.ts).
           const cards = isUser
             ? []
             : thread.connections.filter((c) =>
@@ -358,19 +358,19 @@ export default function LensPanel({
             <Enter
               key={`turn-${i}`}
               reduce={!!reduceMotion}
-              className={`flex flex-col gap-2 ${
+              className={`flex flex-col gap-1.5 ${
                 isUser ? "items-end" : "items-start"
               }`}
             >
               <div
                 className={`flex flex-col gap-1 ${
-                  isUser ? "items-end max-w-[92%]" : "items-start max-w-[96%]"
+                  isUser ? "items-end max-w-[88%]" : "items-start max-w-[94%]"
                 }`}
               >
                 <div className="flex items-center gap-1.5 px-1">
                   <span
-                    className={`text-[10px] uppercase tracking-wider font-medium ${
-                      isUser ? "text-[var(--text-dim)]" : "text-[var(--accent)]"
+                    className={`text-[10px] uppercase tracking-wider font-semibold ${
+                      isUser ? "text-[var(--text-dim)]/70" : "text-[var(--accent)]"
                     }`}
                   >
                     {isUser ? "You" : `◈ ${MODES[activeLens]?.label ?? "Lens"}`}
@@ -379,8 +379,8 @@ export default function LensPanel({
                 <div
                   className={
                     isUser
-                      ? "bg-[var(--bg-2)] border border-[var(--border)] rounded-[var(--radius)] px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words text-[var(--text)] shadow-sm"
-                      : "bg-[var(--bg-0)] border border-[var(--border)] rounded-[var(--radius)] px-3.5 py-2.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-[var(--text)] shadow-sm"
+                      ? "bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-2xl rounded-tr-xs px-3.5 py-2 text-[13px] leading-relaxed whitespace-pre-wrap break-words text-[var(--text)] shadow-2xs"
+                      : "bg-[var(--bg-0)] border border-[var(--border)]/60 rounded-2xl rounded-tl-xs px-3.5 py-2.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-[var(--text)] shadow-2xs"
                   }
                 >
                   {turn.content}
@@ -397,7 +397,7 @@ export default function LensPanel({
 
         {sending && (
           <div className="flex justify-start">
-            <div className="bg-[var(--bg-0)] border border-[var(--border)] rounded-[var(--radius)] px-3.5 py-2.5 shadow-sm">
+            <div className="bg-[var(--bg-0)] border border-[var(--border)]/60 rounded-2xl rounded-tl-xs px-3.5 py-2 shadow-2xs">
               <div className="flex items-center gap-2">
                 <div className="w-3.5 h-3.5 border-2 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin" />
                 <span className="text-[12px] text-[var(--text-dim)]">
@@ -409,11 +409,11 @@ export default function LensPanel({
         )}
       </div>
 
-      {/* Error strip — transport/config failures, never lens output. */}
+      {/* Error Strip */}
       {thread.error && (
         <div
           role="alert"
-          className="mx-3 mb-2 flex items-start justify-between gap-2 text-[var(--danger)] border border-[var(--danger)] bg-[var(--bg-0)] rounded-[var(--radius)] px-3 py-2 text-[12px] shrink-0"
+          className="mx-3 mb-2 flex items-start justify-between gap-2 text-[var(--danger)] border border-[var(--danger)]/40 bg-[var(--bg-0)] rounded-xl px-3 py-2 text-[12px] shrink-0"
         >
           <span className="break-words">{thread.error}</span>
           <button
@@ -427,11 +427,11 @@ export default function LensPanel({
         </div>
       )}
 
-      {/* Degraded strip — real-provider fallback (invalid model output). */}
+      {/* Degraded Fallback Strip */}
       {thread.lastResponseUsedFallback && !thread.error && (
         <div
           role="status"
-          className="mx-3 mb-2 flex items-center justify-between gap-2 text-[var(--text-dim)] border border-[var(--border)] bg-[var(--bg-2)] rounded-[var(--radius)] px-3 py-2 text-[12px] shrink-0"
+          className="mx-3 mb-2 flex items-center justify-between gap-2 text-[var(--text-dim)] border border-[var(--border)] bg-[var(--bg-2)] rounded-xl px-3 py-2 text-[12px] shrink-0"
         >
           <span className="break-words">
             Couldn&apos;t structure a response — retry?
@@ -442,28 +442,22 @@ export default function LensPanel({
               thread.clear();
               thread.send(thread.turns[0]?.content ?? "");
             }}
-            className="shrink-0 text-[10px] px-2 py-1 rounded-[var(--radius)] border border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--text)] hover:text-[var(--text)] transition-colors"
+            className="shrink-0 text-[10px] px-2 py-1 rounded-lg border border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--text)] hover:text-[var(--text)] transition-colors"
           >
             Retry
           </button>
         </div>
       )}
 
-      {/* Prominent Composer */}
-      <div className="border-t border-[var(--border)] p-3 bg-[var(--bg-0)] shrink-0">
-        {thread.userFieldEmpty && (
-          <p className="mb-2 text-[10px] text-[var(--text-dim)] bg-[var(--bg-1)] px-2.5 py-1.5 rounded-[var(--radius)] border border-[var(--border)]">
-            Tip: Set your research area in <strong>Settings → Research</strong> so the lens can tailor connections.
-          </p>
-        )}
-
+      {/* 3. Clean Composer (No interior horizontal divider lines or noisy labels) */}
+      <div className="border-t border-[var(--border)]/60 p-3 bg-[var(--bg-1)] shrink-0">
         {blocked && (
-          <p className="mb-2 text-[11px] text-[var(--danger)] bg-[var(--bg-1)] px-2.5 py-1.5 rounded-[var(--radius)] border border-[var(--danger)]/30">
-            This beta mode is not available yet — switch to Analogical or Systems (⌘1 / ⌘2).
+          <p className="mb-2 text-[11px] text-[var(--danger)] bg-[var(--bg-0)] px-2.5 py-1.5 rounded-lg border border-[var(--danger)]/30">
+            This mode is not available yet — switch to Analogical or Systems.
           </p>
         )}
 
-        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-2)] focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)]/30 transition-all p-2 shadow-sm">
+        <div className="rounded-xl border border-[var(--border)]/80 bg-[var(--bg-0)] focus-within:border-[var(--accent)]/80 focus-within:ring-1 focus-within:ring-[var(--accent)]/20 transition-all p-2.5 shadow-2xs">
           <textarea
             ref={textareaRef}
             value={draft}
@@ -478,36 +472,23 @@ export default function LensPanel({
             maxLength={2000}
             disabled={sending || blocked}
             aria-label="Message the lens"
-            className="w-full resize-none bg-transparent text-[13px] text-[var(--text)] placeholder:text-[var(--text-dim)] focus:outline-none disabled:opacity-50 min-h-[48px] leading-relaxed"
+            className="w-full resize-none bg-transparent text-[13px] text-[var(--text)] placeholder:text-[var(--text-dim)]/55 focus:outline-none disabled:opacity-50 min-h-[44px] leading-relaxed"
           />
-          <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border)]/50 mt-1">
-            <span className="text-[10px] text-[var(--text-dim)]">
-              ↵ to send · Shift+↵ for newline
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[10px] text-[var(--text-dim)]/40 select-none">
+              Shift+Enter for newline
             </span>
             <button
               type="button"
               onClick={() => void handleSend()}
               disabled={!canSend}
-              className="px-3.5 py-1.5 rounded-[var(--radius)] bg-[var(--accent)] text-[var(--bg-0)] font-medium text-[11px] transition-all hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 shadow-sm"
+              className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--bg-0)] font-semibold text-xs transition-all hover:opacity-90 disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center shrink-0 shadow-2xs"
+              aria-label="Send message"
+              title="Send message"
             >
-              <span>Send</span>
-              <span aria-hidden="true">↑</span>
+              <span className="text-sm font-bold leading-none">↑</span>
             </button>
           </div>
-        </div>
-
-        <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
-          <span className="text-[10px] text-[var(--text-dim)]">
-            ⌘1 Analogical · ⌘2 Systems
-          </span>
-          {thread.providerModel && (
-            <span
-              className="text-[10px] text-[var(--text-dim)] truncate"
-              title={thread.providerModel}
-            >
-              {thread.providerModel}
-            </span>
-          )}
         </div>
       </div>
     </section>
