@@ -21,7 +21,7 @@ export default function StatusBar({ activeLens, words, kept, saved }: StatusBarP
     <footer
       data-region="statusbar"
       aria-label="Status"
-      className="h-6 shrink-0 flex items-center gap-4 px-3 border-t border-[var(--border)] bg-[var(--bg-1)] text-[11px] text-[var(--text-dim)]"
+      className="h-6 w-full shrink-0 flex items-center gap-4 px-3 border-t border-[var(--border)] bg-[var(--bg-1)] text-[11px] text-[var(--text-dim)] select-none z-20"
     >
       <span
         aria-label={`Active lens: ${lens.label}`}

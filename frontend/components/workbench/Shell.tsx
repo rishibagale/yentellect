@@ -40,22 +40,22 @@ function ShellInner() {
     isPhone,
     isTablet,
     isDesktop,
-  importOpen,
-  importStatus,
-  importError,
-  doc,
-  tabs,
-  activeTabId,
-  library,
-  openDoc,
-  selectTab,
-  closeTab,
-  renameTab,
-  closeImport,
-  submitImport,
-  submitFileImport,
-  submitCustomDoc,
-} = useShellState();
+    importOpen,
+    importStatus,
+    importError,
+    doc,
+    tabs,
+    activeTabId,
+    library,
+    openDoc,
+    selectTab,
+    closeTab,
+    renameTab,
+    closeImport,
+    submitImport,
+    submitFileImport,
+    submitCustomDoc,
+  } = useShellState();
   const commands = buildCommands(ctx);
 
   useShellKeys({
@@ -281,14 +281,14 @@ function ShellInner() {
             💡
           </button>
         )}
-        
-        <StatusBar activeLens={activeLens} words={thread.selectionWords} kept={thread.keptCount} saved />
-        <CommandPalette
-          open={layout.paletteOpen}
-          commands={commands}
-          onClose={() => setPaletteOpen(false)}
-        />
       </div>
+
+      <StatusBar activeLens={activeLens} words={thread.selectionWords} kept={thread.keptCount} saved />
+      <CommandPalette
+        open={layout.paletteOpen}
+        commands={commands}
+        onClose={() => setPaletteOpen(false)}
+      />
     </div>
   );
 }
