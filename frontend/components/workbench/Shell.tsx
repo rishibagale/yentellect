@@ -13,6 +13,7 @@ import ActivityBar from "./ActivityBar";
 import SidePanelView from "./SidePanelView";
 import LensPanel from "./LensPanel";
 import EditorArea from "./EditorArea";
+import ConnectionsDrawer from "./ConnectionsDrawer";
 import StatusBar from "./StatusBar";
 import Splitter from "./Splitter";
 import CommandPalette from "./CommandPalette";
@@ -118,6 +119,7 @@ function ShellInner() {
                   doc={doc}
                   docs={library}
                   openDoc={openDoc}
+                  thread={thread}
                 />
               </div>
             </div>
@@ -138,16 +140,17 @@ function ShellInner() {
             {/* Explorer pane on desktop */}
             {isDesktop && layout.explorerOpen && (
               <>
-        <div style={{ width: layout.explorerWidth }} className="shrink-0 min-w-0">
-            <SidePanelView
-              activity={layout.activity}
-              betaModes={betaModes}
-              onToggleBetaModes={setBetaModes}
-              doc={doc}
-              docs={library}
-              openDoc={openDoc}
-            />
-          </div>
+                <div style={{ width: layout.explorerWidth }} className="shrink-0 min-w-0">
+                  <SidePanelView
+                    activity={layout.activity}
+                    betaModes={betaModes}
+                    onToggleBetaModes={setBetaModes}
+                    doc={doc}
+                    docs={library}
+                    openDoc={openDoc}
+                    thread={thread}
+                  />
+                </div>
                 <Splitter
                   orientation="vertical"
                   label="Library"
@@ -188,14 +191,32 @@ function ShellInner() {
                       onToggle={toggleLens}
                       onChange={(v) => update({ lensWidth: Math.round(640 - (v / 100) * 400) })}
                     />
-                    <div style={{ width: layout.lensWidth }} className="shrink-0 min-w-0">
-                      <LensPanel
-                        activeLens={activeLens}
-                        onSelect={setActiveLens}
-                        betaModes={betaModes}
-                        thread={thread}
-                        docTitle={doc?.title ?? null}
-                      />
+                    <div style={{ width: layout.lensWidth }} className="shrink-0 min-w-0 flex flex-col">
+                      <div className="flex-1 min-h-0">
+                        <LensPanel
+                          activeLens={activeLens}
+                          onSelect={setActiveLens}
+                          betaModes={betaModes}
+                          thread={thread}
+                          docTitle={doc?.title ?? null}
+                        />
+                      </div>
+                      {layout.drawerOpen && (
+                        <>
+                          <Splitter
+                            orientation="horizontal"
+                            label="Connections"
+                            paneId="pane-connections"
+                            value={50}
+                            open={layout.drawerOpen}
+                            onToggle={() => update({ drawerOpen: !layout.drawerOpen })}
+                            onChange={(v) => update({ drawerHeight: Math.round(520 - (v / 100) * 400) })}
+                          />
+                          <div style={{ height: layout.drawerHeight }} className="shrink-0">
+                            <ConnectionsDrawer thread={thread} />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </>
                 )}

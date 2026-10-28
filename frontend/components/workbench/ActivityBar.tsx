@@ -20,6 +20,7 @@ const ITEMS: Array<{
   icon: (props: { active: boolean }) => React.ReactNode;
 }> = [
   { id: "explorer", label: "Library", icon: ({ active }) => <ExplorerIcon active={active} /> },
+  { id: "graph", label: "Graph", icon: ({ active }) => <GraphIcon active={active} /> },
   { id: "settings", label: "Settings", icon: ({ active }) => <SettingsIcon active={active} /> },
 ];
 
@@ -35,6 +36,17 @@ function ExplorerIcon({ active }: { active: boolean }) {
   return (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2 : 1.5} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  );
+}
+
+function GraphIcon({ active }: { active: boolean }) {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2 : 1.5} aria-hidden="true">
+      <circle cx="6" cy="12" r="2" />
+      <circle cx="18" cy="6" r="2" />
+      <circle cx="18" cy="18" r="2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 11l8-4M8 13l8 4" />
     </svg>
   );
 }
