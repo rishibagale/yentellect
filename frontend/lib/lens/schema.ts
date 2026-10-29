@@ -20,6 +20,7 @@ export const LensProviderNameSchema = z.enum([
   "gemini",
   "deepseek",
   "anthropic",
+  "opencode",
   "custom",
   "mock",
 ]);

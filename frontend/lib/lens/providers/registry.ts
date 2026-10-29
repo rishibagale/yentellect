@@ -89,6 +89,15 @@ const PRESETS: Record<string, ProviderPreset> = {
     needsJsonExampleInPrompt: true,
     note: "Compat layer silently ignores unsupported fields — response_format is NEVER sent here; prompt-only JSON + zod + retry. Prefer OpenRouter for Claude.",
   },
+  opencode: {
+    name: "opencode",
+    baseURL: "https://api.opencode.ai/v1",
+    apiKeyEnv: "OPENCODE_API_KEY",
+    defaultModel: "opencode/big-pickle",
+    jsonObject: true,
+    needsJsonExampleInPrompt: true,
+    note: "OpenCode Zen agentic free model (Big Pickle).",
+  },
 };
 
 export function getPreset(name: string): ProviderPreset {
