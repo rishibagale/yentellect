@@ -21,6 +21,7 @@ import {
   makeDocId,
   pendingBody,
   putDoc,
+  deleteDoc,
   upsertImportedDoc,
   type WorkDoc,
   type DocKind,
@@ -37,6 +38,7 @@ import {
 } from "@/lib/workbench/tabs";
 import type { ThinkingMode } from "@/lib/modes";
 import { buildCommands, type CommandContext } from "@/lib/workbench/commands";
+import { loadSampleDoc } from "@/lib/workbench/sample-doc";
 
 export type ImportStatus = "idle" | "loading" | "error";
 
@@ -108,6 +110,22 @@ export function useShellState() {
     },
     [library],
   );
+
+  /** Delete a document from the library and close its tab if open. */
+  const removeDoc = useCallback(
+    async (id: string) => {
+      await deleteDoc(id);
+      openedRef.current.delete(id);
+      closeTab(id);
+    },
+    [closeTab]
+  );
+
+  /** Load and open the sample demo paper. */
+  const loadDemo = useCallback(async () => {
+    const sample = await loadSampleDoc();
+    openDoc(sample);
+  }, [openDoc]);
 
   // Persist the tab list. Writing in an effect (not inside a state updater)
   // keeps the updater pure, so React's double-invoke in StrictMode cannot
@@ -366,5 +384,7 @@ export function useShellState() {
     selectTab,
     closeTab,
     renameTab,
+    loadDemo,
+    removeDoc,
   };
 }

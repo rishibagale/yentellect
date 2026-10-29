@@ -69,6 +69,7 @@ export default function SidePanelView({
   doc,
   docs,
   openDoc,
+  onDeleteDoc,
   thread,
 }: {
   activity: Activity;
@@ -77,11 +78,12 @@ export default function SidePanelView({
   doc?: WorkDoc | null;
   docs?: WorkDoc[];
   openDoc: (doc: WorkDoc) => void;
+  onDeleteDoc?: (id: string) => void;
   thread?: LensThread | null;
 }) {
   if (activity === "graph") return <GraphTab thread={thread} doc={doc} />;
 
-  if (activity !== "settings") return <ExplorerPanel doc={doc} docs={docs} openDoc={openDoc} />;
+  if (activity !== "settings") return <ExplorerPanel doc={doc} docs={docs} openDoc={openDoc} onDeleteDoc={onDeleteDoc} />;
 
   return (
     <section

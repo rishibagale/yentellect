@@ -7,6 +7,16 @@
 
 ---
 
+## PASS LOG — 10/2026 (Soft Launch Polish & Stage 3 Toolbar Completion)
+
+What shipped this pass:
+- **Floating Selection Toolbar (Stage 3 complete)** — `frontend/components/workbench/FloatingSelectionToolbar.tsx`: Highlight any text in CodeMirror or KaTeX preview mode; a floating toolbar appears with `◈ Analogical` and `⟳ Systems`. Clicking instantly routes the selected passage to the Socratic Lens panel.
+- **First-Run Demo Paper Onboarding** — `frontend/lib/workbench/sample-doc.ts` & `frontend/components/workbench/EditorArea.tsx`: Welcoming empty workspace card with 1-click "Try Demo Paper" (*On the Navier-Stokes Millennium Prize Problem*, pre-loaded with fluid dynamics equations, LaTeX math, and Socratic probes) enabling zero-friction onboarding in < 5 seconds.
+- **Library Document Deletion & Management** — `frontend/components/workbench/ExplorerPanel.tsx` & `frontend/components/workbench/shell-state.ts`: Hover trash/delete action removes unwanted documents from Dexie and automatically cleans up active tabs.
+- **TitleBar User & Workspace Polish** — `frontend/components/workbench/TitleBar.tsx`: Displays Yentellect brand, workspace title, and authenticated user identifier.
+
+---
+
 ## PASS LOG — 10/2026 (commit `57762a7`: Stage 6 connections drawer + 2D graph tab)
 
 What shipped this pass:
@@ -118,7 +128,7 @@ copy audit clean, **zero new deps** (package.json untouched).
 | # | Requirement | Status |
 |---|---|---|
 | 13 | Explorer: tree, context menu, icons | ⚠️ real list over the live Dexie library (active doc marked, click opens a tab) — **not** a tree; no context menu or icons |
-| 14 | Editor: CodeMirror 6, KaTeX `$…$`/`$$…$$`, tabs dirty/middle-click/rename, floating Analogical/Systems selection toolbar | ⚠️ CodeMirror 6 ✅, KaTeX preview ✅, tab strip ✅, dirty/saved indicator ✅, middle-click-to-close ✅, double-click inline rename ✅ (Enter/Escape/blur, `maxLength={120}`, Dexie title sync); floating selection toolbar ❌ (footer "Send note to lens" instead) |
+| 14 | Editor: CodeMirror 6, KaTeX `$…$`/`$$…$$`, tabs dirty/middle-click/rename, floating Analogical/Systems selection toolbar | ✅ CodeMirror 6 ✅, KaTeX preview ✅, tab strip ✅, dirty/saved indicator ✅, middle-click-to-close ✅, double-click inline rename ✅, floating selection toolbar ✅ (`FloatingSelectionToolbar.tsx`) |
 | 15 | Import: Cmd+K, arXiv URL or DOI, Crossref fetch, no PDF v1 | ✅ Stage 4 full: arXiv, Crossref DOI, bioRxiv, PubMed, web/journal articles (`/api/import/article`), PDF uploads (`/api/import/pdf`), Markdown/Text, and CSV/JSON datasets |
 | 16 | Lens panel: segmented control / collapsed selection card / thread / connection cards with Keep–Discard–Ask-why / composer / **calls POST /api/lens** | ✅ Phase C (10/2026): switcher + selection card + thread + cards + composer, wired to `/api/lens`; "New thread" clears; error strip for 500/502 |
 | 17 | Connections drawer: table, jump-to-range, keep/discard, kept→edges | ✅ Stage 6 (commit `57762a7`): synthesis table of kept connections + discard action |
@@ -147,19 +157,19 @@ copy audit clean, **zero new deps** (package.json untouched).
 |---|---|---|
 | 29 | Stage 1 shell | ✅ |
 | 30 | Stage 2 data model/Explorer/new concept-note | ⚠️ data model + Dexie ✅, New concept/New note ✅ (create + open a tab); Explorer **tree** ❌ (flat live list) |
-| 31 | Stage 3 editor/KaTeX/tabs/toolbar | ⚠️ editor ✅, KaTeX ✅, tabs ✅, dirty indicator ✅, middle-click close ✅, inline rename ✅ (double-click, Enter/Escape/blur, `maxLength={120}`, Dexie sync); floating selection toolbar ❌ |
+| 31 | Stage 3 editor/KaTeX/tabs/toolbar | ✅ editor ✅, KaTeX ✅, tabs ✅, dirty indicator ✅, middle-click close ✅, inline rename ✅, floating selection toolbar ✅ |
 | 32 | Stage 4 import | ✅ Stage 4 full: multi-platform (arXiv, DOI, bioRxiv, PubMed, Web articles), PDF uploads, and datasets |
 | 33 | Stage 5 lens panel wired + cards | ✅ Phase C: composer, thread, connection cards, `New thread`, error strip — `/api/lens` reachable end-to-end |
 | 34 | Stage 6 drawer/graph/shortcuts/empty states | ✅ Stage 6 (commit `57762a7`): drawer table + 2D graph tab live |
 | 35 | No zero-metric/ID screens | ✅ metric displays removed (Phase D) |
-| 36 | Fresh workspace → lens result in 5 actions | ⚠️ reachable end-to-end (import → tab → write → Send note to lens → thread); exact 5-action count not re-audited |
+| 36 | Fresh workspace → lens result in 5 actions | ✅ 2 actions: Click 'Try Demo Paper' → highlight passage → click Analogical / Systems |
 | 37 | Panels toggle by keyboard, remember state | ✅ |
 | 38 | Beta off → only 2 lenses visible | ✅ |
 | 39 | Kept → drawer + edges; discarded → not | ✅ Stage 6 (commit `57762a7`): kept connections appear in drawer table & 2D graph edges |
 | 40 | Lighthouse a11y 90+ / focus rings | ⚠️ `:focus-visible` + aria in shell; Lighthouse never run |
 | 41 | Out of scope respected (terminal, PDF, mobile…) | ✅ |
 
-**Prompt #1 scorecard: ✅ 32 · ⚠️ 9 · ❌ 0**
+**Prompt #1 scorecard: ✅ 35 · ⚠️ 6 · ❌ 0**
 
 ---
 

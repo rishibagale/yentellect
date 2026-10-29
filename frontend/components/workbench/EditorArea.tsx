@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { WorkDoc, DocKind } from "@/lib/workbench/db";
 import type { TabMeta } from "@/lib/workbench/tabs";
+import type { ThinkingMode } from "@/lib/modes";
 import DocEditorPane from "./DocEditorPane";
 
 interface EditorAreaProps {
@@ -34,8 +35,10 @@ interface EditorAreaProps {
   onSubmitFileImport?: (file: File) => void;
   onSubmitCustomDoc?: (doc: { title: string; body: string; kind: DocKind }) => void;
   onCancelImport?: () => void;
-  onAskLens?: (text: string) => void;
+  onAskLens?: (text: string, mode?: ThinkingMode) => void;
   onRenameTab?: (id: string, title: string) => void;
+  onLoadDemo?: () => void;
+  onOpenImport?: () => void;
 }
 
 const KIND_LABEL: Record<DocKind, string> = {
@@ -64,6 +67,8 @@ export default function EditorArea({
   onCancelImport,
   onAskLens,
   onRenameTab,
+  onLoadDemo,
+  onOpenImport,
 }: EditorAreaProps) {
   const [draft, setDraft] = useState("");
   const [importTab, setImportTab] = useState<ImportTab>("link");
@@ -571,13 +576,62 @@ export default function EditorArea({
           Loading document…
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center px-4">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 max-w-xl mx-auto w-full text-center">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--bg-2)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] text-xl mb-4 shadow-sm">
+            ◈
+          </div>
+          <h2 className="text-base font-semibold text-[var(--text)] mb-1">
+            Research Workbench
+          </h2>
+          <p className="text-xs text-[var(--text-dim)] max-w-md leading-relaxed mb-6">
+            Import research papers, write notes with LaTeX math, and uncover structural analogies and systemic dynamics.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-4">
+            {onLoadDemo && (
+              <button
+                type="button"
+                onClick={onLoadDemo}
+                className="group flex flex-col items-start p-3.5 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/60 text-left transition-all shadow-xs"
+              >
+                <div className="flex items-center justify-between w-full mb-1">
+                  <span className="text-xs font-semibold text-[var(--accent)]">Try Demo Paper</span>
+                  <span className="text-[11px] text-[var(--accent)] opacity-60 group-hover:opacity-100 transition-opacity">→</span>
+                </div>
+                <span className="text-[11px] text-[var(--text)] font-medium line-clamp-1">
+                  Navier-Stokes Problem
+                </span>
+                <span className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                  Pre-loaded with fluid equations & Socratic probes
+                </span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onOpenImport ?? onOpenPalette}
+              className="group flex flex-col items-start p-3.5 rounded-xl border border-[var(--border)] bg-[var(--bg-1)] hover:bg-[var(--bg-2)] hover:border-[var(--text-dim)] text-left transition-all shadow-xs"
+            >
+              <div className="flex items-center justify-between w-full mb-1">
+                <span className="text-xs font-semibold text-[var(--text)]">Import Research</span>
+                <span className="text-[11px] text-[var(--text-dim)] group-hover:text-[var(--text)] transition-colors">📥</span>
+              </div>
+              <span className="text-[11px] text-[var(--text-dim)] group-hover:text-[var(--text)] font-medium">
+                arXiv, DOI, Web, or PDF
+              </span>
+              <span className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                Automatically formats title, abstract, and text
+              </span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={onOpenPalette}
-            className="w-full max-w-md rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-1)] px-4 py-3 text-center text-sm text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--text-dim)] transition-colors"
+            className="w-full rounded-xl border border-[var(--border)]/70 bg-[var(--bg-1)]/60 hover:bg-[var(--bg-1)] px-4 py-2.5 text-center text-xs text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--text-dim)] transition-colors flex items-center justify-between"
           >
-            Import a paper or write a concept to begin.
+            <span>Import a paper or write a concept to begin.</span>
+            <kbd className="text-[10px] border border-[var(--border)] px-1.5 py-0.5 rounded bg-[var(--bg-0)]">⌘K</kbd>
           </button>
         </div>
       )}

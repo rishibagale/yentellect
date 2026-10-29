@@ -22,6 +22,7 @@ import { LayoutProvider, useLayout } from "@/lib/workbench/layout";
 import { buildCommands } from "@/lib/workbench/commands";
 import { useLensThread } from "@/lib/workbench/lens-thread";
 import { thinkingModeToLensId } from "@/lib/workbench/lens-client";
+import type { ThinkingMode } from "@/lib/modes";
 import { useShellState } from "./shell-state";
 import { useShellKeys } from "./shell-keys";
 import { useState } from "react";
@@ -48,6 +49,9 @@ function ShellInner() {
     activeTabId,
     library,
     openDoc,
+    loadDemo,
+    removeDoc,
+    openImport,
     selectTab,
     closeTab,
     renameTab,
@@ -77,7 +81,8 @@ function ShellInner() {
   const thread = useLensThread({ lens, doc: docContext });
 
   /** "Send note to lens": open the panel, then send the note as the selection. */
-  const askLens = (text: string): void => {
+  const askLens = (text: string, mode?: ThinkingMode): void => {
+    if (mode) setActiveLens(mode);
     update({ lensOpen: true });
     void thread.send(text);
   };
@@ -125,6 +130,7 @@ function ShellInner() {
                   doc={doc}
                   docs={library}
                   openDoc={openDoc}
+                  onDeleteDoc={removeDoc}
                   thread={thread}
                 />
               </div>
@@ -154,6 +160,7 @@ function ShellInner() {
                     doc={doc}
                     docs={library}
                     openDoc={openDoc}
+                  onDeleteDoc={removeDoc}
                     thread={thread}
                   />
                 </div>
@@ -178,6 +185,8 @@ function ShellInner() {
                   onSelectTab={selectTab}
                   onCloseTab={closeTab}
                   onRenameTab={renameTab}
+                  onLoadDemo={loadDemo}
+                  onOpenImport={openImport}
                   importOpen={importOpen}
                   importStatus={importStatus}
                   importError={importError}

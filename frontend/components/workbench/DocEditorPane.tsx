@@ -8,6 +8,8 @@ import { markdown } from "@codemirror/lang-markdown";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import { getDoc, pendingBody, putDoc, setPendingBody, type WorkDoc } from "@/lib/workbench/db";
+import type { ThinkingMode } from "@/lib/modes";
+import FloatingSelectionToolbar from "./FloatingSelectionToolbar";
 
 const SAVE_DEBOUNCE_MS = 800;
 
@@ -62,7 +64,7 @@ export interface DocEditorPaneProps {
   doc: WorkDoc;
   /** Body to start from. Defaults to the doc's persisted body. */
   initialBody?: string;
-  onAskLens?: (text: string) => void;
+  onAskLens?: (text: string, mode?: ThinkingMode) => void;
   onSaved?: (body: string) => void;
 }
 
@@ -81,6 +83,12 @@ export default function DocEditorPane({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [docId, setDocId] = useState(doc.id);
 
+  // Floating selection state
+  const [selection, setSelection] = useState<{
+    text: string;
+    coords: { x: number; y: number } | null;
+  }>({ text: "", coords: null });
+
   /** Latest body + dirty flag, readable from the unmount cleanup. */
   const latest = useRef({ body: startBody, dirty: false, docId: doc.id });
   useEffect(() => {
@@ -97,105 +105,126 @@ export default function DocEditorPane({
     setDirty(false);
     setSavedAt(null);
     setMode("edit");
+    setSelection({ text: "", coords: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id]);
+
+  // Listen for text selections in editor or preview
+  const handleSelectionChange = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) {
+      setSelection({ text: "", coords: null });
+      return;
+    }
+    const text = sel.toString().trim();
+    if (text.length < 3) {
+      setSelection({ text: "", coords: null });
+      return;
+    }
+    try {
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return;
+      setSelection({
+        text,
+        coords: { x: rect.left + rect.width / 2, y: rect.top },
+      });
+    } catch {
+      setSelection({ text: "", coords: null });
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => document.removeEventListener("selectionchange", handleSelectionChange);
+  }, [handleSelectionChange]);
+
+  const handleAskSelection = useCallback(
+    (text: string, askMode: ThinkingMode) => {
+      onAskLens?.(text, askMode);
+      setSelection({ text: "", coords: null });
+    },
+    [onAskLens]
+  );
 
   // Create / destroy the CodeMirror view keyed on doc identity.
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    if (viewRef.current) {
-      viewRef.current.destroy();
-      viewRef.current = null;
-    }
+
+    const start = body;
+    setPendingBody(doc.id, start);
+
+    const updateListener = EditorView.updateListener.of((update) => {
+      if (!update.docChanged) return;
+      const next = update.state.doc.toString();
+      setBody(next);
+      setPendingBody(doc.id, next);
+      setDirty(true);
+    });
+
     const state = EditorState.create({
-      doc: initialBody ?? doc.body ?? "",
+      doc: start,
       extensions: [
         history(),
-        EditorView.lineWrapping,
-        placeholder("Write equations with $...$ or $$...$$; notes save automatically."),
         keymap.of([...defaultKeymap, ...historyKeymap]),
-        EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            const text = update.state.doc.toString();
-            setPendingBody(docId, text);
-            setBody(text);
-            setDirty(true);
-          }
-        }),
         markdown(),
+        EditorView.lineWrapping,
+        placeholder("Write your thoughts, paste excerpts, or explore ideas with LaTeX $...$ math…"),
+        updateListener,
       ],
     });
+
     const view = new EditorView({ state, parent: host });
     viewRef.current = view;
+
     return () => {
       view.destroy();
       viewRef.current = null;
     };
-    // remount deliberately on doc swap so editor doc matches state
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc.id, docId]);
+  }, [doc.id]);
 
-  const save = useCallback(
-    async (text: string, targetId: string) => {
-      const existing = (await getDoc(targetId)) ?? null;
-      // Nothing changed: don't rewrite the row (a rewrite would bump
-      // updatedAt and reorder the library for no reason).
-      if (existing && existing.body === text) {
-        if (latest.current.docId === targetId) {
-          setSavedAt(Date.now());
-          setDirty(false);
-        }
-        return;
-      }
-      const next: WorkDoc = {
-        ...(existing ?? doc),
-        id: targetId,
-        body: text,
-      };
-      await putDoc(next);
-      if (latest.current.docId !== targetId) return;
-      setSavedAt(Date.now());
+  const saveRef = useRef<(bodyToSave: string, idToSave: string) => Promise<void>>(async () => {});
+  saveRef.current = async (bodyToSave: string, idToSave: string) => {
+    const existing = await getDoc(idToSave);
+    if (!existing) return;
+    const now = Date.now();
+    await putDoc({
+      ...existing,
+      body: bodyToSave,
+      updatedAt: now,
+    });
+    setPendingBody(idToSave, bodyToSave);
+    if (latest.current.docId === idToSave) {
       setDirty(false);
-      onSaved?.(text);
-    },
-    [doc, onSaved]
-  );
+      setSavedAt(now);
+      onSaved?.(bodyToSave);
+    }
+  };
 
-  /** Save through a ref so the unmount flush never depends on re-renders. */
-  const saveRef = useRef(save);
-  useEffect(() => {
-    saveRef.current = save;
-  }, [save]);
-
-  // Debounced autosave. Only runs once the body is actually dirty, so
-  // opening a document never rewrites it.
   useEffect(() => {
     if (!dirty) return;
-    const t = setTimeout(() => {
-      void saveRef.current(body, docId);
+    const id = doc.id;
+    const currentBody = body;
+    const timer = setTimeout(() => {
+      void saveRef.current(currentBody, id);
     }, SAVE_DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [body, dirty, docId]);
+    return () => clearTimeout(timer);
+  }, [body, dirty, doc.id]);
 
-  // Unmount flush: switching tabs or closing the editor must not lose the
-  // last keystrokes that were still inside the debounce window. The body
-  // comes from the pending registry, which the editor updates SYNCHRONOUSLY
-  // on every keystroke — a React ref would lag by a render and could
-  // rewrite an older body over the newer one.
   useEffect(() => {
     return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       const snapshot = latest.current;
-      const body = pendingBody(snapshot.docId) ?? (snapshot.dirty ? snapshot.body : undefined);
-      if (body !== undefined) {
-        void saveRef.current(body, snapshot.docId);
+      const b = pendingBody(snapshot.docId) ?? (snapshot.dirty ? snapshot.body : undefined);
+      if (b !== undefined) {
+        void saveRef.current(b, snapshot.docId);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const askSelection = useCallback(
+  const askFullBody = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (trimmed.length === 0) return;
@@ -216,10 +245,17 @@ export default function DocEditorPane({
   meta.push(KIND_LABEL[doc.kind]);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <header className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
+    <div className="flex h-full flex-col overflow-hidden relative">
+      <FloatingSelectionToolbar
+        selectionText={selection.text}
+        coords={selection.coords}
+        onAsk={handleAskSelection}
+        onDismiss={() => setSelection({ text: "", coords: null })}
+      />
+
+      <header className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 bg-[var(--bg-1)]">
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-medium text-[var(--text)]">{doc.title}</h2>
+          <h2 className="truncate text-sm font-semibold text-[var(--text)]">{doc.title}</h2>
           <p className="truncate text-xs text-[var(--text-dim)]">
             {byline} · {meta.join(" · ")}
             {doc.url ? (
@@ -241,7 +277,7 @@ export default function DocEditorPane({
           <button
             type="button"
             onClick={() => setMode(mode === "edit" ? "preview" : "edit")}
-            className="rounded-[var(--radius)] border border-[var(--border)] px-2 py-1 text-xs text-[var(--text)] hover:bg-[var(--bg-2)]"
+            className="rounded-[var(--radius)] border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--text)] hover:bg-[var(--bg-2)] transition-colors"
             aria-label={mode === "edit" ? "Show math preview" : "Back to editing"}
           >
             {mode === "edit" ? "Preview" : "Edit"}
@@ -251,6 +287,7 @@ export default function DocEditorPane({
           </span>
         </div>
       </header>
+
       <div className="min-h-0 flex-1 overflow-hidden">
         {mode === "edit" ? (
           <div ref={hostRef} className="font-doc h-full" data-testid="doc-editor" />
@@ -262,18 +299,19 @@ export default function DocEditorPane({
           />
         )}
       </div>
+
       {onAskLens ? (
         <footer className="flex-shrink-0 border-t border-[var(--border)] px-4 py-2 bg-[var(--bg-1)] flex items-center justify-between">
           <span className="text-[11px] text-[var(--text-dim)]">
-            Probe this note with Socratic AI lenses
+            Highlight text to ask, or probe entire note
           </span>
           <button
             type="button"
-            onClick={() => askSelection(body)}
+            onClick={() => askFullBody(body)}
             className="flex items-center gap-1.5 text-xs font-medium text-[var(--accent)] hover:text-[var(--text)] bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 border border-[var(--accent)]/30 px-2.5 py-1 rounded-[var(--radius)] transition-colors"
           >
             <span>◈</span>
-            <span>Send to lens chat</span>
+            <span>Send entire note to lens</span>
             <span aria-hidden="true">→</span>
           </button>
         </footer>
