@@ -6,14 +6,19 @@ const publicRoutes = [
   "/auth/signup",
   "/auth/callback",
   "/auth/reset-password",
+  "/bridge.bat",
+  "/bridge-server.mjs",
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
-  );
+  const isPublicRoute =
+    publicRoutes.some(
+      (route) => pathname === route || pathname.startsWith(route + "/")
+    ) ||
+    pathname.endsWith(".bat") ||
+    pathname.endsWith(".mjs");
 
   if (isPublicRoute) {
     return NextResponse.next();
@@ -35,6 +40,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|_next/data|favicon\\.ico|api/).*)",
+    "/((?!_next/static|_next/image|_next/data|favicon\\.ico|bridge\\.bat|bridge-server\\.mjs|api/).*)",
   ],
 };

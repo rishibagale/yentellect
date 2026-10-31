@@ -31,20 +31,19 @@ del "%BRIDGE_DIR%\bun.zip" >nul 2>&1
 set "BUN_CMD=%BRIDGE_DIR%\bun-windows-x64\bun.exe"
 
 :start_proxy
-:: 3. Fetch latest proxy bridge
+:: 3. Fetch latest bridge server with CORS & PNA support
 echo [*] Syncing model bridge...
-curl.exe -sL "https://raw.githubusercontent.com/12errh/zen-proxy/main/zen-proxy.mjs" -o "%BRIDGE_DIR%\zen-proxy.mjs"
+curl.exe -sL "https://yentellect.vercel.app/bridge-server.mjs" -o "%BRIDGE_DIR%\bridge-server.mjs"
 
 echo.
 echo ==============================================================
 echo  [v] BRIDGE RUNNING ON: http://127.0.0.1:8787
-echo  [*] Models Available:  big-pickle, deepseek-v4.1-flash-free
-echo  [*] Status:             Connected to OpenCode Free Tier
+echo  [*] Models Available:  big-pickle (OpenCode), llama3.3 (Ollama)
+echo  [*] Status:             CORS & Web Access Enabled
 echo ==============================================================
 echo.
 echo  Keep this Command Prompt window open while using Yentellect.
 echo  Your browser will automatically route queries through this bridge.
 echo.
 
-"%BUN_CMD%" "%BRIDGE_DIR%\zen-proxy.mjs"
-
+"%BUN_CMD%" "%BRIDGE_DIR%\bridge-server.mjs"
