@@ -1,22 +1,17 @@
 /**
  * Yentellect workbench — lens transport (Phase C).
  *
- * One fetch, one error type: `postLens` is the ONLY place the workbench
- * talks to POST /api/lens, so provider/model headers, failure copy, and the
- * status-to-message map cannot drift across callers. Plain module, no
- * "use client" — it is only ever called from client components.
- *
- * Failures throw LensCallError carrying the real HTTP status (0 for
- * network/unknown). Messages are fixed safe strings, or a server `error`
- * field only when it is a non-empty single line that shows no sign of a
- * key/secret/token: zod issues, stack traces, and headers never reach the UI.
- * `thinkingModeToLensId` is the mode-to-lens bridge; beta modes have no
- * backend lens and map to null.
+ * One fetch, one error type: `postLens` is the central place the workbench
+ * dispatches lens queries. Supports:
+ * 1. Cloud Engine (POST /api/lens via server-side configured provider)
+ * 2. Local Machine Engine (direct browser fetch to user's localhost daemon e.g. Ollama or Zen Bridge)
  */
 import type { LensId, LensRequest } from "@/lib/lens/schema";
 import { LensResponseSchema } from "@/lib/lens/schema";
 import type { LensResponse } from "@/lib/lens/schema";
 import type { ThinkingMode } from "@/lib/modes";
+import { readEngineConfig } from "./engine-config";
+import { buildSystemPrompt, JSON_SHAPE_EXAMPLE } from "@/lib/lens/prompts";
 
 const NETWORK_ERROR = "Could not reach the lens service.";
 const UNREADABLE_RESPONSE = "Lens service returned an unreadable response.";
@@ -78,8 +73,115 @@ function readHeader(res: Response, name: string): string {
   }
 }
 
-/** Single transport to POST /api/lens. Never adds a second one. */
+function tryExtractJson(text: string): unknown {
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {}
+
+  const match = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (match) {
+    try {
+      return JSON.parse(match[1]);
+    } catch {}
+  }
+
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    try {
+      return JSON.parse(trimmed.slice(start, end + 1));
+    } catch {}
+  }
+  return null;
+}
+
+/** Direct transport to user's Local Machine AI daemon on localhost */
+async function postLocalLens(req: LensRequest): Promise<LensCallResult> {
+  const cfg = readEngineConfig();
+  const cleanBase = cfg.localUrl.replace(/\/+$/, "").replace(/\/v1$/, "");
+  const endpoint = `${cleanBase}/v1/chat/completions`;
+
+  const system = buildSystemPrompt(req.lens, {
+    userField: req.userField,
+    docTitle: req.doc.title,
+    isFollowUp: req.history.length > 0 || Boolean(req.userMessage),
+  });
+
+  const selectionBlock =
+    `SELECTION (from "${req.doc.title}", ${req.doc.kind})` +
+    (req.doc.abstract ? `\nABSTRACT: ${req.doc.abstract}` : "") +
+    `\nTEXT: ${req.selection}` +
+    `\nUSER FIELD: ${req.userField}`;
+
+  const messages = [
+    { role: "system", content: system + "\n\n" + JSON_SHAPE_EXAMPLE },
+    { role: "user", content: selectionBlock },
+    ...req.history.map((t) => ({ role: t.role, content: t.content })),
+  ];
+  if (req.userMessage) messages.push({ role: "user", content: req.userMessage });
+
+  let res: Response;
+  try {
+    res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: cfg.localModel || "llama3.3",
+        messages,
+        temperature: 0.2,
+      }),
+    });
+  } catch {
+    throw new LensCallError(
+      `Could not connect to local AI at ${cleanBase}. Ensure your Command Prompt bridge is running.`,
+      0
+    );
+  }
+
+  if (!res.ok) {
+    throw new LensCallError(`Local AI returned error status ${res.status}.`, res.status);
+  }
+
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    throw new LensCallError("Local AI returned an unreadable response.", 0);
+  }
+
+  const content = (body as { choices?: Array<{ message?: { content?: string } }> })?.choices?.[0]?.message?.content ?? "";
+  const parsedJson = tryExtractJson(content);
+  const validated = LensResponseSchema.safeParse(parsedJson);
+
+  if (validated.success) {
+    return {
+      response: validated.data,
+      provider: "Local Machine",
+      model: cfg.localModel || "local",
+      usedFallback: false,
+    };
+  }
+
+  // Graceful fallback for non-JSON or freeform local model replies
+  return {
+    response: {
+      message: content.trim() || "Local model produced no output.",
+      connections: [],
+    },
+    provider: "Local Machine",
+    model: cfg.localModel || "local",
+    usedFallback: true,
+  };
+}
+
+/** Single transport for Lens. Routes to Cloud or Local Machine based on config. */
 export async function postLens(req: LensRequest): Promise<LensCallResult> {
+  const engineConfig = readEngineConfig();
+  if (engineConfig.target === "local") {
+    return postLocalLens(req);
+  }
+
   let res: Response;
   try {
     res = await fetch("/api/lens", {

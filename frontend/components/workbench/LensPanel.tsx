@@ -3,7 +3,7 @@
  * Resizable, collapsible.
  *
  * Streamlined, distraction-free architecture:
- * 1. Single unified header (Socratic Lens title + compact mode toggle + actions)
+ * 1. Single unified header (Socratic Lens title + mode toggle + Model Engine switcher + actions)
  * 2. Unobtrusive floating context indicator (no rigid horizontal dividing bars)
  * 3. Fluid chat message stream with rounded cards and calm typography
  * 4. Refined starter prompt suggestions with soft borders
@@ -17,6 +17,8 @@ import type { ThinkingMode } from "@/lib/modes";
 import { MODES, visibleLenses } from "@/lib/modes";
 import type { ConnectionEntry, LensThread } from "@/lib/workbench/lens-thread";
 import { thinkingModeToLensId } from "@/lib/workbench/lens-client";
+import { readEngineConfig, type EngineConfig } from "@/lib/workbench/engine-config";
+import ModelSettingsModal from "./ModelSettingsModal";
 
 interface LensPanelProps {
   activeLens: ThinkingMode;
@@ -167,6 +169,8 @@ export default function LensPanel({
 }: LensPanelProps) {
   const lenses = visibleLenses(betaModes);
   const [draft, setDraft] = useState("");
+  const [engineConfig, setEngineConfig] = useState<EngineConfig>(readEngineConfig);
+  const [modelModalOpen, setModelModalOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const reduceMotion = useReducedMotion();
@@ -177,6 +181,17 @@ export default function LensPanel({
   const canSend = draft.trim().length > 0 && !sending && !blocked;
   // The document this thread started with wins over the currently open one.
   const shownTitle = thread.pinnedDocTitle ?? docTitle;
+
+  // Listen for engine config changes from modal
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const custom = e as CustomEvent<EngineConfig>;
+      if (custom.detail) setEngineConfig(custom.detail);
+      else setEngineConfig(readEngineConfig());
+    };
+    window.addEventListener("yentellect:engine-changed", handler);
+    return () => window.removeEventListener("yentellect:engine-changed", handler);
+  }, []);
 
   // Auto-resize the composer (min 44px -> max 180px).
   useEffect(() => {
@@ -218,7 +233,7 @@ export default function LensPanel({
       id="pane-lens"
       data-region="lens"
       aria-label="Lens panel"
-      className="h-full flex flex-col overflow-hidden bg-[var(--bg-1)] border-l border-[var(--border)]"
+      className="h-full flex flex-col overflow-hidden bg-[var(--bg-1)] border-l border-[var(--border)] relative"
     >
       {/* 1. Single Unified Header Bar (No stacked lines or redundant badges) */}
       <div className="shrink-0 flex items-center justify-between px-3 py-2 border-b border-[var(--border)]/70 bg-[var(--bg-1)]">
@@ -256,8 +271,30 @@ export default function LensPanel({
           </div>
         </div>
 
-        {/* Right Actions: Connections Drawer Toggle + New Thread */}
+        {/* Right Actions: Model Pill + Connections Drawer Toggle + New Thread */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* AI Model & Engine Switcher Pill */}
+          <button
+            type="button"
+            onClick={() => setModelModalOpen(true)}
+            className={`text-[10px] px-2 py-0.5 rounded-full border transition-all flex items-center gap-1.5 cursor-pointer ${
+              engineConfig.target === "local"
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-medium hover:bg-emerald-500/20"
+                : "bg-[var(--bg-0)] text-[var(--text-dim)] border-[var(--border)]/60 hover:text-[var(--text)] hover:border-[var(--text-dim)]"
+            }`}
+            title="Configure AI Model & Engine (Cloud vs Local Machine)"
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                engineConfig.target === "local" ? "bg-emerald-400 animate-pulse" : "bg-[var(--accent)]"
+              }`}
+            />
+            <span className="truncate max-w-[85px]">
+              {engineConfig.target === "local" ? (engineConfig.localModel || "Local AI") : "Cloud AI"}
+            </span>
+            <span className="text-[9px] opacity-60">▼</span>
+          </button>
+
           {thread.keptCount > 0 && onToggleDrawer && (
             <button
               type="button"
@@ -401,7 +438,8 @@ export default function LensPanel({
               <div className="flex items-center gap-2">
                 <div className="w-3.5 h-3.5 border-2 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin" />
                 <span className="text-[12px] text-[var(--text-dim)]">
-                  Thinking through {MODES[activeLens]?.label.toLowerCase()} lens…
+                  Thinking through {MODES[activeLens]?.label.toLowerCase()} lens
+                  {engineConfig.target === "local" ? ` (${engineConfig.localModel})` : ""}…
                 </span>
               </div>
             </div>
@@ -415,7 +453,18 @@ export default function LensPanel({
           role="alert"
           className="mx-3 mb-2 flex items-start justify-between gap-2 text-[var(--danger)] border border-[var(--danger)]/40 bg-[var(--bg-0)] rounded-xl px-3 py-2 text-[12px] shrink-0"
         >
-          <span className="break-words">{thread.error}</span>
+          <div className="flex flex-col gap-1">
+            <span className="break-words">{thread.error}</span>
+            {engineConfig.target === "local" && (
+              <button
+                type="button"
+                onClick={() => setModelModalOpen(true)}
+                className="text-[11px] underline text-left text-[var(--accent)] hover:opacity-80 transition-opacity"
+              >
+                Open AI Engine Settings →
+              </button>
+            )}
+          </div>
           <button
             type="button"
             aria-label="Dismiss error"
@@ -482,7 +531,7 @@ export default function LensPanel({
               type="button"
               onClick={() => void handleSend()}
               disabled={!canSend}
-              className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--bg-0)] font-semibold text-xs transition-all hover:opacity-90 disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center shrink-0 shadow-2xs"
+              className="w-7 h-7 rounded-full bg-[var(--accent)] text-[var(--bg-0)] font-semibold text-xs transition-all hover:opacity-90 disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center shrink-0 shadow-2xs cursor-pointer"
               aria-label="Send message"
               title="Send message"
             >
@@ -491,6 +540,12 @@ export default function LensPanel({
           </div>
         </div>
       </div>
+
+      {/* Model & Engine Configuration Modal */}
+      <ModelSettingsModal
+        isOpen={modelModalOpen}
+        onClose={() => setModelModalOpen(false)}
+      />
     </section>
   );
 }
