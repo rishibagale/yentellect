@@ -23,6 +23,8 @@ serve({
           object: "list",
           data: [
             { id: "big-pickle", name: "Big Pickle (OpenCode Free)" },
+            { id: "deepseek-v4.1-flash-free", name: "DeepSeek Flash (OpenCode Free)" },
+            { id: "glm-5.3-flash-free", name: "GLM Flash (OpenCode Free)" },
             { id: "llama3.3", name: "Llama 3.3 (Local Ollama)" },
             { id: "deepseek-r1", name: "DeepSeek R1 (Local Ollama)" },
           ],
@@ -42,7 +44,7 @@ serve({
       const model = body.model || "big-pickle";
 
       // If user is targeting local Ollama
-      if (model.includes("llama") || model.includes("deepseek") || model.includes("qwen")) {
+      if (model.includes("llama") || model.includes("deepseek-r1") || model.includes("qwen")) {
         try {
           const ollamaRes = await fetch("http://127.0.0.1:11434/v1/chat/completions", {
             method: "POST",
@@ -53,51 +55,71 @@ serve({
           return Response.json(data, { headers: CORS_HEADERS });
         } catch {
           return Response.json(
-            { error: { message: "Ollama is not running on port 11434. Run: ollama run " + model } },
+            { error: { message: "Ollama is not running on port 11434. Run in CMD: ollama run " + model } },
             { status: 502, headers: CORS_HEADERS }
           );
         }
       }
 
-      // If user is targeting OpenCode (big-pickle)
+      // If user is targeting OpenCode models with auto-failover
+      const candidates = [
+        model,
+        "big-pickle",
+        "deepseek-v4.1-flash-free",
+        "glm-5.3-flash-free",
+        "nemotron-3.5-lightning-free",
+        "beam-free",
+      ].filter((m, idx, arr) => arr.indexOf(m) === idx);
+
       const sessionId = "opencode-session-" + Math.random().toString(36).slice(2);
       const projectId = "opencode-proj-" + Math.random().toString(36).slice(2);
 
-      try {
-        const upstreamRes = await fetch("https://opencode.ai/inference/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "User-Agent": "opencode/2.1.4",
-            "x-opencode-client": "cli",
-            "x-opencode-session": sessionId,
-            "x-opencode-project": projectId,
-          },
-          body: JSON.stringify({
-            model: "big-pickle",
-            messages: body.messages,
-            temperature: body.temperature ?? 0.2,
-            stream: false,
-          }),
-        });
+      let lastError = "Rate limit reached";
+      let lastStatus = 429;
 
-        const data = await upstreamRes.json();
-        if (!upstreamRes.ok) {
-          const errType = data?.error?.type || "Error";
-          const errMsg = data?.error?.message || "OpenCode upstream error";
-          return Response.json(
-            { error: { message: `[OpenCode ${errType}] ${errMsg}` } },
-            { status: upstreamRes.status, headers: CORS_HEADERS }
-          );
+      for (const candidate of candidates) {
+        try {
+          const upstreamRes = await fetch("https://opencode.ai/inference/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "User-Agent": "opencode/2.1.4",
+              "x-opencode-client": "cli",
+              "x-opencode-session": sessionId,
+              "x-opencode-project": projectId,
+            },
+            body: JSON.stringify({
+              model: candidate,
+              messages: body.messages,
+              temperature: body.temperature ?? 0.2,
+              stream: false,
+            }),
+          });
+
+          const data = await upstreamRes.json();
+          if (upstreamRes.ok) {
+            return Response.json(data, { headers: CORS_HEADERS });
+          }
+
+          lastStatus = upstreamRes.status;
+          lastError = data?.error?.message || data?.error?.type || `Status ${upstreamRes.status}`;
+
+          if (upstreamRes.status !== 429 && upstreamRes.status < 500) {
+            break;
+          }
+        } catch (err) {
+          lastError = (err as Error).message;
         }
-
-        return Response.json(data, { headers: CORS_HEADERS });
-      } catch (err) {
-        return Response.json(
-          { error: { message: `Failed to contact OpenCode: ${err.message}` } },
-          { status: 502, headers: CORS_HEADERS }
-        );
       }
+
+      return Response.json(
+        {
+          error: {
+            message: `OpenCode free capacity is currently exhausted (${lastError}). Switch to 'Cloud AI' in the header for instant free answers, or run Ollama locally.`,
+          },
+        },
+        { status: lastStatus, headers: CORS_HEADERS }
+      );
     }
 
     return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
@@ -105,4 +127,3 @@ serve({
 });
 
 console.log(`[Yentellect Bridge] Running on http://127.0.0.1:${PORT}`);
-

@@ -127,7 +127,7 @@ async function postLocalLens(req: LensRequest): Promise<LensCallResult> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: cfg.localModel || "llama3.3",
+        model: cfg.localModel || "big-pickle",
         messages,
         temperature: 0.2,
       }),
@@ -139,15 +139,27 @@ async function postLocalLens(req: LensRequest): Promise<LensCallResult> {
     );
   }
 
-  if (!res.ok) {
-    throw new LensCallError(`Local AI returned error status ${res.status}.`, res.status);
-  }
-
-  let body: unknown;
+  let body: unknown = null;
   try {
     body = await res.json();
   } catch {
-    throw new LensCallError("Local AI returned an unreadable response.", 0);
+    /* non-json body */
+  }
+
+  if (!res.ok) {
+    const errorMsg =
+      (body as { error?: { message?: string } })?.error?.message ||
+      (body as { error?: string })?.error;
+    throw new LensCallError(
+      typeof errorMsg === "string" && errorMsg.trim()
+        ? errorMsg.trim()
+        : `Local AI returned error status ${res.status}.`,
+      res.status
+    );
+  }
+
+  if (!body) {
+    throw new LensCallError("Local AI returned an empty response.", 0);
   }
 
   const content = (body as { choices?: Array<{ message?: { content?: string } }> })?.choices?.[0]?.message?.content ?? "";
