@@ -8,6 +8,7 @@ const publicRoutes = [
   "/auth/reset-password",
   "/bridge.bat",
   "/bridge-server.mjs",
+  "/mcp-utils.mjs",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -40,6 +41,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|_next/data|favicon\\.ico|bridge\\.bat|bridge-server\\.mjs|api/).*)",
+    "/((?!_next/static|_next/image|_next/data|favicon\\.ico|bridge\\.bat|bridge-server\\.mjs|mcp-utils\\.mjs|api/).*)",
   ],
 };

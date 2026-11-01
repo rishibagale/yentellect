@@ -25,7 +25,7 @@ import { thinkingModeToLensId } from "@/lib/workbench/lens-client";
 import type { ThinkingMode } from "@/lib/modes";
 import { useShellState } from "./shell-state";
 import { useShellKeys } from "./shell-keys";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function ShellInner() {
   const { layout, update, toggleExplorer, toggleLens, setActivity, setPaletteOpen } =
@@ -89,6 +89,25 @@ function ShellInner() {
 
   // On mobile/tablet, lens panel is a bottom sheet when open
   const [lensSheetOpen, setLensSheetOpen] = useState(false);
+
+  // Sync active document with local MCP bridge if running
+  useEffect(() => {
+    if (!doc) return;
+    try {
+      fetch("http://127.0.0.1:8787/api/active-paper", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: doc.title,
+          abstract: doc.abstract || "",
+          source: doc.source || doc.kind,
+          url: doc.url || "",
+          year: doc.year || "",
+          body: doc.body ? doc.body.slice(0, 10000) : "",
+        }),
+      }).catch(() => {});
+    } catch {}
+  }, [doc]);
 
   if (narrow && isPhone) return <MinWidthNotice isPhone={true} />;
 

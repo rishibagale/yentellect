@@ -1,12 +1,12 @@
 @echo off
 setlocal enabledelayedexpansion
-title Yentellect Local AI Bridge
+title Yentellect Local AI Bridge & MCP Server
 
 set "BRIDGE_DIR=%USERPROFILE%\.yentellect-bridge"
 if not exist "%BRIDGE_DIR%" mkdir "%BRIDGE_DIR%"
 
 echo ==============================================================
-echo             Yentellect Local AI Bridge (Free Models)
+echo        Yentellect Local AI Bridge & Model Context Protocol
 echo ==============================================================
 echo.
 
@@ -31,19 +31,21 @@ del "%BRIDGE_DIR%\bun.zip" >nul 2>&1
 set "BUN_CMD=%BRIDGE_DIR%\bun-windows-x64\bun.exe"
 
 :start_proxy
-:: 3. Fetch latest bridge server with CORS & PNA support
-echo [*] Syncing model bridge...
+:: 3. Fetch latest bridge server & MCP utilities
+echo [*] Syncing model bridge and MCP tools...
 curl.exe -sL "https://yentellect.vercel.app/bridge-server.mjs" -o "%BRIDGE_DIR%\bridge-server.mjs"
+curl.exe -sL "https://yentellect.vercel.app/mcp-utils.mjs" -o "%BRIDGE_DIR%\mcp-utils.mjs"
 
 echo.
 echo ==============================================================
 echo  [v] BRIDGE RUNNING ON: http://127.0.0.1:8787
-echo  [*] Models Available:  big-pickle (OpenCode), llama3.3 (Ollama)
-echo  [*] Status:             CORS & Web Access Enabled
+echo  [*] Models Available:  big-pickle (OpenCode Free), llama3.3 (Ollama)
+echo  [*] MCP Endpoint:      http://127.0.0.1:8787/mcp (Cline, Claude Code, Cursor)
+echo  [*] Status:             CORS, PNA & SSE Enabled
 echo ==============================================================
 echo.
 echo  Keep this Command Prompt window open while using Yentellect.
-echo  Your browser will automatically route queries through this bridge.
+echo  Your browser and MCP coding agents will route through this bridge.
 echo.
 
 "%BUN_CMD%" "%BRIDGE_DIR%\bridge-server.mjs"
