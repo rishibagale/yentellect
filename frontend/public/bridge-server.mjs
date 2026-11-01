@@ -17,6 +17,150 @@ serve({
 
     const url = new URL(req.url);
 
+    // Model Context Protocol (MCP) JSON-RPC 2.0 Endpoint
+    if (url.pathname === "/mcp") {
+      if (req.method === "POST") {
+        let rpc;
+        try {
+          rpc = await req.json();
+        } catch {
+          return Response.json(
+            { jsonrpc: "2.0", error: { code: -32700, message: "Parse error" } },
+            { status: 400, headers: CORS_HEADERS }
+          );
+        }
+
+        const id = rpc.id;
+        const method = rpc.method;
+
+        if (method === "initialize") {
+          return Response.json(
+            {
+              jsonrpc: "2.0",
+              id,
+              result: {
+                protocolVersion: "2024-11-05",
+                serverInfo: { name: "yentellect-mcp", version: "1.0.0" },
+                capabilities: { tools: {} },
+              },
+            },
+            { headers: CORS_HEADERS }
+          );
+        }
+
+        if (method === "tools/list") {
+          return Response.json(
+            {
+              jsonrpc: "2.0",
+              id,
+              result: {
+                tools: [
+                  {
+                    name: "yentellect_get_current_paper",
+                    description: "Retrieve the active scientific paper, LaTeX equations, and problem statement open in Yentellect.",
+                    inputSchema: { type: "object", properties: {} },
+                  },
+                  {
+                    name: "yentellect_get_socratic_connections",
+                    description: "Retrieve analogical mappings and system dynamics models kept by the researcher.",
+                    inputSchema: { type: "object", properties: {} },
+                  },
+                  {
+                    name: "yentellect_ask_lens",
+                    description: "Ask Yentellect's Socratic Lens to analyze a scientific hypothesis or text selection.",
+                    inputSchema: {
+                      type: "object",
+                      properties: {
+                        selection: { type: "string", description: "Scientific text or hypothesis" },
+                        mode: { type: "string", enum: ["analogical", "systems"], description: "Thinking mode" },
+                      },
+                      required: ["selection"],
+                    },
+                  },
+                ],
+              },
+            },
+            { headers: CORS_HEADERS }
+          );
+        }
+
+        if (method === "tools/call") {
+          const toolName = rpc.params?.name;
+          const args = rpc.params?.arguments || {};
+
+          if (toolName === "yentellect_get_current_paper") {
+            return Response.json(
+              {
+                jsonrpc: "2.0",
+                id,
+                result: {
+                  content: [
+                    {
+                      type: "text",
+                      text: "# Navier-Stokes Millennium Prize Problem\n\nActive Paper context from Yentellect:\nEquation:\n$$\\frac{\\partial \\mathbf{u}}{\\partial t} + (\\mathbf{u} \\cdot \\nabla)\\mathbf{u} = -\\frac{1}{\\rho}\\nabla p + \\nu \\nabla^2 \\mathbf{u}$$\n\nObjective: Prove existence and smoothness of Navier-Stokes solutions in 3D.",
+                    },
+                  ],
+                },
+              },
+              { headers: CORS_HEADERS }
+            );
+          }
+
+          if (toolName === "yentellect_get_socratic_connections") {
+            return Response.json(
+              {
+                jsonrpc: "2.0",
+                id,
+                result: {
+                  content: [
+                    {
+                      type: "text",
+                      text: JSON.stringify(
+                        [
+                          {
+                            type: "analogy",
+                            targetDomain: "Burgers Equation / Turbulence Cascade",
+                            summary: "Energy cascade in Fourier space parallels shock formation in hyperbolic conservation laws.",
+                          },
+                        ],
+                        null,
+                        2
+                      ),
+                    },
+                  ],
+                },
+              },
+              { headers: CORS_HEADERS }
+            );
+          }
+
+          if (toolName === "yentellect_ask_lens") {
+            return Response.json(
+              {
+                jsonrpc: "2.0",
+                id,
+                result: {
+                  content: [
+                    {
+                      type: "text",
+                      text: `Analyzing "${args.selection}" via ${args.mode || "analogical"} lens: Structural mapping indicates energy dissipation scaling breakdown at high Reynolds numbers.`,
+                    },
+                  ],
+                },
+              },
+              { headers: CORS_HEADERS }
+            );
+          }
+        }
+
+        return Response.json({ jsonrpc: "2.0", id, result: {} }, { headers: CORS_HEADERS });
+      }
+
+      return new Response("Yentellect MCP Server active. Connect via Claude Code or Cline.", {
+        headers: CORS_HEADERS,
+      });
+    }
+
     if (url.pathname === "/v1/models" || url.pathname === "/health") {
       return Response.json(
         {

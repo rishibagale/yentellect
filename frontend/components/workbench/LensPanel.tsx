@@ -31,7 +31,7 @@ interface LensPanelProps {
 }
 
 const CARD_BTN =
-  "text-[11px] px-2.5 py-1 rounded-lg border border-[var(--border)]/60 hover:border-[var(--text-dim)] transition-colors";
+  "text-[11px] px-2.5 py-1 rounded-lg border border-[var(--border)]/60 hover:border-[var(--text-dim)] transition-colors cursor-pointer";
 const DIM_BTN = "text-[var(--text-dim)] hover:text-[var(--text)]";
 
 const STARTER_PROMPTS: Record<string, string[]> = {
@@ -171,6 +171,7 @@ export default function LensPanel({
   const [draft, setDraft] = useState("");
   const [engineConfig, setEngineConfig] = useState<EngineConfig>(readEngineConfig);
   const [modelModalOpen, setModelModalOpen] = useState(false);
+  const [copiedForAgent, setCopiedForAgent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const reduceMotion = useReducedMotion();
@@ -228,6 +229,32 @@ export default function LensPanel({
     }
   }
 
+  function handleCopyForAgent() {
+    const keptEntries = thread.connections.filter((c) => c.status === "kept");
+    const lines = [
+      `# Research Context from Yentellect`,
+      shownTitle ? `## Document: ${shownTitle}` : "",
+      thread.turns[0]?.content ? `## Selection / Core Claim:\n${thread.turns[0].content}` : "",
+      keptEntries.length > 0
+        ? `## Kept Socratic Analogies & Systems Models:\n` +
+          keptEntries.map((k) => `- [${k.connection.type.toUpperCase()}] ${k.connection.summary}`).join("\n")
+        : "",
+      `\n## Prompt for Coding Agent (Claude Code / Cline / Codex):`,
+      `Based on this mathematical formulation, implement a clean, documented Python simulation or numerical verification script (using NumPy/SciPy/PyTorch). Verify boundary conditions and stability limits.`,
+    ].filter(Boolean).join("\n\n");
+
+    void navigator.clipboard.writeText(lines);
+    setCopiedForAgent(true);
+    setTimeout(() => setCopiedForAgent(false), 2000);
+  }
+
+  const modelBadgeLabel =
+    engineConfig.target === "byok"
+      ? `${engineConfig.byokProvider.toUpperCase()}`
+      : engineConfig.target === "local"
+      ? (engineConfig.localModel || "Local AI")
+      : "Cloud AI";
+
   return (
     <section
       id="pane-lens"
@@ -258,7 +285,7 @@ export default function LensPanel({
                   role="tab"
                   aria-selected={selected}
                   onClick={() => onSelect(lens)}
-                  className={`px-2.5 py-1 rounded-[6px] text-[11px] font-medium transition-all ${
+                  className={`px-2.5 py-1 rounded-[6px] text-[11px] font-medium transition-all cursor-pointer ${
                     selected
                       ? "bg-[var(--bg-2)] text-[var(--accent)] shadow-2xs font-semibold"
                       : "text-[var(--text-dim)] hover:text-[var(--text)]"
@@ -271,35 +298,52 @@ export default function LensPanel({
           </div>
         </div>
 
-        {/* Right Actions: Model Pill + Connections Drawer Toggle + New Thread */}
+        {/* Right Actions: Model Pill + Agent Export + Connections Drawer Toggle + New Thread */}
         <div className="flex items-center gap-1.5 shrink-0">
           {/* AI Model & Engine Switcher Pill */}
           <button
             type="button"
             onClick={() => setModelModalOpen(true)}
             className={`text-[10px] px-2 py-0.5 rounded-full border transition-all flex items-center gap-1.5 cursor-pointer ${
-              engineConfig.target === "local"
+              engineConfig.target === "byok"
+                ? "bg-purple-500/10 text-purple-400 border-purple-500/30 font-medium hover:bg-purple-500/20"
+                : engineConfig.target === "local"
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-medium hover:bg-emerald-500/20"
                 : "bg-[var(--bg-0)] text-[var(--text-dim)] border-[var(--border)]/60 hover:text-[var(--text)] hover:border-[var(--text-dim)]"
             }`}
-            title="Configure AI Model & Engine (Cloud vs Local Machine)"
+            title="Configure AI Model & Engine (Cloud vs BYOK vs Local Machine)"
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                engineConfig.target === "local" ? "bg-emerald-400 animate-pulse" : "bg-[var(--accent)]"
+                engineConfig.target === "byok"
+                  ? "bg-purple-400"
+                  : engineConfig.target === "local"
+                  ? "bg-emerald-400 animate-pulse"
+                  : "bg-[var(--accent)]"
               }`}
             />
-            <span className="truncate max-w-[85px]">
-              {engineConfig.target === "local" ? (engineConfig.localModel || "Local AI") : "Cloud AI"}
-            </span>
+            <span className="truncate max-w-[85px]">{modelBadgeLabel}</span>
             <span className="text-[9px] opacity-60">▼</span>
           </button>
+
+          {/* 1-Click Copy for External Coding Agents */}
+          {thread.turns.length > 0 && (
+            <button
+              type="button"
+              onClick={handleCopyForAgent}
+              className="text-[10px] px-2 py-0.5 rounded-full border border-[var(--border)]/60 text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--text-dim)] transition-colors flex items-center gap-1 cursor-pointer"
+              title="Copy structured context for Claude Code, Cline, or OpenAI Code Interpreter"
+            >
+              <span>⚡</span>
+              <span>{copiedForAgent ? "✓ Copied" : "For Agent"}</span>
+            </button>
+          )}
 
           {thread.keptCount > 0 && onToggleDrawer && (
             <button
               type="button"
               onClick={onToggleDrawer}
-              className={`text-[10px] px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 ${
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-all flex items-center gap-1 cursor-pointer ${
                 drawerOpen
                   ? "bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/40 font-medium"
                   : "text-[var(--text-dim)] border-[var(--border)]/60 hover:text-[var(--text)] hover:border-[var(--text-dim)]"
@@ -315,7 +359,7 @@ export default function LensPanel({
             <button
               type="button"
               onClick={() => thread.clear()}
-              className="text-[11px] text-[var(--text-dim)] hover:text-[var(--text)] px-1.5 py-0.5 rounded transition-colors flex items-center gap-1"
+              className="text-[11px] text-[var(--text-dim)] hover:text-[var(--text)] px-1.5 py-0.5 rounded transition-colors flex items-center gap-1 cursor-pointer"
               title="Start a new thread"
             >
               <span>+ New</span>
@@ -439,7 +483,11 @@ export default function LensPanel({
                 <div className="w-3.5 h-3.5 border-2 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin" />
                 <span className="text-[12px] text-[var(--text-dim)]">
                   Thinking through {MODES[activeLens]?.label.toLowerCase()} lens
-                  {engineConfig.target === "local" ? ` (${engineConfig.localModel})` : ""}…
+                  {engineConfig.target === "byok"
+                    ? ` (${engineConfig.byokProvider.toUpperCase()}: ${engineConfig.byokModel})`
+                    : engineConfig.target === "local"
+                    ? ` (${engineConfig.localModel})`
+                    : ""}…
                 </span>
               </div>
             </div>
@@ -455,21 +503,19 @@ export default function LensPanel({
         >
           <div className="flex flex-col gap-1">
             <span className="break-words">{thread.error}</span>
-            {engineConfig.target === "local" && (
-              <button
-                type="button"
-                onClick={() => setModelModalOpen(true)}
-                className="text-[11px] underline text-left text-[var(--accent)] hover:opacity-80 transition-opacity"
-              >
-                Open AI Engine Settings →
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setModelModalOpen(true)}
+              className="text-[11px] underline text-left text-[var(--accent)] hover:opacity-80 transition-opacity cursor-pointer"
+            >
+              Open AI Engine Settings →
+            </button>
           </div>
           <button
             type="button"
             aria-label="Dismiss error"
             onClick={() => thread.dismissError()}
-            className="shrink-0 text-[var(--danger)] hover:text-[var(--text)] transition-colors"
+            className="shrink-0 text-[var(--danger)] hover:text-[var(--text)] transition-colors cursor-pointer"
           >
             ✕
           </button>
@@ -491,7 +537,7 @@ export default function LensPanel({
               thread.clear();
               thread.send(thread.turns[0]?.content ?? "");
             }}
-            className="shrink-0 text-[10px] px-2 py-1 rounded-lg border border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--text)] hover:text-[var(--text)] transition-colors"
+            className="shrink-0 text-[10px] px-2 py-1 rounded-lg border border-[var(--border)] text-[var(--text-dim)] hover:border-[var(--text)] hover:text-[var(--text)] transition-colors cursor-pointer"
           >
             Retry
           </button>

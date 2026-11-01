@@ -1,21 +1,48 @@
 /**
- * Yentellect workbench — AI engine configuration (Cloud vs Local Machine).
- * Persists user preference in localStorage under "yentellect:engine-target".
+ * Yentellect workbench — AI engine configuration (Cloud vs BYOK vs Local Machine).
+ * Persists user preference in localStorage under "yentellect:engine-config".
  */
 "use client";
 
-export type EngineTarget = "cloud" | "local";
+export type EngineTarget = "cloud" | "byok" | "local";
+
+export type ByokProvider =
+  | "anthropic"
+  | "openai"
+  | "openrouter"
+  | "groq"
+  | "gemini"
+  | "custom";
 
 export interface EngineConfig {
   target: EngineTarget;
+  // BYOK fields
+  byokProvider: ByokProvider;
+  byokApiKey: string;
+  byokModel: string;
+  byokBaseUrl?: string;
+  // Local Machine fields
   localUrl: string;
   localModel: string;
 }
 
 const STORAGE_KEY = "yentellect:engine-config";
 
+export const DEFAULT_BYOK_MODELS: Record<ByokProvider, string> = {
+  anthropic: "claude-3-5-sonnet-20241022",
+  openai: "gpt-4o",
+  openrouter: "deepseek/deepseek-r1",
+  groq: "llama-3.3-70b-versatile",
+  gemini: "gemini-2.0-flash",
+  custom: "default-model",
+};
+
 export const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   target: "cloud",
+  byokProvider: "anthropic",
+  byokApiKey: "",
+  byokModel: "claude-3-5-sonnet-20241022",
+  byokBaseUrl: "",
   localUrl: "http://127.0.0.1:11434",
   localModel: "llama3.3",
 };
@@ -26,10 +53,36 @@ export function readEngineConfig(): EngineConfig {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_ENGINE_CONFIG;
     const parsed = JSON.parse(raw);
+    const target: EngineTarget =
+      parsed.target === "byok" || parsed.target === "local" ? parsed.target : "cloud";
+    const byokProvider: ByokProvider = [
+      "anthropic",
+      "openai",
+      "openrouter",
+      "groq",
+      "gemini",
+      "custom",
+    ].includes(parsed.byokProvider)
+      ? parsed.byokProvider
+      : "anthropic";
+
     return {
-      target: parsed.target === "local" ? "local" : "cloud",
-      localUrl: typeof parsed.localUrl === "string" && parsed.localUrl.trim() ? parsed.localUrl.trim() : DEFAULT_ENGINE_CONFIG.localUrl,
-      localModel: typeof parsed.localModel === "string" && parsed.localModel.trim() ? parsed.localModel.trim() : DEFAULT_ENGINE_CONFIG.localModel,
+      target,
+      byokProvider,
+      byokApiKey: typeof parsed.byokApiKey === "string" ? parsed.byokApiKey.trim() : "",
+      byokModel:
+        typeof parsed.byokModel === "string" && parsed.byokModel.trim()
+          ? parsed.byokModel.trim()
+          : DEFAULT_BYOK_MODELS[byokProvider],
+      byokBaseUrl: typeof parsed.byokBaseUrl === "string" ? parsed.byokBaseUrl.trim() : "",
+      localUrl:
+        typeof parsed.localUrl === "string" && parsed.localUrl.trim()
+          ? parsed.localUrl.trim()
+          : DEFAULT_ENGINE_CONFIG.localUrl,
+      localModel:
+        typeof parsed.localModel === "string" && parsed.localModel.trim()
+          ? parsed.localModel.trim()
+          : DEFAULT_ENGINE_CONFIG.localModel,
     };
   } catch {
     return DEFAULT_ENGINE_CONFIG;
@@ -99,4 +152,3 @@ export async function probeLocalEngine(baseUrl: string): Promise<LocalHealthResu
     return { online: false, models: [] };
   }
 }
-

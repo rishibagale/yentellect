@@ -4,7 +4,8 @@
  * One fetch, one error type: `postLens` is the central place the workbench
  * dispatches lens queries. Supports:
  * 1. Cloud Engine (POST /api/lens via server-side configured provider)
- * 2. Local Machine Engine (direct browser fetch to user's localhost daemon e.g. Ollama or Zen Bridge)
+ * 2. BYOK Engine (direct browser fetch to Anthropic, OpenAI, Groq, OpenRouter, Gemini)
+ * 3. Local Machine Engine (direct browser fetch to user's localhost daemon e.g. Ollama or Zen Bridge)
  */
 import type { LensId, LensRequest } from "@/lib/lens/schema";
 import { LensResponseSchema } from "@/lib/lens/schema";
@@ -187,9 +188,149 @@ async function postLocalLens(req: LensRequest): Promise<LensCallResult> {
   };
 }
 
-/** Single transport for Lens. Routes to Cloud or Local Machine based on config. */
+/** Direct transport using user's personal API key (BYOK) */
+async function postByokLens(req: LensRequest): Promise<LensCallResult> {
+  const cfg = readEngineConfig();
+  if (!cfg.byokApiKey) {
+    throw new LensCallError(
+      `Please enter your ${cfg.byokProvider.toUpperCase()} API key in the AI Engine settings.`,
+      0
+    );
+  }
+
+  const system = buildSystemPrompt(req.lens, {
+    userField: req.userField,
+    docTitle: req.doc.title,
+    isFollowUp: req.history.length > 0 || Boolean(req.userMessage),
+  });
+
+  const selectionBlock =
+    `SELECTION (from "${req.doc.title}", ${req.doc.kind})` +
+    (req.doc.abstract ? `\nABSTRACT: ${req.doc.abstract}` : "") +
+    `\nTEXT: ${req.selection}` +
+    `\nUSER FIELD: ${req.userField}`;
+
+  let content = "";
+
+  if (cfg.byokProvider === "anthropic") {
+    const anthropicMessages = [
+      { role: "user", content: selectionBlock },
+      ...req.history.map((t) => ({ role: t.role, content: t.content })),
+      ...(req.userMessage ? [{ role: "user", content: req.userMessage }] : []),
+    ];
+
+    let res: Response;
+    try {
+      res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": cfg.byokApiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: cfg.byokModel || "claude-3-5-sonnet-20241022",
+          max_tokens: 4096,
+          system: system + "\n\n" + JSON_SHAPE_EXAMPLE,
+          messages: anthropicMessages,
+          temperature: 0.2,
+        }),
+      });
+    } catch {
+      throw new LensCallError("Could not reach Anthropic API from browser.", 0);
+    }
+
+    let body: any = null;
+    try {
+      body = await res.json();
+    } catch {}
+    if (!res.ok) {
+      throw new LensCallError(body?.error?.message || `Anthropic error (${res.status})`, res.status);
+    }
+    content = body?.content?.[0]?.text ?? "";
+  } else {
+    // OpenAI, Groq, OpenRouter, Gemini, or Custom
+    let endpoint = "https://api.openai.com/v1/chat/completions";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${cfg.byokApiKey}`,
+    };
+
+    if (cfg.byokProvider === "groq") {
+      endpoint = "https://api.groq.com/openai/v1/chat/completions";
+    } else if (cfg.byokProvider === "openrouter") {
+      endpoint = "https://openrouter.ai/api/v1/chat/completions";
+      headers["HTTP-Referer"] = "https://yentellect.vercel.app";
+      headers["X-Title"] = "Yentellect";
+    } else if (cfg.byokProvider === "gemini") {
+      endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    } else if (cfg.byokProvider === "custom") {
+      const base = (cfg.byokBaseUrl || "").replace(/\/+$/, "").replace(/\/v1$/, "");
+      endpoint = `${base}/v1/chat/completions`;
+    }
+
+    const messages = [
+      { role: "system", content: system + "\n\n" + JSON_SHAPE_EXAMPLE },
+      { role: "user", content: selectionBlock },
+      ...req.history.map((t) => ({ role: t.role, content: t.content })),
+      ...(req.userMessage ? [{ role: "user", content: req.userMessage }] : []),
+    ];
+
+    let res: Response;
+    try {
+      res = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: cfg.byokModel,
+          messages,
+          temperature: 0.2,
+        }),
+      });
+    } catch {
+      throw new LensCallError(`Could not reach ${cfg.byokProvider} API from browser.`, 0);
+    }
+
+    let body: any = null;
+    try {
+      body = await res.json();
+    } catch {}
+    if (!res.ok) {
+      throw new LensCallError(body?.error?.message || `${cfg.byokProvider} error (${res.status})`, res.status);
+    }
+    content = body?.choices?.[0]?.message?.content ?? "";
+  }
+
+  const parsedJson = tryExtractJson(content);
+  const validated = LensResponseSchema.safeParse(parsedJson);
+
+  if (validated.success) {
+    return {
+      response: validated.data,
+      provider: cfg.byokProvider.toUpperCase(),
+      model: cfg.byokModel,
+      usedFallback: false,
+    };
+  }
+
+  return {
+    response: {
+      message: content.trim() || "Model produced no textual response.",
+      connections: [],
+    },
+    provider: cfg.byokProvider.toUpperCase(),
+    model: cfg.byokModel,
+    usedFallback: true,
+  };
+}
+
+/** Single transport for Lens. Routes to Cloud, BYOK, or Local Machine based on config. */
 export async function postLens(req: LensRequest): Promise<LensCallResult> {
   const engineConfig = readEngineConfig();
+  if (engineConfig.target === "byok") {
+    return postByokLens(req);
+  }
   if (engineConfig.target === "local") {
     return postLocalLens(req);
   }
