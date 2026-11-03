@@ -459,7 +459,7 @@ export default function ModelSettingsModal({
                   </span>
                 </div>
                 <p className="text-[var(--text-dim)] leading-relaxed">
-                  Connect developer agents like Claude Code and Cline directly to Yentellect. Agents can read the active paper equations, inspect Socratic analogies, and write simulations.
+                  Connect developer agents like Claude Code and Cline directly to your Research Workbench. Agents can read the active paper equations, inspect Socratic analogies, and write simulations.
                 </p>
               </div>
 

@@ -1,12 +1,12 @@
 @echo off
 setlocal enabledelayedexpansion
-title Yentellect Local AI Bridge & MCP Server
+title Research Workbench Local AI Bridge & MCP Server
 
 set "BRIDGE_DIR=%USERPROFILE%\.yentellect-bridge"
 if not exist "%BRIDGE_DIR%" mkdir "%BRIDGE_DIR%"
 
 echo ==============================================================
-echo        Yentellect Local AI Bridge & Model Context Protocol
+echo     Research Workbench Local AI Bridge & Model Context Protocol
 echo ==============================================================
 echo.
 
@@ -44,7 +44,7 @@ echo  [*] MCP Endpoint:      http://127.0.0.1:8787/mcp (Cline, Claude Code, Curs
 echo  [*] Status:             CORS, PNA & SSE Enabled
 echo ==============================================================
 echo.
-echo  Keep this Command Prompt window open while using Yentellect.
+echo  Keep this Command Prompt window open while using the workbench.
 echo  Your browser and MCP coding agents will route through this bridge.
 echo.
 

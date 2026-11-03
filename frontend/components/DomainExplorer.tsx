@@ -515,7 +515,7 @@ export default function DomainExplorer({
       {/* Sparse state */}
       {filteredNodes.length <= 3 && graphData.links.length === 0 && !selectedDomain && (
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-[var(--text-dim)] text-xs text-center pointer-events-none max-w-md leading-relaxed z-10">
-          Concepts you explore become nodes. Connections form when Yentellect
+          Concepts you explore become nodes. Connections form when the workbench
           finds related ideas across sessions.
         </div>
       )}

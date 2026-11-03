@@ -23,7 +23,7 @@ export default function TitleBar({ onOpenPalette, onToggleLens, lensOpen }: Titl
     >
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-xs font-semibold text-[var(--accent)] tracking-tight">
-          Yentellect
+          Workbench
         </span>
         <span className="text-[var(--text-dim)]/40 text-xs">/</span>
         <span className="text-xs font-medium text-[var(--text)] truncate">

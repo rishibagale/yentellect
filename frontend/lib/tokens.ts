@@ -1,5 +1,5 @@
 /**
- * 🎨 Yentellect Design Tokens
+ * 🎨 Research Workbench Design Tokens
  *
  * Two kinds of token live here:
  *

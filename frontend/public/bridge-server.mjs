@@ -66,7 +66,7 @@ async function handleMcpToolCall(name, args) {
     const lines = [
       "## Socratic Connections (Analogical + Systems Mappings)",
       "",
-      "Current structural isomorphisms and causal dynamics in Yentellect:",
+      "Current structural isomorphisms and causal dynamics in the Research Workbench:",
       "",
       "| # | Source Concept | Target Concept | Mode | Weight |",
       "|---|----------------|----------------|------|--------|",
@@ -115,7 +115,7 @@ async function handleMcpToolCall(name, args) {
         content: [
           {
             type: "text",
-            text: "Error: Missing required parameter 'selection' and no active document found in Yentellect.",
+            text: "Error: Missing required parameter 'selection' and no active document found in the workbench.",
           },
         ],
       };
@@ -154,7 +154,7 @@ async function handleMcpToolCall(name, args) {
       content: [
         {
           type: "text",
-          text: `Successfully mapped isomorphic connection:\n- **Source:** ${source}\n- **Target:** ${target}\n- **Mode:** ${mode}\n- **Insight:** ${insight}\n\nAdded to Yentellect knowledge graph with ID: \`${saved.id}\`.`,
+          text: `Successfully mapped isomorphic connection:\n- **Source:** ${source}\n- **Target:** ${target}\n- **Mode:** ${mode}\n- **Insight:** ${insight}\n\nAdded to the research knowledge graph with ID: \`${saved.id}\`.`,
         },
       ],
     };
@@ -165,10 +165,10 @@ async function handleMcpToolCall(name, args) {
     const matches = await searchConcepts(query);
     if (matches.length === 0) {
       return {
-        content: [{ type: "text", text: `No concepts matching "${query}" were found in Yentellect.` }],
+        content: [{ type: "text", text: `No concepts matching "${query}" were found in the workbench.` }],
       };
     }
-    const lines = [`### Found ${matches.length} matching concept(s) in Yentellect:\n`];
+    const lines = [`### Found ${matches.length} matching concept(s) in the workbench:\n`];
     for (const m of matches) {
       lines.push(`- **${m.name}** [${m.domain}] (${m.mode})\n  ${m.summary}`);
     }
@@ -221,7 +221,7 @@ serve({
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Yentellect MCP Server</title>
+  <title>Research Workbench MCP Server</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0c0d12; color: #e1e4ea; margin: 0; padding: 40px; line-height: 1.6; }
     .card { max-width: 680px; margin: 0 auto; background: #161822; border: 1px solid #282c3f; border-radius: 12px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -235,7 +235,7 @@ serve({
 </head>
 <body>
   <div class="card">
-    <h1><span>⚡ Yentellect MCP Server</span> <span class="badge">Running :8787</span></h1>
+    <h1><span>⚡ Research Workbench MCP Server</span> <span class="badge">Running :8787</span></h1>
     <p>The Model Context Protocol bridge is active. Connect your coding agents to give them direct access to your scientific papers, LaTeX equations, and Socratic isomorphisms.</p>
     
     <h3>Cline / Cursor MCP Config</h3>
@@ -250,10 +250,10 @@ serve({
 
     <h3>Active Tools Exposed to Agent</h3>
     <ul class="tools-list">
-      <li><code>yentellect_get_current_paper</code>: Read the active paper, equations, and conjectures open in Yentellect.</li>
+      <li><code>yentellect_get_current_paper</code>: Read the active paper, equations, and conjectures open in the workbench.</li>
       <li><code>yentellect_get_socratic_connections</code>: Retrieve cross-disciplinary structural isomorphisms.</li>
       <li><code>yentellect_ask_lens</code>: Trigger Analogical or Systems thinking on any scientific text.</li>
-      <li><code>yentellect_add_connection</code>: Save an agent-discovered analogy back into Yentellect's graph.</li>
+      <li><code>yentellect_add_connection</code>: Save an agent-discovered analogy back into the workbench graph.</li>
       <li><code>yentellect_search_concepts</code>: Search concepts across domains in the knowledge graph.</li>
     </ul>
   </div>
@@ -572,5 +572,5 @@ serve({
   },
 });
 
-console.log(`[Yentellect Bridge & MCP Server] Running on http://127.0.0.1:${PORT}`);
-console.log(`[Yentellect Bridge & MCP Server] MCP URL: http://127.0.0.1:${PORT}/mcp`);
+console.log(`[Research Workbench Bridge & MCP Server] Running on http://127.0.0.1:${PORT}`);
+console.log(`[Research Workbench Bridge & MCP Server] MCP URL: http://127.0.0.1:${PORT}/mcp`);

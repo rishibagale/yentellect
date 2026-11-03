@@ -32,7 +32,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Yentellect — Research Workbench",
+  title: "Research Workbench",
   description:
     "A research workbench: import papers, apply lenses, keep the connections that matter.",
 };

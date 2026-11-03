@@ -1,12 +1,12 @@
-# Yentellect
+# Research Workbench
 
 **Socratic Research Workbench & Cognitive Agent Bridge**
 
-> *Most AI makes you more informed. Yentellect makes you think better.*
+> *Most AI makes you more informed. A good workbench makes you think better.*
 
-Yentellect is an interdisciplinary research workbench designed for PhD researchers, scientists, and engineers. It bridges theoretical mathematics, physics, and empirical research with autonomous coding agents (Cline, Claude Code, Cursor, Codex).
+Research Workbench is an interdisciplinary research platform designed for PhD researchers, scientists, and engineers. It bridges theoretical mathematics, physics, and empirical research with autonomous coding agents (Cline, Claude Code, Cursor, Codex).
 
-Instead of treating AI as a mere copywriter or autocomplete tool, Yentellect applies **Socratic Analogical and Systems reasoning** to uncover non-obvious structural isomorphisms, dynamic feedback loops, and mathematical parallels across distant disciplines.
+Instead of treating AI as a mere copywriter or autocomplete tool, the workbench applies **Socratic Analogical and Systems reasoning** to uncover non-obvious structural isomorphisms, dynamic feedback loops, and mathematical parallels across distant disciplines.
 
 ---
 
@@ -14,7 +14,7 @@ Instead of treating AI as a mere copywriter or autocomplete tool, Yentellect app
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        Yentellect Workbench                            │
+│                        Research Workbench                              │
 │                                                                        │
 │  1. Ingestion: arXiv, DOI, bioRxiv, PubMed, Web Articles, PDF, Data    │
 │  2. Note-taking: CodeMirror 6 + KaTeX live LaTeX equations ($...$)     │
@@ -39,7 +39,7 @@ Instead of treating AI as a mere copywriter or autocomplete tool, Yentellect app
 
 ## The Socratic Lenses
 
-Yentellect focuses deeply on the two most powerful cognitive faculties for breakthrough discovery:
+The workbench focuses deeply on the two most powerful cognitive faculties for breakthrough discovery:
 
 | Lens | Focus | Relational Mechanism |
 | :--- | :--- | :--- |
@@ -52,7 +52,7 @@ Yentellect focuses deeply on the two most powerful cognitive faculties for break
 
 ## Model Context Protocol (MCP) Integration
 
-Yentellect runs a lightweight, native MCP server over **Server-Sent Events (SSE)** and **JSON-RPC 2.0** on `http://127.0.0.1:8787/mcp`.
+The workbench runs a lightweight, native MCP server over **Server-Sent Events (SSE)** and **JSON-RPC 2.0** on `http://127.0.0.1:8787/mcp`.
 
 Add this to your `cline_mcp_settings.json` or Cursor / Claude Desktop configuration:
 
@@ -70,7 +70,7 @@ Add this to your `cline_mcp_settings.json` or Cursor / Claude Desktop configurat
 - `yentellect_get_current_paper`: Reads the active paper, equations, and researcher notes open in the editor.
 - `yentellect_get_socratic_connections`: Retrieves structural isomorphisms and system dynamics models.
 - `yentellect_ask_lens`: Triggers Socratic Analogical or Systems reasoning on any scientific text.
-- `yentellect_add_connection`: Injects newly discovered analogies back into Yentellect's research graph.
+- `yentellect_add_connection`: Injects newly discovered analogies back into the workbench research graph.
 - `yentellect_search_concepts`: Searches mapped concepts across disciplines.
 
 ---

@@ -294,9 +294,9 @@ export async function searchConcepts(queryStr) {
 // ---------------------------------------------------------------------------
 const LENS_PROMPTS = {
   analogical:
-    "You are the ANALOGICAL LENS in Yentellect, a scientific research reasoning engine. Your purpose is to uncover deep, non-obvious structural mappings and isomorphisms between the user's scientific problem/selection and distant, established domains (e.g. condensed matter physics, network topology, ecology, information theory, fluid mechanics).\n\nProvide 2-3 structural analogies with:\n1. Source Domain & Target Domain\n2. Formal Isomorphic Mapping\n3. Where the analogy breaks down / boundary conditions.",
+    "You are the ANALOGICAL LENS, a scientific research reasoning engine. Your purpose is to uncover deep, non-obvious structural mappings and isomorphisms between the user's scientific problem/selection and distant, established domains (e.g. condensed matter physics, network topology, ecology, information theory, fluid mechanics).\n\nProvide 2-3 structural analogies with:\n1. Source Domain & Target Domain\n2. Formal Isomorphic Mapping\n3. Where the analogy breaks down / boundary conditions.",
   systems:
-    "You are the SYSTEMS LENS in Yentellect, a scientific research reasoning engine. Your purpose is to analyze the user's scientific selection as an interconnected dynamic system.\n\nProvide:\n1. Stocks, Flows, and Inertia\n2. Causal Feedback Loops (reinforcing vs balancing)\n3. Tipping Points, Non-linearities, and Boundary Constraints.",
+    "You are the SYSTEMS LENS, a scientific research reasoning engine. Your purpose is to analyze the user's scientific selection as an interconnected dynamic system.\n\nProvide:\n1. Stocks, Flows, and Inertia\n2. Causal Feedback Loops (reinforcing vs balancing)\n3. Tipping Points, Non-linearities, and Boundary Constraints.",
 };
 
 export async function askLens(selection, mode = "analogical") {
