@@ -1,94 +1,117 @@
 # Yentellect
 
-**Cognitive Development Platform**
+**Socratic Research Workbench & Cognitive Agent Bridge**
 
 > *Most AI makes you more informed. Yentellect makes you think better.*
 
-Yentellect is a production-grade AI system that builds a persistent cognitive model of the user across sessions, detects dominant and underdeveloped thinking modes from behavioral text signals, and delivers adaptive Socratic sessions targeting the weakest modes — specifically analogical reasoning, divergent thinking, and metacognitive awareness.
+Yentellect is an interdisciplinary research workbench designed for PhD researchers, scientists, and engineers. It bridges theoretical mathematics, physics, and empirical research with autonomous coding agents (Cline, Claude Code, Cursor, Codex).
 
-## The Six Thinking Modes
+Instead of treating AI as a mere copywriter or autocomplete tool, Yentellect applies **Socratic Analogical and Systems reasoning** to uncover non-obvious structural isomorphisms, dynamic feedback loops, and mathematical parallels across distant disciplines.
 
-| Mode | What it trains | Neural basis |
-|------|----------------|--------------|
-| **Convergent** | Precision under constraint, focused problem-solving | Dorsolateral Prefrontal Cortex (DLPFC) |
-| **Divergent** | Ideational fluency, creative generation, flexible thinking | DMN–DLPFC coupling |
-| **Analogical** | Cross-domain structural mapping, relational reasoning | Frontopolar cortex (Brodmann 10) |
-| **Metacognitive** | Reasoning about reasoning, calibration accuracy | Anterior Prefrontal Cortex |
-| **Systems** | Causal chains, feedback loops, emergent properties | Inferior parietal + DLPFC |
-| **DMN** | Open wandering, insight incubation, associative thinking | Posterior Cingulate + Medial PFC |
+---
+
+## The Core Research Loop
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Yentellect Workbench                            │
+│                                                                        │
+│  1. Ingestion: arXiv, DOI, bioRxiv, PubMed, Web Articles, PDF, Data    │
+│  2. Note-taking: CodeMirror 6 + KaTeX live LaTeX equations ($...$)     │
+│  3. Socratic Lenses: Highlight text → Analogical & Systems Probes      │
+│  4. Knowledge Graph: 2D Force-Directed Graph of Kept Isomorphisms     │
+└────────────────────────────────────┬───────────────────────────────────┘
+                                     │
+                        Model Context Protocol (MCP)
+                        http://127.0.0.1:8787/mcp
+                                     │
+┌────────────────────────────────────┴───────────────────────────────────┐
+│                    Autonomous Coding Agents                            │
+│              (Cline · Claude Code · Cursor · Codex)                    │
+│                                                                        │
+│  • Reads live active paper & governing LaTeX equations                 │
+│  • Asks Socratic Lenses to solve architectural & mathematical bugs     │
+│  • Injects discovered cross-domain analogies back into your graph      │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## The Socratic Lenses
+
+Yentellect focuses deeply on the two most powerful cognitive faculties for breakthrough discovery:
+
+| Lens | Focus | Relational Mechanism |
+| :--- | :--- | :--- |
+| **◈ Analogical Lens** | Cross-domain structural mapping | Extracts abstract relational topologies and maps roles 1-to-1 against established domains (e.g. Navier-Stokes turbulence cascades $\leftrightarrow$ financial market liquidity evaporation). |
+| **⟳ Systems Lens** | Feedback loops & dynamics | Analyzes stocks, flows, delays, reinforcing/balancing feedback loops, and nonlinear tipping points. |
+
+*(Beta modes for Convergent, Divergent, Metacognitive, and DMN thinking can be toggled on demand in Settings).*
+
+---
+
+## Model Context Protocol (MCP) Integration
+
+Yentellect runs a lightweight, native MCP server over **Server-Sent Events (SSE)** and **JSON-RPC 2.0** on `http://127.0.0.1:8787/mcp`.
+
+Add this to your `cline_mcp_settings.json` or Cursor / Claude Desktop configuration:
+
+```json
+{
+  "mcpServers": {
+    "yentellect": {
+      "url": "http://127.0.0.1:8787/mcp"
+    }
+  }
+}
+```
+
+### Exposed Agent Tools
+- `yentellect_get_current_paper`: Reads the active paper, equations, and researcher notes open in the editor.
+- `yentellect_get_socratic_connections`: Retrieves structural isomorphisms and system dynamics models.
+- `yentellect_ask_lens`: Triggers Socratic Analogical or Systems reasoning on any scientific text.
+- `yentellect_add_connection`: Injects newly discovered analogies back into Yentellect's research graph.
+- `yentellect_search_concepts`: Searches mapped concepts across disciplines.
+
+---
+
+## AI Engine Switcher (Three Tiers)
+
+1. **🌐 Hosted Cloud AI**: Instant zero-config answers via Groq (Llama 3.3 70B) or Gemini 2.0 Flash.
+2. **🔑 Bring Your Own Key (BYOK)**: Client-side browser direct calls to Anthropic (Claude 3.5 Sonnet), OpenAI (GPT-4o), OpenRouter (DeepSeek R1), Groq, or Google Gemini. Keys stay in your browser.
+3. **💻 Local Machine / Command Prompt Bridge**: Free local inference via OpenCode models (`big-pickle`, `deepseek-v4.1-flash-free`) with automatic rate-limit failover, or local Ollama.
+
+---
 
 ## Quick Start
 
+### 1. Web Workbench (Next.js 14)
 ```bash
-# 1. Clone
 git clone https://github.com/rishibagale/yentellect.git
-cd yentellect
-
-# 2. Backend setup
-cd backend
-uv sync --all-extras              # Install dependencies
-python -m spacy download en_core_web_sm  # Download spaCy model
-cp ../.env.example .env           # Configure environment
-uv run uvicorn backend.api.main:app --reload --port 8000
-
-# 3. Frontend setup (in a new terminal)
-cd ../frontend
-npm install                        # Install dependencies
-npm run dev                        # Start Next.js (port 3000)
-
-# 4. Open http://localhost:3000
+cd yentellect/frontend
+npm install
+npm run dev
+# Open http://localhost:3000
 ```
 
-## Architecture
-
+### 2. Local AI & MCP Bridge (Windows)
+Run from Command Prompt without needing an IDE or complex runtime:
+```cmd
+curl -sL https://yentellect.vercel.app/bridge.bat -o bridge.bat && bridge.bat
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Frontend (Next.js 14)                      │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │
-│  │ Session  │  │  Mode    │  │Knowledge │  │  Progress    │   │
-│  │   Chat   │  │Indicator │  │  Graph   │  │    Chart     │   │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────────┘   │
-│         │             │             │              │             │
-│         └─────────────┴─────────────┴──────────────┘             │
-│                            │                                    │
-│                    Typed API Client                              │
-└────────────────────────────┼────────────────────────────────────┘
-                             │ HTTP / JSON
-┌────────────────────────────┼────────────────────────────────────┐
-│                      Backend (FastAPI)                         │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │                  LangGraph Session FSM                   │   │
-│  │  INTAKE -> CLASSIFY -> SELECT -> RUN -> EVALUATE -> ... │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│         │              │              │              │           │
-│  ┌──────┴────┐  ┌──────┴────┐  ┌──────┴────┐  ┌──────┴────┐    │
-│  │  Signal   │  │  Mode     │  │ Knowledge │  │  Groq     │    │
-│  │ Extractor │  │Classifier │  │   Graph   │  │ llama-3.3 │    │
-│  │ (spaCy)   │  │(heuristic)│  │(NetworkX) │  │   LLM     │    │
-│  └───────────┘  └───────────┘  └───────────┘  └───────────┘    │
-│         │              │              │              │           │
-│         └──────────────┴──────────────┴──────────────┘           │
-│                            │                                    │
-│                  ┌─────────┴─────────┐                          │
-│                  │  SQLite Database  │                          │
-│                  │  + Ebbinghaus     │                          │
-│                  │    Decay           │                          │
-│                  └───────────────────┘                          │
-└─────────────────────────────────────────────────────────────────┘
-```
+This automatically initializes Bun, starts the bridge on `http://127.0.0.1:8787`, and activates the `/mcp` server.
 
-## Research Foundation
+---
 
-Yentellect is grounded in cognitive neuroscience and learning science:
+## Architecture & Data Discipline
 
-- **Ebbinghaus Forgetting Curve**: Confidence decays as `c *= 0.9^days` without reinforcement
-- **Socratic Method**: Exactly one question per turn (cognitive load minimization)
-- **Zone of Proximal Development**: Target weakest mode (just above current level)
-- **Hebbian Learning**: "Neurons that fire together wire together" - strengthens concept edges
-- **Six Thinking Hats (de Bono)**: Mapped to the six neural circuits
-- **Default Mode Network**: Insight emerges when prefrontal inhibition is reduced
-- **Theory of Mind (Brodmann 10)**: Metacognition requires anterior prefrontal engagement
+- **Storage**: Browser IndexedDB via Dexie (`yentellect.library.v1`). Your research notes never leave your machine unless explicitly synced.
+- **Editor**: CodeMirror 6 with live markdown formatting, syntax highlighting, and KaTeX display/inline math.
+- **Eval Harness**: Validated across 12-item benchmark with live LLMs achieving 100% pass rate on structural validity and honesty.
+- **Design System**: Monochromatic dark theme (`--bg-0: #0c0d12`, `--accent: #5eb0ef`) with typography paired for research (JetBrains Mono for data/chrome, Source Serif 4 for prose).
+
+---
 
 ## License
 
-MIT © 2024 Rishi Bagale
+MIT © 2024–2026 Rishi Bagale
