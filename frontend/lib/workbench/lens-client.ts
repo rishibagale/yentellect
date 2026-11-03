@@ -109,10 +109,12 @@ async function postLocalLens(req: LensRequest): Promise<LensCallResult> {
     isFollowUp: req.history.length > 0 || Boolean(req.userMessage),
   });
 
+  const docBody = req.doc.body ? `\nDOCUMENT CONTENT:\n${req.doc.body.slice(0, 4000)}` : "";
   const selectionBlock =
-    `SELECTION (from "${req.doc.title}", ${req.doc.kind})` +
+    `DOCUMENT: "${req.doc.title}" (${req.doc.kind})` +
     (req.doc.abstract ? `\nABSTRACT: ${req.doc.abstract}` : "") +
-    `\nTEXT: ${req.selection}` +
+    docBody +
+    `\n\nSELECTED EXCERPT / FOCUS TO ANALYZE:\n${req.selection}` +
     `\nUSER FIELD: ${req.userField}`;
 
   const messages = [
@@ -204,10 +206,12 @@ async function postByokLens(req: LensRequest): Promise<LensCallResult> {
     isFollowUp: req.history.length > 0 || Boolean(req.userMessage),
   });
 
+  const docBody = req.doc.body ? `\nDOCUMENT CONTENT:\n${req.doc.body.slice(0, 4000)}` : "";
   const selectionBlock =
-    `SELECTION (from "${req.doc.title}", ${req.doc.kind})` +
+    `DOCUMENT: "${req.doc.title}" (${req.doc.kind})` +
     (req.doc.abstract ? `\nABSTRACT: ${req.doc.abstract}` : "") +
-    `\nTEXT: ${req.selection}` +
+    docBody +
+    `\n\nSELECTED EXCERPT / FOCUS TO ANALYZE:\n${req.selection}` +
     `\nUSER FIELD: ${req.userField}`;
 
   let content = "";

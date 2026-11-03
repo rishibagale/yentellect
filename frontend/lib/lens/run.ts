@@ -43,11 +43,13 @@ export async function runLens(input: LensRequest): Promise<RunResult> {
     isFollowUp: req.history.length > 0 || Boolean(req.userMessage),
   });
 
+  const docBody = req.doc.body ? `\nDOCUMENT CONTENT:\n${req.doc.body.slice(0, 4000)}` : "";
   const selectionBlock =
-    `SELECTION (from "${req.doc.title}", ${req.doc.kind})` +
+    `DOCUMENT: "${req.doc.title}" (${req.doc.kind})` +
     (req.doc.abstract ? `\nABSTRACT: ${req.doc.abstract}` : "") +
-    `\nTEXT: ${req.selection}` +
-    `\nUSER FIELD: ${req.userField}`;
+    docBody +
+    `\n\nSELECTED EXCERPT / FOCUS TO ANALYZE:\n${req.selection}` +
+    `\n\nUSER FIELD: ${req.userField}`;
 
   const messages: LensChatMessage[] = [
     { role: "user", content: selectionBlock },

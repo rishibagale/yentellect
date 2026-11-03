@@ -201,6 +201,21 @@ export default function DocEditorPane({
       setSavedAt(now);
       onSaved?.(bodyToSave);
     }
+    // Sync to local bridge so external agents (Cline, Claude Code, Cursor) always have latest written text
+    try {
+      fetch("http://127.0.0.1:8787/api/active-paper", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: existing.title,
+          abstract: existing.abstract || "",
+          source: existing.source || existing.kind,
+          url: existing.url || "",
+          year: existing.year || "",
+          body: bodyToSave,
+        }),
+      }).catch(() => {});
+    } catch {}
   };
 
   useEffect(() => {

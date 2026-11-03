@@ -43,6 +43,7 @@ export const LensRequestSchema = z.object({
     title: z.string().min(1).max(500),
     kind: z.string().min(1).max(120),
     abstract: z.string().max(5000).optional(),
+    body: z.string().max(25000).optional(),
   }),
   userField: z.string().min(1).max(300),
   history: z.array(HistoryTurnSchema).max(30).default([]),

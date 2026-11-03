@@ -76,6 +76,7 @@ function ShellInner() {
         title: doc.title,
         kind: doc.kind,
         ...(doc.abstract ? { abstract: doc.abstract } : {}),
+        body: doc.body || "",
       }
     : null;
   const thread = useLensThread({ lens, doc: docContext });

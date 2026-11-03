@@ -79,6 +79,24 @@ let _activePaper = {
     "\\frac{\\partial \\mathbf{u}}{\\partial t} + (\\mathbf{u} \\cdot \\nabla)\\mathbf{u} = -\\frac{1}{\\rho}\\nabla p + \\nu \\nabla^2 \\mathbf{u} + \\mathbf{f}(\\mathbf{x}, t)",
   problemStatement:
     "Do smooth, physically reasonable solutions exist globally for all time t >= 0 in R^3, or can nonlinear vortex stretching cause finite-time blowup / singularity formation?",
+  body: `# On the Navier-Stokes Millennium Prize Problem
+
+> **Authors:** Charles L. Fefferman (Clay Mathematics Institute)
+> **Field:** Mathematical Physics / Nonlinear Partial Differential Equations
+
+## 1. Physical Statement
+
+The motion of an incompressible fluid in three-dimensional space R^3 is governed by the classical Navier-Stokes equations:
+
+$$\\frac{\\partial \\mathbf{u}}{\\partial t} + (\\mathbf{u} \\cdot \\nabla)\\mathbf{u} = -\\frac{1}{\\rho}\\nabla p + \\nu \\nabla^2 \\mathbf{u} + \\mathbf{f}(\\mathbf{x}, t)$$
+
+subject to the divergence-free incompressibility condition:
+
+$$\\nabla \\cdot \\mathbf{u} = 0$$
+
+## 2. The Millennium Problem
+
+For physically realistic smooth initial velocity u_0(x) with finite kinetic energy, do smooth, physically reasonable solutions exist globally for all time t >= 0, or can nonlinear vortex stretching cause finite-time blowup / singularity formation?`,
   context: "Mathematical Physics / Nonlinear Partial Differential Equations",
   lastUpdated: new Date().toISOString(),
 };

@@ -50,6 +50,9 @@ async function handleMcpToolCall(name, args) {
     if (paper.problemStatement && paper.problemStatement !== paper.abstract) {
       lines.push("", "### Core Conjecture", paper.problemStatement);
     }
+    if (paper.body) {
+      lines.push("", "### Document Content (from Researcher's Editor)", paper.body);
+    }
     if (paper.url) {
       lines.push("", `**Source Reference:** ${paper.url}`);
     }
@@ -89,11 +92,32 @@ async function handleMcpToolCall(name, args) {
   }
 
   if (name === "yentellect_ask_lens") {
-    const selection = args?.selection || "";
+    let selection = args?.selection || "";
     const mode = args?.mode || "analogical";
+
+    // If selection is omitted or a short prompt/question, augment with active paper context!
+    if (
+      !selection ||
+      selection.length < 100 ||
+      /^(analyze|what|find|tell|explain|why|how)/i.test(selection.trim())
+    ) {
+      const paper = await getActivePaper();
+      const docExcerpt = paper.body || paper.abstract || paper.equation || "";
+      if (docExcerpt) {
+        selection = selection
+          ? `Specific Focus/Question: ${selection}\n\nDocument Context & Text ("${paper.title}"):\n${docExcerpt}`
+          : `Document Text to Analyze ("${paper.title}"):\n${docExcerpt}`;
+      }
+    }
+
     if (!selection) {
       return {
-        content: [{ type: "text", text: "Error: Missing required parameter 'selection'" }],
+        content: [
+          {
+            type: "text",
+            text: "Error: Missing required parameter 'selection' and no active document found in Yentellect.",
+          },
+        ],
       };
     }
     const result = await askLens(selection, mode);

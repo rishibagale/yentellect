@@ -52,7 +52,7 @@ export interface LensThread {
   clear(): void;
 }
 
-type ThreadDoc = { title: string; kind: string; abstract?: string };
+type ThreadDoc = { title: string; kind: string; abstract?: string; body?: string };
 
 const DOC_CONTEXT: ThreadDoc = { title: "Untitled thought", kind: "note" };
 const HISTORY_LIMIT = 30;
@@ -118,19 +118,45 @@ export function useLensThread(opts: {
       pinnedDocRef.current = docRef.current;
     }
     const pinned = pinnedDocRef.current ?? DOC_CONTEXT;
+
+    // Detect if the user sent a question/prompt rather than highlighting raw excerpt text
+    const isQuestionOrPrompt =
+      content.length < 160 &&
+      (content.endsWith("?") ||
+        /^(what|why|how|where|when|find|explain|analyze|tell|can you|is there|show)/i.test(
+          content
+        ));
+
+    let selectionText: string;
+    let userMsg: string | undefined;
+
+    if (isFirstSend) {
+      if (isQuestionOrPrompt && (pinned.body || pinned.abstract)) {
+        selectionText = pinned.body ? pinned.body.slice(0, 4000) : (pinned.abstract || content);
+        userMsg = content;
+      } else {
+        selectionText = content;
+        userMsg = undefined;
+      }
+    } else {
+      selectionText = prevTurns[0].content;
+      userMsg = content;
+    }
+
     const req: LensRequest = {
       lens,
-      selection: isFirstSend ? content : prevTurns[0].content,
+      selection: selectionText,
       doc: {
         title: pinned.title.slice(0, 500),
         kind: pinned.kind,
         ...(pinned.abstract
           ? { abstract: pinned.abstract.slice(0, MAX_DOC_ABSTRACT) }
           : {}),
+        ...(pinned.body ? { body: pinned.body.slice(0, 15000) } : {}),
       },
       userField: storedField || "not specified yet",
       history: isFirstSend ? [] : prevTurns.slice(1).slice(-HISTORY_LIMIT),
-      ...(isFirstSend ? {} : { userMessage: content }),
+      ...(userMsg ? { userMessage: userMsg } : {}),
     };
 
     sendingRef.current = true;
