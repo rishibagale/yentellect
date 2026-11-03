@@ -77,7 +77,7 @@ export default function ModelSettingsModal({
     setTimeout(() => setCopiedCmd(null), 2000);
   }
 
-  const OPENCODE_CMD = `curl -sL https://yentellect.vercel.app/bridge.bat -o bridge.bat && bridge.bat`;
+  const OPENCODE_CMD = `curl -sL https://cog-research.vercel.app/bridge.bat -o bridge.bat && bridge.bat`;
   const OLLAMA_CMD = `ollama run llama3.3`;
   const CLAUDE_MCP_CMD = `claude mcp add yentellect http://127.0.0.1:8787/mcp`;
   const CLINE_MCP_SNIPPET = `{\n  "mcpServers": {\n    "yentellect": {\n      "url": "http://127.0.0.1:8787/mcp"\n    }\n  }\n}`;

@@ -6,7 +6,7 @@ Set these in Render Dashboard → Backend Service → Environment → Environmen
 
 | Key | Value Example | Used In |
 |-----|---------------|---------|
-| `FRONTEND_URL` | `https://yentellect.vercel.app` | CORS whitelist (`backend/api/main.py`) |
+| `FRONTEND_URL` | `https://cog-research.vercel.app` | CORS whitelist (`backend/api/main.py`) |
 | `GROQ_API_KEY` | `gsk_...` (your Groq key) | LLM responses (`backend/core/session.py`) |
 | `SUPABASE_URL` | `https://<project>.supabase.co` | Base URL for REST API (`backend/db/database_supabase.py`) |
 | `SUPABASE_SERVICE_KEY` | `<service_role key from Supabase dashboard>` | Auth header for backend writes (`backend/db/database_supabase.py`) |
@@ -29,7 +29,7 @@ Note: The database schema must be initialized once via Supabase SQL Editor using
 3. Paste as `GROQ_API_KEY`
 
 ### FRONTEND_URL
-Use: `https://yentellect.vercel.app`
+Use: `https://cog-research.vercel.app`
 
 ## After Setting Variables
 

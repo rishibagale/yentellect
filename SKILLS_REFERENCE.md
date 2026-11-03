@@ -56,7 +56,7 @@ This file documents the skills and resources available for this project.
 
 | Service | URL | Config File |
 |---------|-----|-------------|
-| Frontend (Vercel) | `https://yentellect.vercel.app` | `vercel.json` (auto-detected) |
+| Frontend (Vercel) | `https://cog-research.vercel.app` | `vercel.json` (auto-detected) |
 | Backend (Render) | `https://yentellect.onrender.com` | `render.yaml` |
 | Supabase Project | `https://ygapudtdgcslbqhibgjl.supabase.co` | `frontend/.env.local` |
 

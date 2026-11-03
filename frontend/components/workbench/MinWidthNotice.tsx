@@ -17,7 +17,7 @@ export default function MinWidthNotice({ isPhone = true }: MinWidthNoticeProps) 
         className="h-screen w-screen flex items-center justify-center bg-[var(--bg-0)] px-6 text-center"
       >
         <p className="max-w-sm text-sm text-[var(--text-dim)]">
-          Yentellect needs at least 1024px of width. Resize the window or use a
+          Research Workbench needs at least 1024px of width. Resize the window or use a
           larger display.
         </p>
       </div>
@@ -30,7 +30,7 @@ export default function MinWidthNotice({ isPhone = true }: MinWidthNoticeProps) 
       className="w-full border-b border-[var(--border)] bg-[var(--bg-1)] px-4 py-2 text-center"
     >
       <p className="text-sm text-[var(--text-dim)]">
-        Yentellect works best at 1024px+. Some panels may be hidden — use the
+        Research Workbench works best at 1024px+. Some panels may be hidden — use the
         floating buttons to open Lens or Explorer.
       </p>
     </div>

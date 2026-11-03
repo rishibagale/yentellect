@@ -232,7 +232,7 @@ export default function LensPanel({
   function handleCopyForAgent() {
     const keptEntries = thread.connections.filter((c) => c.status === "kept");
     const lines = [
-      `# Research Context from Yentellect`,
+      `# Research Context from Research Workbench`,
       shownTitle ? `## Document: ${shownTitle}` : "",
       thread.turns[0]?.content ? `## Selection / Core Claim:\n${thread.turns[0].content}` : "",
       keptEntries.length > 0

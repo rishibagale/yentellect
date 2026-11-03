@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import SignUpForm from "./signup-form";
 
 export const metadata = {
-  title: "Sign Up — Yentellect",
+  title: "Sign Up — Research Workbench",
 };
 
 export default function SignUpPage() {

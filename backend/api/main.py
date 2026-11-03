@@ -94,7 +94,7 @@ ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "ALLOWED_ORIGINS",
-        f"{FRONTEND_URL},http://localhost:3000,https://yentellect.vercel.app",
+        f"{FRONTEND_URL},http://localhost:3000,https://cog-research.vercel.app,https://yentellect.vercel.app",
     ).split(",")
     if origin.strip()
 ]

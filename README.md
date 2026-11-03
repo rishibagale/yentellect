@@ -97,7 +97,7 @@ npm run dev
 ### 2. Local AI & MCP Bridge (Windows)
 Run from Command Prompt without needing an IDE or complex runtime:
 ```cmd
-curl -sL https://yentellect.vercel.app/bridge.bat -o bridge.bat && bridge.bat
+curl -sL https://cog-research.vercel.app/bridge.bat -o bridge.bat && bridge.bat
 ```
 This automatically initializes Bun, starts the bridge on `http://127.0.0.1:8787`, and activates the `/mcp` server.
 

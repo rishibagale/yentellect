@@ -265,8 +265,8 @@ async function postByokLens(req: LensRequest): Promise<LensCallResult> {
       endpoint = "https://api.groq.com/openai/v1/chat/completions";
     } else if (cfg.byokProvider === "openrouter") {
       endpoint = "https://openrouter.ai/api/v1/chat/completions";
-      headers["HTTP-Referer"] = "https://yentellect.vercel.app";
-      headers["X-Title"] = "Yentellect";
+      headers["HTTP-Referer"] = "https://cog-research.vercel.app";
+      headers["X-Title"] = "Research Workbench";
     } else if (cfg.byokProvider === "gemini") {
       endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
     } else if (cfg.byokProvider === "custom") {

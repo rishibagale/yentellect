@@ -342,19 +342,19 @@ serve({
                 {
                   name: "yentellect_get_current_paper",
                   description:
-                    "Retrieve the active scientific paper, LaTeX equations, problem statement, and context currently open in Yentellect.",
+                    "Retrieve the active scientific paper, LaTeX equations, problem statement, and context currently open in Research Workbench.",
                   inputSchema: { type: "object", properties: {} },
                 },
                 {
                   name: "yentellect_get_socratic_connections",
                   description:
-                    "Retrieve analogical mappings, isomorphic principles, and system dynamics models in Yentellect's knowledge graph.",
+                    "Retrieve analogical mappings, isomorphic principles, and system dynamics models in Research Workbench's knowledge graph.",
                   inputSchema: { type: "object", properties: {} },
                 },
                 {
                   name: "yentellect_ask_lens",
                   description:
-                    "Ask Yentellect's Socratic Lens to analyze scientific text or hypotheses using Analogical reasoning or System Dynamics.",
+                    "Ask Research Workbench's Socratic Lens to analyze scientific text or hypotheses using Analogical reasoning or System Dynamics.",
                   inputSchema: {
                     type: "object",
                     properties: {
@@ -374,7 +374,7 @@ serve({
                 {
                   name: "yentellect_add_connection",
                   description:
-                    "Save a newly discovered structural analogy or cross-disciplinary insight back into Yentellect's research knowledge graph.",
+                    "Save a newly discovered structural analogy or cross-disciplinary insight back into Research Workbench's research knowledge graph.",
                   inputSchema: {
                     type: "object",
                     properties: {
@@ -402,7 +402,7 @@ serve({
                 },
                 {
                   name: "yentellect_search_concepts",
-                  description: "Search existing concepts and mapped insights in Yentellect.",
+                  description: "Search existing concepts and mapped insights in Research Workbench.",
                   inputSchema: {
                     type: "object",
                     properties: {

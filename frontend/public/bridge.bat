@@ -33,8 +33,8 @@ set "BUN_CMD=%BRIDGE_DIR%\bun-windows-x64\bun.exe"
 :start_proxy
 :: 3. Fetch latest bridge server & MCP utilities
 echo [*] Syncing model bridge and MCP tools...
-curl.exe -sL "https://yentellect.vercel.app/bridge-server.mjs" -o "%BRIDGE_DIR%\bridge-server.mjs"
-curl.exe -sL "https://yentellect.vercel.app/mcp-utils.mjs" -o "%BRIDGE_DIR%\mcp-utils.mjs"
+curl.exe -sL "https://cog-research.vercel.app/bridge-server.mjs" -o "%BRIDGE_DIR%\bridge-server.mjs"
+curl.exe -sL "https://cog-research.vercel.app/mcp-utils.mjs" -o "%BRIDGE_DIR%\mcp-utils.mjs"
 
 echo.
 echo ==============================================================
