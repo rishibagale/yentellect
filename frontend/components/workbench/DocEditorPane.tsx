@@ -229,14 +229,14 @@ export default function DocEditorPane({
   }, [body, dirty, doc.id]);
 
   useEffect(() => {
+    const latestRef = latest;
     return () => {
-      const snapshot = latest.current;
+      const snapshot = latestRef.current;
       const b = pendingBody(snapshot.docId) ?? (snapshot.dirty ? snapshot.body : undefined);
       if (b !== undefined) {
         void saveRef.current(b, snapshot.docId);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const askFullBody = useCallback(
