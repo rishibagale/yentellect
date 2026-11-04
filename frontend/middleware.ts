@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { createClient } from "./utils/supabase/middleware";
+import { updateSession } from "./utils/supabase/middleware";
 
 const publicRoutes = [
   "/auth/login",
@@ -25,12 +25,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { supabase, supabaseResponse } = createClient(request);
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // updateSession calls getUser() which validates the token with Supabase Auth,
+  // refreshes expired tokens in cookies via setAll, and returns the response
+  // with updated Set-Cookie headers intact.
+  const { supabaseResponse, user } = await updateSession(request);
 
-  if (!session) {
+  if (!user) {
     const redirectUrl = new URL("/auth/login", request.url);
     redirectUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(redirectUrl);

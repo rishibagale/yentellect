@@ -15,7 +15,8 @@ interface SupabaseContextType {
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
 
 export function SupabaseProvider({ children }: { children: ReactNode }) {
-  const supabase = createClient();
+  // Keep a single persistent instance across re-renders
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -32,10 +33,15 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      router.refresh();
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      setIsLoading(false);
+      // Only refresh server components on explicit sign in/out,
+      // avoiding interrupting active workbench sessions during token refresh
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        router.refresh();
+      }
     });
 
     return () => {
