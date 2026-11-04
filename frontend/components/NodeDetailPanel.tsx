@@ -9,11 +9,17 @@ interface NodeDetailPanelProps {
 }
 
 function friendlyModeName(mode?: string) {
+  if (!mode) return "Exploratory";
+  const m = mode.toUpperCase();
   const map: Record<string, string> = {
-    CONVERGENT: "Convergent", DIVERGENT: "Divergent", ANALOGICAL: "Analogical",
-    METACOGNITIVE: "Metacognitive", SYSTEMS: "Systems", DMN: "Default Mode",
+    CONVERGENT: "Convergent Analysis",
+    DIVERGENT: "Divergent Ideation",
+    ANALOGICAL: "Cross-Domain Analogy",
+    METACOGNITIVE: "Metacognitive Reflection",
+    SYSTEMS: "Systems Modeling",
+    DMN: "Default Mode (DMN)",
   };
-  return map[(mode || "").toUpperCase()] || mode || "Unknown";
+  return map[m] || mode;
 }
 
 function modeColor(mode?: string): string {
@@ -21,12 +27,35 @@ function modeColor(mode?: string): string {
   return (tokens.colors.modes as Record<string, string>)[key] || "#6C63FF";
 }
 
+function cleanConceptName(rawName?: string): string {
+  if (!rawName) return "";
+  let name = rawName.trim();
+  const prefixes = [
+    "CONVERGENT:", "DIVERGENT:", "ANALOGICAL:", "METACOGNITIVE:", "SYSTEMS:", "DMN:",
+    "CONVERGENT -", "DIVERGENT -", "ANALOGICAL -", "METACOGNITIVE -", "SYSTEMS -", "DMN -",
+    "MODE:", "CONCEPT:"
+  ];
+  for (const p of prefixes) {
+    if (name.toUpperCase().startsWith(p)) {
+      name = name.slice(p.length).trim();
+    }
+  }
+  return name;
+}
+
 export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps) {
   if (!node) return null;
 
-  const isSession = node.type === "session";
+  const isSession = node.type === "session" || node.id?.startsWith?.("session-");
   const isFusion = node.type === "fusion";
-  const mode = node.thinkingMode || node.modeTarget;
+  const mode = node.thinkingMode || node.modeTarget || node.mode;
+
+  const titleCandidate = isSession
+    ? (node.title || node.topic || node.name)
+    : (node.concept && node.concept !== "?" ? node.concept : (node.name || node.title));
+  const cleanTitle = cleanConceptName(titleCandidate) || (isSession ? "Session Detail" : "Concept Detail");
+
+  const summaryText = cleanConceptName(node.summary || (isSession && node.name !== cleanTitle ? node.name : ""));
 
   return (
     <AnimatePresence>
@@ -48,12 +77,12 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
                   {isFusion ? "Fusion" : isSession ? "Session" : "Concept"}
                 </span>
               </div>
-              <button onClick={onClose} className="text-[var(--text-dim)] hover:text-[var(--text)] transition text-sm">
+              <button onClick={onClose} className="text-[var(--text-dim)] hover:text-[var(--text)] transition text-sm cursor-pointer">
                 {"\u2715"}
               </button>
             </div>
             <h3 className="text-sm font-semibold text-[var(--text)] font-mono leading-snug">
-              {node.concept || node.name || "Unknown"}
+              {cleanTitle}
             </h3>
           </div>
 
@@ -62,7 +91,7 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
             {/* Mode badge */}
             {mode && (
               <div className="flex items-center gap-2">
-                <div className="px-2.5 py-1 rounded-full text-[10px] font-medium" style={{ background: `${modeColor(mode)}20`, color: modeColor(mode) }}>
+                <div className="px-2.5 py-1 rounded-full text-[10px] font-medium font-mono" style={{ background: `${modeColor(mode)}20`, color: modeColor(mode) }}>
                   {friendlyModeName(mode)}
                 </div>
               </div>
@@ -71,10 +100,12 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
             {/* Session-specific */}
             {isSession && (
               <div className="space-y-3">
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-mono">Summary</span>
-                  <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">{node.name || "No summary available"}</p>
-                </div>
+                {summaryText && (
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-mono">Summary</span>
+                    <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">{summaryText}</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <span className="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-mono">Turns</span>
@@ -93,7 +124,7 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
               <div className="space-y-3">
                 <div>
                   <span className="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-mono">Domain</span>
-                  <p className="text-xs text-[#94A3B8] mt-1">{node.domain || "general"}</p>
+                  <p className="text-xs text-[#94A3B8] mt-1 capitalize">{node.domain || "General"}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>

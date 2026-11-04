@@ -15,6 +15,8 @@ function modeColor(mode?: string): string {
 }
 
 function friendlyModeName(mode?: string) {
+  if (!mode) return "Exploratory";
+  const m = mode.toUpperCase();
   const map: Record<string, string> = {
     CONVERGENT: "Convergent",
     DIVERGENT: "Divergent",
@@ -23,16 +25,50 @@ function friendlyModeName(mode?: string) {
     SYSTEMS: "Systems",
     DMN: "Default Mode",
   };
-  return map[(mode || "").toUpperCase()] || mode || "Mode";
+  return map[m] || mode;
+}
+
+function cleanConceptName(rawName?: string): string {
+  if (!rawName) return "";
+  let name = rawName.trim();
+  const prefixes = [
+    "CONVERGENT:", "DIVERGENT:", "ANALOGICAL:", "METACOGNITIVE:", "SYSTEMS:", "DMN:",
+    "CONVERGENT -", "DIVERGENT -", "ANALOGICAL -", "METACOGNITIVE -", "SYSTEMS -", "DMN -",
+    "MODE:", "CONCEPT:"
+  ];
+  for (const p of prefixes) {
+    if (name.toUpperCase().startsWith(p)) {
+      name = name.slice(p.length).trim();
+    }
+  }
+  return name;
 }
 
 function labelFor(d: any) {
-  if (d.concept && d.concept !== "?") return d.concept;
-  if (d.name && !d.name.startsWith("Session ")) return d.name;
-  const modeLabel = friendlyModeName(
-    d.thinkingMode || d.modeTarget || d.mode
-  );
-  return modeLabel;
+  if (!d) return "Node";
+  
+  // Concept or entity name
+  const candidate = d.concept && d.concept !== "?" ? d.concept : (d.title || d.name || d.topic);
+  const cleaned = cleanConceptName(candidate);
+  
+  if (cleaned && !cleaned.toLowerCase().startsWith("session ")) {
+    return cleaned.length > 30 ? cleaned.slice(0, 28) + "..." : cleaned;
+  }
+
+  // Session node with title/topic
+  if (d.title || d.topic) {
+    const sessionTitle = cleanConceptName(d.title || d.topic);
+    if (sessionTitle) {
+      return sessionTitle.length > 30 ? sessionTitle.slice(0, 28) + "..." : sessionTitle;
+    }
+  }
+
+  if (cleaned) {
+    return cleaned.length > 30 ? cleaned.slice(0, 28) + "..." : cleaned;
+  }
+
+  const modeLabel = friendlyModeName(d.thinkingMode || d.modeTarget || d.mode);
+  return `${modeLabel} Session`;
 }
 
 /* ── Three.js node factories ─────────────────────────────── */
@@ -77,15 +113,18 @@ function makeConceptNode(node: any) {
   group.add(label);
 
   // Mode sub-label
-  const modeText = new SpriteText(
-    friendlyModeName(node.__raw?.thinkingMode),
-    2.2,
-    `${color}BB`
-  );
-  modeText.position.y = radius + 1;
-  modeText.fontFace = "JetBrains Mono, monospace";
-  modeText.material.depthWrite = false;
-  group.add(modeText);
+  const mode = node.__raw?.thinkingMode || node.__raw?.modeTarget || node.__raw?.mode;
+  if (mode) {
+    const modeText = new SpriteText(
+      friendlyModeName(mode),
+      2.2,
+      `${color}BB`
+    );
+    modeText.position.y = radius + 1.2;
+    modeText.fontFace = "JetBrains Mono, monospace";
+    modeText.material.depthWrite = false;
+    group.add(modeText);
+  }
 
   return group;
 }
@@ -127,6 +166,20 @@ function makeSessionNode(node: any) {
   label.fontFace = "Space Grotesk, Inter, sans-serif";
   label.material.depthWrite = false;
   group.add(label);
+
+  // Mode sub-label
+  const mode = node.__raw?.modeTarget || node.__raw?.thinkingMode || node.__raw?.mode;
+  if (mode) {
+    const modeText = new SpriteText(
+      friendlyModeName(mode),
+      1.8,
+      `${color}AA`
+    );
+    modeText.position.y = radius + 1.8;
+    modeText.fontFace = "JetBrains Mono, monospace";
+    modeText.material.depthWrite = false;
+    group.add(modeText);
+  }
 
   return group;
 }

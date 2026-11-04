@@ -132,5 +132,36 @@ async def get_session_detail(
     else:
         s["predicted_mode"] = s.get("mode_target")
         s["started_at"] = s.get("created_at")
+
+    # Clean title & summary extraction
+    import json
+    summary_val = s.get("summary")
+    title = ""
+    narrative = ""
+    if isinstance(summary_val, dict):
+        title = summary_val.get("title") or summary_val.get("topic") or ""
+        narrative = summary_val.get("narrative") or ""
+    elif isinstance(summary_val, str) and summary_val.strip():
+        try:
+            parsed = json.loads(summary_val)
+            if isinstance(parsed, dict):
+                title = parsed.get("title") or parsed.get("topic") or ""
+                narrative = parsed.get("narrative") or ""
+            else:
+                narrative = summary_val
+        except Exception:
+            narrative = summary_val
+
+    if not title:
+        if narrative and len(narrative) < 70:
+            title = narrative
+        elif turns:
+            title = turns[0].get("user_input", "").split("\n")[0].strip()[:60]
+        else:
+            mode_str = s.get("mode_target", "General").capitalize()
+            title = f"{mode_str} Exploration"
+
+    s["title"] = title
+    s["summary"] = narrative or title
     
     return {"session": s, "turns": turns}

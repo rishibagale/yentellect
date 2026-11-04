@@ -224,8 +224,13 @@ class SessionManager:
             "started_at": started_at,
         }
         
-        # Persist started_at to DB so end_session can compute duration reliably
-        self.db.update_session(session_id, turn_count=session_data.get("turn_count", 1))
+        # Persist started_at and initial clean title to DB
+        initial_title = opening_message.split("\n")[0].strip()[:80] if opening_message else f"{mode_target.value.capitalize()} Session"
+        self.db.update_session(
+            session_id,
+            turn_count=session_data.get("turn_count", 1),
+            summary=json.dumps({"title": initial_title, "topic": initial_title})
+        )
         self._sessions[session_id] = session_data
         # Set TTL: sessions expire after 30 minutes of inactivity
         self._session_ttl[session_id] = time.monotonic() + 1800
@@ -423,7 +428,9 @@ class SessionManager:
             json_match = re.search(r'\{[\s\S]*\}', extraction_response)
             if json_match:
                 extraction = json.loads(json_match.group())
-                narrative_summary = extraction.get("session_summary", {}).get("narrative", "")
+                session_summary_obj = extraction.get("session_summary", {})
+                narrative_summary = session_summary_obj.get("narrative", "")
+                session_title = session_summary_obj.get("title", "")
                 extracted_concepts = extraction.get("new_concepts", [])
             else:
                 extracted_concepts = []
@@ -431,24 +438,48 @@ class SessionManager:
             logger.warning("LLM concept extraction failed; using fallback", exc_info=True)
             extracted_concepts = []
 
+        # Determine clean session title
+        if not session_title:
+            turns = self.db.get_session_turns(session_id, limit=1)
+            if turns:
+                session_title = turns[0]["user_input"].split("\n")[0].strip()[:80]
+        if not session_title:
+            session_title = f"{mode_target.value.capitalize()} Exploration"
+
         # Create concept nodes via KnowledgeGraph
         graph = KnowledgeGraph(user_id, self.db)
         try:
             if extracted_concepts:
                 for ec in extracted_concepts[:3]:
+                    raw_name = ec.get("name", "").strip()
+                    for m in ["CONVERGENT", "DIVERGENT", "ANALOGICAL", "METACOGNITIVE", "SYSTEMS", "DMN"]:
+                        if raw_name.upper().startswith(f"{m}:"):
+                            raw_name = raw_name[len(m)+1:].strip()
+                    
+                    concept_mode = mode_target
+                    mode_str = ec.get("thinking_mode", "").upper().strip()
+                    if mode_str in [m.value for m in ThinkingMode]:
+                        concept_mode = ThinkingMode(mode_str)
+
                     concept = graph.add_concept(
-                        name=ec.get("name", mode_target.value)[:200],
-                        domain=ec.get("domain", "general")[:100],
-                        thinking_mode=mode_target,
+                        name=raw_name or "Research Concept",
+                        domain=ec.get("domain", "General")[:100],
+                        thinking_mode=concept_mode,
                     )
                     concepts_added += 1
             else:
                 turns = self.db.get_session_turns(session_id, limit=1)
-                goal = turns[0]["user_input"][:60] if turns else ""
-                concept_name = f"{mode_target.value}: {goal}" if goal else mode_target.value
+                goal = turns[0]["user_input"][:80].strip() if turns else ""
+                clean_name = goal.split("\n")[0].strip() if goal else "Research Concept"
+                for m in ["CONVERGENT", "DIVERGENT", "ANALOGICAL", "METACOGNITIVE", "SYSTEMS", "DMN"]:
+                    if clean_name.upper().startswith(f"{m}:"):
+                        clean_name = clean_name[len(m)+1:].strip()
+                if len(clean_name) > 60:
+                    clean_name = clean_name[:60] + "..."
+
                 concept = graph.add_concept(
-                    name=concept_name,
-                    domain="general",
+                    name=clean_name or "Research Concept",
+                    domain="General",
                     thinking_mode=mode_target,
                 )
                 concepts_added = 1
@@ -491,12 +522,18 @@ class SessionManager:
         except Exception:
             logger.warning("Failed to compute session vector", exc_info=True)
 
-        # Write narrative summary to session
-        if narrative_summary:
-            try:
-                self.db.update_session(session_id, summary=narrative_summary)
-            except Exception:
-                pass
+        # Write narrative summary and clean title to session
+        summary_payload = {
+            "title": session_title,
+            "topic": session_title,
+            "narrative": narrative_summary,
+            "modes_activated": modes_activated,
+            "concepts_added": concepts_added,
+        }
+        try:
+            self.db.update_session(session_id, summary=json.dumps(summary_payload))
+        except Exception:
+            pass
 
         # Only save metrics for meaningful sessions (>= 2 turns)
         if turn_count >= 2:

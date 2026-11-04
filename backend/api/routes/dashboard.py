@@ -270,8 +270,36 @@ def _build_recent_sessions(sessions: list, metrics: list) -> list:
         else:
             modes_activated = []
 
+        # Extract clean title and narrative summary
+        summary_val = s.get("summary")
+        title = ""
+        narrative = ""
+        if isinstance(summary_val, dict):
+            title = summary_val.get("title") or summary_val.get("topic") or ""
+            narrative = summary_val.get("narrative") or ""
+        elif isinstance(summary_val, str) and summary_val.strip():
+            try:
+                import json
+                parsed = json.loads(summary_val)
+                if isinstance(parsed, dict):
+                    title = parsed.get("title") or parsed.get("topic") or ""
+                    narrative = parsed.get("narrative") or ""
+                else:
+                    narrative = summary_val
+            except Exception:
+                narrative = summary_val
+
+        if not title:
+            if narrative and len(narrative) < 70:
+                title = narrative
+            else:
+                mode_str = s.get("mode_target", "General").capitalize()
+                title = f"{mode_str} Exploration"
+
         result.append({
             "session_id": s["session_id"],
+            "title": title,
+            "summary": narrative,
             "created_at": s.get("created_at", ""),
             "mode_target": s.get("mode_target", ""),
             "modes_activated": modes_activated,

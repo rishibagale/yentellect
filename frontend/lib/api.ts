@@ -62,6 +62,8 @@ export interface CognitiveProfile {
 
 export interface SessionStartResponse {
   session_id: string;
+  title?: string;
+  summary?: string;
   response: string;
   mode_target: ThinkingMode;
   turn_count: number;
@@ -72,6 +74,8 @@ export interface SessionStartResponse {
 
 export interface TurnResponse {
   session_id: string;
+  title?: string;
+  summary?: string;
   response: string;
   predicted_mode: ThinkingMode;
   confidence: number;
@@ -81,6 +85,8 @@ export interface TurnResponse {
 
 export interface SessionEndResponse {
   session_id: string;
+  title?: string;
+  narrative?: string;
   summary: {
     modes_activated: string[];
     concepts_added: number;
@@ -126,6 +132,8 @@ export interface SessionMetrics {
   metrics: Array<{
     metric_id: string;
     session_id: string;
+  title?: string;
+  summary?: string;
     modes_activated: string | string[];
     concepts_added: number;
     bridges_formed: number;
@@ -158,6 +166,8 @@ export interface CognitiveFingerprint {
 
 export interface SessionSummary {
   session_id: string;
+  title?: string;
+  summary?: string;
   created_at: string;
   mode_target: ThinkingMode;
   modes_activated: string[];
@@ -182,6 +192,8 @@ export interface DashboardData {
 export interface SessionDetailResponse {
   session: {
     session_id: string;
+  title?: string;
+  summary?: string;
     user_id: string;
     mode_target: ThinkingMode;
     predicted_mode: ThinkingMode;
@@ -347,8 +359,18 @@ export function getModeColor(mode: ThinkingMode): string {
   return colors[mode] || "#6B7280";
 }
 
-export function getModeName(mode: ThinkingMode): string {
-  return mode.charAt(0) + mode.slice(1).toLowerCase();
+export function getModeName(mode?: ThinkingMode | string): string {
+  if (!mode) return "General";
+  const upper = mode.toUpperCase().trim();
+  const names: Record<string, string> = {
+    CONVERGENT: "Convergent",
+    DIVERGENT: "Divergent",
+    ANALOGICAL: "Analogical",
+    METACOGNITIVE: "Metacognitive",
+    SYSTEMS: "Systems",
+    DMN: "Default Mode (DMN)",
+  };
+  return names[upper] || (mode.charAt(0).toUpperCase() + mode.slice(1).toLowerCase());
 }
 
 export async function getSession(sessionId: string): Promise<SessionDetailResponse> {

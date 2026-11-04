@@ -222,18 +222,20 @@ Remember: One question. Make it gentle and open. This session is never scored.""
 # END-OF-SESSION EXTRACTION PROMPT
 # ============================================================================
 
-EXTRACT_CONCEPTS_PROMPT = """You are analyzing a cognitive training session transcript.
-Extract new concepts the user mentioned and their connections to existing concepts.
+EXTRACT_CONCEPTS_PROMPT = """You are analyzing a research and cognitive training session transcript.
+Extract new concepts the user explored and provide a clean 3-6 word title and 1-sentence narrative summary of the core discussion.
 
 Return JSON with this exact structure:
 {
     "new_concepts": [
-        {"name": "concept_name", "domain": "domain_name", "thinking_mode": "ASSOCIATED_MODE"}
+        {"name": "Clean Concept Name", "domain": "Domain Name", "thinking_mode": "ASSOCIATED_MODE"}
     ],
     "connections": [
-        {"source": "existing_or_new_concept", "target": "existing_or_new_concept", "strength": 0.5}
+        {"source": "Concept A", "target": "Concept B", "strength": 0.5}
     ],
     "session_summary": {
+        "title": "Clear 3-6 Word Topic Name",
+        "narrative": "One concise sentence summarizing the main insight or exploration",
         "modes_activated": ["MODE1", "MODE2"],
         "overall_score": 0.75,
         "mode_scores": {"CONVERGENT": 0.8, "DIVERGENT": 0.6}
@@ -241,9 +243,10 @@ Return JSON with this exact structure:
 }
 
 Rules:
-- Only extract concepts the user explicitly mentioned
-- Domain should be a broad category (e.g., "physics", "psychology", "programming")
-- Connections strength 0.0-1.0 based on how strongly the user associated them
+- DO NOT prefix concept names with the mode (e.g. NEVER use "ANALOGICAL: Entropy", use "Thermodynamic Entropy")
+- Name concepts by their actual scientific or subject matter name
+- Title should capture the user's specific research focus (e.g. "Navier-Stokes Fluid Turbulence")
+- Domain should be a broad category (e.g., "Physics", "Computer Science", "Mathematics")
 - Mode scores 0.0-1.0 based on session performance"""
 
 

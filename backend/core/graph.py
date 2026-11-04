@@ -345,14 +345,21 @@ class KnowledgeGraph:
         
         # Concept nodes
         for node in self._nodes.values():
+            clean_name = (node.name or "").strip()
+            for m in ["CONVERGENT", "DIVERGENT", "ANALOGICAL", "METACOGNITIVE", "SYSTEMS", "DMN"]:
+                if clean_name.upper().startswith(f"{m}:"):
+                    clean_name = clean_name[len(m)+1:].strip()
+            
+            mode_val = node.thinking_mode_association.value if hasattr(node.thinking_mode_association, "value") else str(node.thinking_mode_association)
+
             d3_nodes.append({
                 "id": str(node.id),
-                "name": node.name,
-                "domain": node.domain,
+                "name": clean_name or "Concept",
+                "domain": node.domain or "General",
                 "confidenceScore": node.confidence_score,
                 "lastReinforced": node.last_reinforced.isoformat(),
                 "sessionCount": node.session_count,
-                "thinkingMode": node.thinking_mode_association.value,
+                "thinkingMode": mode_val,
                 "isolated": self._is_isolated(str(node.id)),
                 "type": "fusion" if node.is_fusion else "concept",
                 "sessionId": node.session_id,
@@ -378,12 +385,39 @@ class KnowledgeGraph:
             try:
                 session_data = self.db.get_session(sid) if hasattr(self.db, 'get_session') else None
                 if session_data:
-                    summary_text = session_data.get("summary", "")
-                    if isinstance(summary_text, str) and len(summary_text) > 120:
-                        summary_text = summary_text[:120] + "..."
+                    summary_raw = session_data.get("summary", "")
+                    session_title = ""
+                    session_narrative = ""
+                    if isinstance(summary_raw, dict):
+                        session_title = summary_raw.get("title") or summary_raw.get("topic") or ""
+                        session_narrative = summary_raw.get("narrative") or ""
+                    elif isinstance(summary_raw, str) and summary_raw:
+                        try:
+                            parsed = json.loads(summary_raw)
+                            if isinstance(parsed, dict):
+                                session_title = parsed.get("title") or parsed.get("topic") or ""
+                                session_narrative = parsed.get("narrative") or ""
+                            else:
+                                session_narrative = summary_raw
+                        except Exception:
+                            session_narrative = summary_raw
+
+                    if not session_title:
+                        turns = self.db.get_session_turns(sid, limit=1) if hasattr(self.db, 'get_session_turns') else []
+                        if turns:
+                            session_title = turns[0].get("user_input", "").split("\n")[0].strip()[:60]
+                        elif session_narrative and len(session_narrative) < 70:
+                            session_title = session_narrative
+
+                    if not session_title:
+                        mode_str = session_data.get("mode_target", "General").capitalize()
+                        session_title = f"{mode_str} Session"
+
                     d3_nodes.append({
                         "id": f"session-{sid}",
-                        "name": summary_text or f"Session {sid[:8]}",
+                        "name": session_title,
+                        "title": session_title,
+                        "summary": session_narrative or session_title,
                         "type": "session",
                         "modeTarget": session_data.get("mode_target", ""),
                         "status": session_data.get("status", ""),
