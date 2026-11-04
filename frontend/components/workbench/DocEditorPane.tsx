@@ -29,7 +29,7 @@ const KIND_LABEL: Record<WorkDoc["kind"], string> = {
 const workbenchEditorTheme = EditorView.theme({
   "&": {
     height: "100%",
-    fontSize: "13.5px",
+    fontSize: "14px",
     backgroundColor: "transparent",
     color: "var(--text)",
   },
@@ -38,6 +38,10 @@ const workbenchEditorTheme = EditorView.theme({
     padding: "20px 24px",
     caretColor: "var(--accent)",
     lineHeight: "1.65",
+    minHeight: "100%",
+  },
+  "&.cm-focused": {
+    outline: "none",
   },
   "&.cm-focused .cm-cursor": {
     borderLeftColor: "var(--accent)",
@@ -49,6 +53,7 @@ const workbenchEditorTheme = EditorView.theme({
   ".cm-scroller": {
     overflow: "auto",
     height: "100%",
+    fontFamily: "inherit",
   },
   ".cm-placeholder": {
     color: "var(--text-dim)",
@@ -104,11 +109,23 @@ export default function DocEditorPane({
   useEffect(() => {
     if (doc.id === docId) return;
     setDocId(doc.id);
-    setBody(initialBody ?? doc.body ?? "");
+    const newBody = initialBody ?? doc.body ?? "";
+    setBody(newBody);
     setDirty(false);
     setSavedAt(null);
     setMode(doc.kind === "paper" ? "read" : "edit");
     setSelection({ text: "", coords: null });
+
+    // Update CodeMirror doc if already mounted
+    if (viewRef.current) {
+      const state = viewRef.current.state;
+      const currentDoc = state.doc.toString();
+      if (currentDoc !== newBody) {
+        viewRef.current.dispatch({
+          changes: { from: 0, to: currentDoc.length, insert: newBody },
+        });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id]);
 
@@ -150,12 +167,13 @@ export default function DocEditorPane({
     [onAskLens]
   );
 
-  // Create / destroy the CodeMirror view keyed on doc identity.
+  // Mount CodeMirror once hostRef is available.
+  // Because hostRef is ALWAYS in the DOM (hidden via CSS when mode === "read"),
+  // hostRef.current is guaranteed to exist on initial render and never unmount!
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
-    // Clean up any prior editor in this host
     if (viewRef.current) {
       viewRef.current.destroy();
       viewRef.current = null;
@@ -265,9 +283,6 @@ export default function DocEditorPane({
 
   const byline =
     doc.authors && doc.authors.length > 0 ? doc.authors.join(", ") : KIND_LABEL[doc.kind];
-  const meta: string[] = [];
-  if (doc.year) meta.push(doc.year);
-  meta.push(KIND_LABEL[doc.kind]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden relative bg-[var(--bg-0)]">
@@ -341,7 +356,11 @@ export default function DocEditorPane({
             </button>
             <button
               type="button"
-              onClick={() => setMode("split")}
+              onClick={() => {
+                setMode("split");
+                // Focus editor on switch
+                setTimeout(() => viewRef.current?.focus(), 50);
+              }}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-[var(--radius)] transition-all cursor-pointer ${
                 mode === "split"
                   ? "bg-[var(--bg-0)] text-[var(--text)] font-semibold shadow-2xs"
@@ -354,7 +373,11 @@ export default function DocEditorPane({
             </button>
             <button
               type="button"
-              onClick={() => setMode("edit")}
+              onClick={() => {
+                setMode("edit");
+                // Focus editor on switch
+                setTimeout(() => viewRef.current?.focus(), 50);
+              }}
               className={`flex items-center gap-1 px-2.5 py-1 rounded-[var(--radius)] transition-all cursor-pointer ${
                 mode === "edit"
                   ? "bg-[var(--bg-0)] text-[var(--text)] font-semibold shadow-2xs"
@@ -371,10 +394,57 @@ export default function DocEditorPane({
 
       {/* MAIN DOCUMENT VIEWPORT */}
       <div className="min-h-0 flex-1 overflow-hidden relative">
-        {/* MODE 1: READ (Academic Reading View) */}
+        {/* 
+          IMPORTANT: hostRef MUST ALWAYS stay mounted in the DOM.
+          If it is conditionally unmounted during "read" mode, CodeMirror gets destroyed
+          or fails to initialize on load because hostRef.current is null when doc opens in Read!
+          Using CSS display (hidden vs flex vs block) keeps the editor alive and responsive.
+        */}
+        <div
+          className={`h-full w-full ${
+            mode === "read"
+              ? "hidden"
+              : mode === "split"
+              ? "flex flex-row divide-x divide-[var(--border)]"
+              : "block"
+          }`}
+        >
+          {/* EDITOR COLUMN */}
+          <div
+            className={`h-full overflow-hidden bg-[var(--bg-0)] ${
+              mode === "split" ? "flex-1 min-w-0" : "max-w-4xl mx-auto w-full"
+            }`}
+          >
+            <div ref={hostRef} className="h-full w-full" data-testid="doc-editor" />
+          </div>
+
+          {/* SPLIT LIVE PREVIEW COLUMN */}
+          {mode === "split" && (
+            <div className="flex-1 min-w-0 h-full overflow-y-auto px-6 py-6 bg-[var(--bg-0)]/50">
+              <div className="max-w-2xl mx-auto">
+                {doc.abstract && (
+                  <div className="mb-6 rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-3.5 text-xs">
+                    <span className="text-[11px] font-semibold text-[var(--accent)] block mb-1">
+                      ◈ Abstract
+                    </span>
+                    <p className="text-[12.5px] leading-relaxed text-[var(--text-dim)] italic font-serif">
+                      {doc.abstract}
+                    </p>
+                  </div>
+                )}
+                <article
+                  className="research-doc-body text-[14.5px]"
+                  dangerouslySetInnerHTML={{ __html: previewHtml }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* READ ONLY ACADEMIC VIEW */}
         {mode === "read" && (
           <div
-            className="h-full overflow-y-auto px-6 py-8"
+            className="h-full overflow-y-auto px-6 py-8 bg-[var(--bg-0)]"
             data-testid="doc-preview"
           >
             <div className="max-w-4xl mx-auto">
@@ -400,45 +470,6 @@ export default function DocEditorPane({
                 className="research-doc-body"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
-            </div>
-          </div>
-        )}
-
-        {/* MODE 2: SPLIT (Side-by-Side Editor & Live KaTeX Preview) */}
-        {mode === "split" && (
-          <div className="h-full flex flex-row divide-x divide-[var(--border)]">
-            {/* LEFT: CODEMIRROR EDITOR */}
-            <div className="flex-1 min-w-0 h-full overflow-hidden bg-[var(--bg-0)]">
-              <div ref={hostRef} className="h-full" data-testid="doc-editor" />
-            </div>
-
-            {/* RIGHT: LIVE KATEX PREVIEW */}
-            <div className="flex-1 min-w-0 h-full overflow-y-auto px-6 py-6 bg-[var(--bg-0)]/50">
-              <div className="max-w-2xl mx-auto">
-                {doc.abstract && (
-                  <div className="mb-6 rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-3.5 text-xs">
-                    <span className="text-[11px] font-semibold text-[var(--accent)] block mb-1">
-                      ◈ Abstract
-                    </span>
-                    <p className="text-[12.5px] leading-relaxed text-[var(--text-dim)] italic font-serif">
-                      {doc.abstract}
-                    </p>
-                  </div>
-                )}
-                <article
-                  className="research-doc-body text-[14.5px]"
-                  dangerouslySetInnerHTML={{ __html: previewHtml }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODE 3: EDIT (Focused Full Editor) */}
-        {mode === "edit" && (
-          <div className="h-full overflow-hidden bg-[var(--bg-0)]">
-            <div className="max-w-4xl mx-auto h-full">
-              <div ref={hostRef} className="h-full" data-testid="doc-editor" />
             </div>
           </div>
         )}
