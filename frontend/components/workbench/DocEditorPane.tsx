@@ -70,6 +70,7 @@ export interface DocEditorPaneProps {
   initialBody?: string;
   onAskLens?: (text: string, mode?: ThinkingMode) => void;
   onSaved?: (body: string) => void;
+  onOpenPalette?: () => void;
 }
 
 export default function DocEditorPane({
@@ -77,6 +78,7 @@ export default function DocEditorPane({
   initialBody,
   onAskLens,
   onSaved,
+  onOpenPalette,
 }: DocEditorPaneProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -104,6 +106,52 @@ export default function DocEditorPane({
     latest.current.dirty = dirty;
     latest.current.docId = docId;
   }, [body, dirty, docId]);
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  /** Listen for workbench commands executed from CommandPalette or shortcuts */
+  useEffect(() => {
+    const handleCommand = (e: Event) => {
+      const custom = e as CustomEvent<{ action: string }>;
+      if (!custom.detail) return;
+      const act = custom.detail.action;
+      if (act === "mode-read") {
+        setMode("read");
+      } else if (act === "mode-split") {
+        setMode("split");
+        setTimeout(() => viewRef.current?.focus(), 50);
+      } else if (act === "mode-edit") {
+        setMode("edit");
+        setTimeout(() => viewRef.current?.focus(), 50);
+      } else if (act === "insert-latex") {
+        setMode("split");
+        const snippet =
+          "\n\n$$\n\\frac{\\partial \\mathbf{u}}{\\partial t} + (\\mathbf{u} \\cdot \\nabla)\\mathbf{u} = -\\frac{1}{\\rho}\\nabla p + \\nu \\nabla^2 \\mathbf{u}\n$$\n\n";
+        if (viewRef.current) {
+          const state = viewRef.current.state;
+          const pos = state.selection.main.head;
+          viewRef.current.dispatch({
+            changes: { from: pos, insert: snippet },
+            selection: { anchor: pos + snippet.length },
+          });
+          viewRef.current.focus();
+        } else {
+          setBody((prev) => prev + snippet);
+        }
+        setToastMessage("Inserted LaTeX equation block");
+        setTimeout(() => setToastMessage(null), 3000);
+      } else if (act === "export-doc") {
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          navigator.clipboard.writeText(body);
+          setToastMessage("Copied document Markdown to clipboard!");
+          setTimeout(() => setToastMessage(null), 3000);
+        }
+      }
+    };
+
+    window.addEventListener("workbench:command", handleCommand);
+    return () => window.removeEventListener("workbench:command", handleCommand);
+  }, [body]);
 
   // A different doc swapped in externally: reset body + save state.
   useEffect(() => {
@@ -329,7 +377,7 @@ export default function DocEditorPane({
         </div>
 
         {/* CONTROLS: VIEW MODES + SAVE STATUS */}
-        <div className="flex flex-shrink-0 items-center gap-3">
+        <div className="flex flex-shrink-0 items-center gap-2.5">
           <span className="text-[11px] text-[var(--text-dim)] hidden sm:inline flex items-center gap-1.5">
             <span
               className={`w-1.5 h-1.5 rounded-full ${
@@ -338,6 +386,19 @@ export default function DocEditorPane({
             />
             {dirty ? "Editing…" : savedAt ? "Saved" : "Auto-saves"}
           </span>
+
+          {/* QUICK COMMAND PALETTE BUTTON */}
+          {onOpenPalette && (
+            <button
+              type="button"
+              onClick={onOpenPalette}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg-2)]/70 hover:bg-[var(--bg-2)] hover:border-[var(--text-dim)]/40 text-xs text-[var(--text-dim)] hover:text-[var(--text)] transition-colors cursor-pointer"
+              title="Open Command Palette (Ctrl+K)"
+            >
+              <span className="text-[11px]">⚡</span>
+              <span className="hidden sm:inline font-medium">Commands</span>
+            </button>
+          )}
 
           {/* VIEW MODE TOGGLE (Read | Split | Edit) */}
           <div className="flex items-center rounded-lg bg-[var(--bg-2)]/90 p-0.5 border border-[var(--border)] text-xs">
@@ -493,6 +554,13 @@ export default function DocEditorPane({
           </button>
         </footer>
       ) : null}
+      {/* TOAST FEEDBACK */}
+      {toastMessage && (
+        <div className="absolute bottom-12 right-6 z-30 px-3 py-1.5 rounded-lg bg-[var(--bg-2)] border border-[var(--border)] text-xs text-[var(--text)] shadow-md animate-fade-in flex items-center gap-2">
+          <span className="text-[var(--accent)] font-bold">✓</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }

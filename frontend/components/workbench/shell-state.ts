@@ -344,6 +344,7 @@ export function useShellState() {
     openActivity,
     openImport,
     createDoc,
+    loadDemo,
   };
 
   /** Tab labels prefer the library's live title, falling back to the saved one. */

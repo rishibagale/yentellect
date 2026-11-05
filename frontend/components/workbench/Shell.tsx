@@ -120,7 +120,11 @@ function ShellInner() {
         lensOpen={layout.lensOpen}
       />
       <div className="flex-1 flex min-h-0 relative">
-        <ActivityBar activity={layout.activity} onSelect={setActivity} />
+        <ActivityBar
+          activity={layout.activity}
+          onSelect={setActivity}
+          onOpenPalette={() => setPaletteOpen(true)}
+        />
         
         {/* Explorer drawer on mobile/tablet */}
         {(isPhone || isTablet) && layout.explorerOpen && (
@@ -314,7 +318,13 @@ function ShellInner() {
         )}
       </div>
 
-      <StatusBar activeLens={activeLens} words={thread.selectionWords} kept={thread.keptCount} saved />
+      <StatusBar
+        activeLens={activeLens}
+        words={thread.selectionWords}
+        kept={thread.keptCount}
+        saved
+        onOpenPalette={() => setPaletteOpen(true)}
+      />
       <CommandPalette
         open={layout.paletteOpen}
         commands={commands}

@@ -1,17 +1,17 @@
 /**
  * Yentellect workbench — Activity bar (Stage 1).
- * 48px wide, icons only: Library, Settings.
- * Only activities whose view is live appear here; Graph and Search return
- * when their stages land, so the bar never offers a dead end.
+ * 48px wide: Library, Graph, Settings, and quick Command Palette trigger.
  */
 "use client";
 
 import type { Activity } from "@/lib/workbench/layout";
-
+import { isMacOS } from "@/lib/workbench/commands";
+import { useState, useEffect } from "react";
 
 interface ActivityBarProps {
   activity: Activity;
   onSelect: (a: Activity) => void;
+  onOpenPalette?: () => void;
 }
 
 const ITEMS: Array<{
@@ -25,7 +25,7 @@ const ITEMS: Array<{
 ];
 
 function base(active: boolean) {
-  return `w-12 h-12 flex items-center justify-center transition-colors ${
+  return `w-12 h-12 flex items-center justify-center transition-colors cursor-pointer ${
     active
       ? "text-[var(--text)]"
       : "text-[var(--text-dim)] hover:text-[var(--text)]"
@@ -59,35 +59,70 @@ function SettingsIcon({ active }: { active: boolean }) {
   );
 }
 
-export default function ActivityBar({ activity, onSelect }: ActivityBarProps) {
+export default function ActivityBar({ activity, onSelect, onOpenPalette }: ActivityBarProps) {
+  const [modLabel, setModLabel] = useState("Ctrl+");
+
+  useEffect(() => {
+    setModLabel(isMacOS() ? "⌘" : "Ctrl+");
+  }, []);
+
   return (
     <nav
       data-region="activitybar"
       aria-label="Activity"
-      className="w-12 shrink-0 flex flex-col items-center border-r border-[var(--border)] bg-[var(--bg-1)]"
+      className="w-12 shrink-0 flex flex-col items-center justify-between border-r border-[var(--border)] bg-[var(--bg-1)] py-1"
     >
-      {ITEMS.map((item) => {
-        const active = activity === item.id;
-        return (
+      <div className="flex flex-col items-center w-full">
+        {ITEMS.map((item) => {
+          const active = activity === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSelect(item.id)}
+              aria-label={item.label}
+              aria-pressed={active}
+              title={item.label}
+              className={`${base(active)} relative`}
+            >
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-0 top-3 bottom-3 w-0.5 bg-[var(--accent)]"
+                />
+              )}
+              <item.icon active={active} />
+            </button>
+          );
+        })}
+      </div>
+
+      {onOpenPalette && (
+        <div className="flex flex-col items-center pb-2">
           <button
-            key={item.id}
             type="button"
-            onClick={() => onSelect(item.id)}
-            aria-label={item.label}
-            aria-pressed={active}
-            title={item.label}
-            className={`${base(active)} relative`}
+            onClick={onOpenPalette}
+            aria-label={`Commands & Actions (${modLabel}K)`}
+            title={`Commands & Actions (${modLabel}K)`}
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-[var(--text-dim)] hover:text-[var(--text)] hover:bg-[var(--bg-2)] transition-colors cursor-pointer"
           >
-            {active && (
-              <span
-                aria-hidden="true"
-                className="absolute left-0 top-3 bottom-3 w-0.5 bg-[var(--accent)]"
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1.75}
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"
               />
-            )}
-            <item.icon active={active} />
+            </svg>
           </button>
-        );
-      })}
+        </div>
+      )}
     </nav>
   );
 }

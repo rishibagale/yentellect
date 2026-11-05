@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import type { WorkDoc, DocKind } from "@/lib/workbench/db";
 import type { TabMeta } from "@/lib/workbench/tabs";
 import type { ThinkingMode } from "@/lib/modes";
+import { isMacOS } from "@/lib/workbench/commands";
 import DocEditorPane from "./DocEditorPane";
 
 interface EditorAreaProps {
@@ -570,6 +571,7 @@ export default function EditorArea({
           doc={doc}
           initialBody={doc.body}
           onAskLens={onAskLens}
+          onOpenPalette={onOpenPalette}
         />
       ) : waitingForDoc ? (
         <div className="flex-1 flex items-center justify-center px-4 text-[12px] text-[var(--text-dim)]">
@@ -628,10 +630,24 @@ export default function EditorArea({
           <button
             type="button"
             onClick={onOpenPalette}
-            className="w-full rounded-xl border border-[var(--border)]/70 bg-[var(--bg-1)]/60 hover:bg-[var(--bg-1)] px-4 py-2.5 text-center text-xs text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--text-dim)] transition-colors flex items-center justify-between"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-1)] hover:bg-[var(--bg-2)] px-4 py-3 text-left text-xs text-[var(--text-dim)] hover:text-[var(--text)] hover:border-[var(--text-dim)]/50 transition-all flex items-center justify-between shadow-xs cursor-pointer group"
           >
-            <span>Import a paper or write a concept to begin.</span>
-            <kbd className="text-[10px] border border-[var(--border)] px-1.5 py-0.5 rounded bg-[var(--bg-0)]">⌘K</kbd>
+            <div className="flex items-center gap-2.5">
+              <span className="w-6 h-6 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold">
+                ⚡
+              </span>
+              <div>
+                <span className="font-medium text-[var(--text)] block text-xs">
+                  Command Palette & Quick Actions
+                </span>
+                <span className="text-[10.5px] text-[var(--text-dim)]">
+                  Access all research tools, cognitive lenses, and view modes
+                </span>
+              </div>
+            </div>
+            <kbd className="text-[10px] border border-[var(--border)] px-2 py-1 rounded-md bg-[var(--bg-0)] font-mono text-[var(--text-dim)] group-hover:text-[var(--text)] font-semibold">
+              {typeof navigator !== "undefined" && isMacOS() ? "⌘K" : "Ctrl+K"}
+            </kbd>
           </button>
         </div>
       )}
