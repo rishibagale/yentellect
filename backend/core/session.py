@@ -616,6 +616,36 @@ class SessionManager:
         edge_count = len(profile.edges)
         entropy = graph.get_conceptual_entropy()
         
+        # Cognitive regime & spectral topology diagnostics
+        spectral_guidance = ""
+        try:
+            from backend.orchestrator import CognitiveGraphOrchestrator
+            G = graph.to_networkx()
+            if G.number_of_nodes() >= 2:
+                orch = CognitiveGraphOrchestrator(initial_graph=G)
+                diag = orch.snapshot()
+                regime_str = diag.regime.value
+                rec = orch.recommend_spectral_bridge()
+                bridge_info = ""
+                if rec:
+                    node_u_obj = graph._nodes.get(str(rec.node_u))
+                    node_v_obj = graph._nodes.get(str(rec.node_v))
+                    u_label = node_u_obj.name if node_u_obj else str(rec.node_u)
+                    v_label = node_v_obj.name if node_v_obj else str(rec.node_v)
+                    bridge_info = f"\n- Topological Bottleneck Cut: Disconnect between '{u_label}' and '{v_label}' (Fiedler potential gap: {rec.fiedler_gap:.3f})."
+
+                spectral_guidance = (
+                    f"\n\nCognitive Topology State:\n"
+                    f"- Cognitive Regime: {regime_str}\n"
+                    f"- Spectral Gap (Algebraic Connectivity λ2): {diag.observables.lambda_2:.4f}\n"
+                    f"- Random-Walk Conceptual Entropy (Hc): {diag.observables.H_c:.2f} bits (norm: {diag.H_c_norm:.2f})\n"
+                    f"- Transition Entropy Rate (h_rate): {diag.observables.h_rate:.2f} bits (norm: {diag.h_rate_norm:.2f})"
+                    f"{bridge_info}\n"
+                    f"- Socratic Directive: When regime is COMPARTMENTALIZED or FIXATED, actively prompt the user to synthesize connections across cognitive silos and build structural analogies between distant hubs."
+                )
+        except Exception as e:
+            logger.debug(f"Could not compute spectral diagnostics for session context: {e}")
+
         context = (
             f"Concepts: {concept_count} across {len(domains)} domains\n"
             f"Top domains: {', '.join(top_domains)}\n"
@@ -624,6 +654,7 @@ class SessionManager:
             f"Dominant mode: {profile.dominant_mode.value if profile.dominant_mode else 'Not yet determined'}\n"
             f"Weakest mode: {profile.weakest_mode.value if profile.weakest_mode else 'Not yet determined'}\n"
             f"Session count: {profile.session_count}"
+            f"{spectral_guidance}"
         )
         
         return context

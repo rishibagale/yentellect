@@ -19,6 +19,7 @@ import type { TabMeta } from "@/lib/workbench/tabs";
 import type { ThinkingMode } from "@/lib/modes";
 import { isMacOS } from "@/lib/workbench/commands";
 import { getGraph, type D3GraphData } from "@/lib/api";
+import { useSupabase } from "@/utils/supabase/provider";
 import DocEditorPane from "./DocEditorPane";
 
 const KnowledgeGraph = dynamic(() => import("@/components/KnowledgeGraph"), {
@@ -89,6 +90,7 @@ export default function EditorArea({
   onOpenImport,
   onOpenGraphTab,
 }: EditorAreaProps) {
+  const { user } = useSupabase();
   const [draft, setDraft] = useState("");
   const [importTab, setImportTab] = useState<ImportTab>("link");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -606,6 +608,7 @@ export default function EditorArea({
         <div className="flex-1 min-h-0 relative w-full h-full overflow-hidden bg-[#0b0e14]">
           <KnowledgeGraph
             data={graphData}
+            userId={user?.id}
             onNodeClick={(node) => setSelectedGraphNode(node)}
           />
           {selectedGraphNode && (

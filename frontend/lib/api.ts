@@ -413,9 +413,31 @@ export interface FusionResponse {
   fusion_concept_id: string;
   name: string;
   domain: string;
+  description?: string;
+  emergentProperty?: string;
+  isomorphismMapping?: string;
+  falsifiableTest?: string;
   is_fusion: boolean;
   fusion_parent_ids: string[];
   thinkingMode: ThinkingMode;
+}
+
+export interface SynthesizedConceptResponse {
+  fusionConceptId: string;
+  name: string;
+  domain: string;
+  description?: string;
+  emergentProperty?: string;
+  isomorphismMapping?: string;
+  falsifiableTest?: string;
+  thinkingMode: ThinkingMode;
+  fusionParentIds?: string[];
+  coarsening?: {
+    regime: CognitiveRegime;
+    lambda2: number;
+    entropy: number;
+    theoreticalDrop: number;
+  };
 }
 
 export async function fuseSessions(
@@ -427,6 +449,23 @@ export async function fuseSessions(
     body: JSON.stringify({
       session_a_id: sessionAId,
       session_b_id: sessionBId,
+    }),
+  });
+}
+
+export async function synthesizeConcepts(
+  userId: string,
+  nodeUId: string,
+  nodeVId: string,
+  coarsen: boolean = true
+): Promise<SynthesizedConceptResponse> {
+  return fetchJson<SynthesizedConceptResponse>("/graph/synthesize", {
+    method: "POST",
+    body: JSON.stringify({
+      user_id: userId,
+      node_u_id: nodeUId,
+      node_v_id: nodeVId,
+      coarsen,
     }),
   });
 }

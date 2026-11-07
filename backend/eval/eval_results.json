@@ -1,0 +1,75 @@
+{
+  "fiedler_optimization": {
+    "initial_lambda_2": 0.00309,
+    "fiedler_pair": [
+      "Reynolds Number",
+      "Automatic Differentiation"
+    ],
+    "fiedler_gap": 0.25058,
+    "delta_lambda2_fiedler": 0.05122,
+    "delta_lambda2_intra": -9e-05,
+    "avg_cross_gain": 0.05091,
+    "max_cross_gain": 0.05122,
+    "optimality_over_intra_ratio": -560.79,
+    "passed": true
+  },
+  "coarsening_entropy": {
+    "results": [
+      {
+        "pair": "Navier-Stokes Equations + Deep Neural Networks -> Physics-Informed Neural Networks (PINNs)",
+        "H_c_before": 2.53356,
+        "H_c_after": 2.12615,
+        "empirical_drop": 0.40741,
+        "theoretical_drop": 0.40741,
+        "abs_error": 5.551115123125783e-17,
+        "passed": true
+      },
+      {
+        "pair": "Natural Selection + Heuristic Combinatorial Optimization -> Genetic Algorithms",
+        "H_c_before": 2.53356,
+        "H_c_after": 2.12615,
+        "empirical_drop": 0.40741,
+        "theoretical_drop": 0.40741,
+        "abs_error": 5.551115123125783e-17,
+        "passed": true
+      },
+      {
+        "pair": "Shannon Entropy + Quantum Superposition & Density Matrices -> Von Neumann Quantum Entropy & Qubit Theory",
+        "H_c_before": 2.53356,
+        "H_c_after": 2.12615,
+        "empirical_drop": 0.40741,
+        "theoretical_drop": 0.40741,
+        "abs_error": 5.551115123125783e-17,
+        "passed": true
+      },
+      {
+        "pair": "Hierarchical Bayesian Inference + Cortical Sensory-Motor Hierarchy -> Predictive Processing & Free Energy Principle",
+        "H_c_before": 2.53356,
+        "H_c_after": 2.12615,
+        "empirical_drop": 0.40741,
+        "theoretical_drop": 0.40741,
+        "abs_error": 5.551115123125783e-17,
+        "passed": true
+      },
+      {
+        "pair": "Ising Spin Glass Model + Content-Addressable Associative Memory -> Hopfield Recurrent Attractor Network",
+        "H_c_before": 2.53356,
+        "H_c_after": 2.12615,
+        "empirical_drop": 0.40741,
+        "theoretical_drop": 0.40741,
+        "abs_error": 5.551115123125783e-17,
+        "passed": true
+      }
+    ],
+    "all_passed": true
+  },
+  "regime_healing": {
+    "initial_regime": "COMPARTMENTALIZED",
+    "initial_lambda_2": 0.00124,
+    "post_regime": "INTEGRATED",
+    "post_lambda_2": 0.23399,
+    "delta_lambda_2": 0.23275,
+    "passed": true
+  },
+  "overall_verdict": true
+}

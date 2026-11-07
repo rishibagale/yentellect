@@ -1,0 +1,200 @@
+{
+  "description": "Benchmark dataset for empirical validation of concept combination mathematical models and LLM semantic synthesis.",
+  "version": "1.0.0",
+  "historical_breakthroughs": [
+    {
+      "id": "pinn",
+      "concept_u": {
+        "name": "Navier-Stokes Equations",
+        "domain": "Fluid Mechanics",
+        "mode": "SYSTEMS",
+        "description": "Non-linear partial differential equations describing the conservation of momentum and mass in viscous fluid flow."
+      },
+      "concept_v": {
+        "name": "Deep Neural Networks",
+        "domain": "Machine Learning",
+        "mode": "CONVERGENT",
+        "description": "Parameterized non-linear function approximators optimized by gradient descent via reverse-mode automatic differentiation."
+      },
+      "ground_truth_blend": {
+        "name": "Physics-Informed Neural Networks (PINNs)",
+        "domain": "Scientific Machine Learning",
+        "isomorphism": "Automatic differentiation compute graphs mirror spatial differential operators; PDE residuals penalize the loss function directly as physical conservation laws.",
+        "emergent_property": "Mesh-free solving of inverse fluid problems without numerical discretization grids, enforcing Navier-Stokes physics into weight updates.",
+        "falsifiable_test": "Forward simulation of lid-driven cavity flow and boundary-layer vortex shedding with exact loss convergence on zero labeled internal velocity points."
+      },
+      "expected_topology": {
+        "type": "cross_domain_bridge",
+        "min_fiedler_rank": 3,
+        "expect_lambda2_gain": true
+      }
+    },
+    {
+      "id": "genetic_algorithms",
+      "concept_u": {
+        "name": "Natural Selection",
+        "domain": "Evolutionary Biology",
+        "mode": "DIVERGENT",
+        "description": "Differential reproductive success of phenotypes over generations driven by mutation, crossover, and fitness pressures."
+      },
+      "concept_v": {
+        "name": "Heuristic Combinatorial Optimization",
+        "domain": "Computer Science",
+        "mode": "CONVERGENT",
+        "description": "Algorithmic strategies for searching complex, NP-hard discrete solution spaces with high dimensionality."
+      },
+      "ground_truth_blend": {
+        "name": "Genetic Algorithms",
+        "domain": "Metaheuristic Evolutionary Computing",
+        "isomorphism": "Bit strings or candidate parameters map to chromosomes; objective function evaluation maps to biological fitness; parameter swaps map to genetic crossover.",
+        "emergent_property": "Stochastic exploration-exploitation balance overcoming local optima traps in non-convex fitness landscapes.",
+        "falsifiable_test": "Performance benchmarking against hill-climbing on De Jong test suite and Traveling Salesperson Problem (TSP) landscapes."
+      },
+      "expected_topology": {
+        "type": "cross_domain_bridge",
+        "min_fiedler_rank": 3,
+        "expect_lambda2_gain": true
+      }
+    },
+    {
+      "id": "quantum_information",
+      "concept_u": {
+        "name": "Shannon Entropy",
+        "domain": "Information Theory",
+        "mode": "CONVERGENT",
+        "description": "Logarithmic measure of uncertainty and transmission capacity across discrete classical channels: H(X) = -sum p(x) log2 p(x)."
+      },
+      "concept_v": {
+        "name": "Quantum Superposition & Density Matrices",
+        "domain": "Quantum Mechanics",
+        "mode": "SYSTEMS",
+        "description": "State vectors in Hilbert spaces whose non-commuting observables and entanglement produce density operators rho."
+      },
+      "ground_truth_blend": {
+        "name": "Von Neumann Quantum Entropy & Qubit Theory",
+        "domain": "Quantum Information Theory",
+        "isomorphism": "Diagonal elements of density operator rho map to classical probability distributions, generalized by trace S(rho) = -Tr(rho log2 rho).",
+        "emergent_property": "Entanglement entropy where a composite system is in a pure state yet each subsystem has non-zero positive entropy.",
+        "falsifiable_test": "Verification of subadditivity S(A, B) <= S(A) + S(B) and violation of Bell inequalities in entangled Bell state channels."
+      },
+      "expected_topology": {
+        "type": "cross_domain_bridge",
+        "min_fiedler_rank": 3,
+        "expect_lambda2_gain": true
+      }
+    },
+    {
+      "id": "predictive_processing",
+      "concept_u": {
+        "name": "Hierarchical Bayesian Inference",
+        "domain": "Statistics",
+        "mode": "CONVERGENT",
+        "description": "Recursive updating of prior probability distributions over latent parameters conditioned on evidence likelihood."
+      },
+      "concept_v": {
+        "name": "Cortical Sensory-Motor Hierarchy",
+        "domain": "Cognitive Neuroscience",
+        "mode": "SYSTEMS",
+        "description": "Ascending feedforward sensory pathways and descending feedback regulatory connections across cortical laminae."
+      },
+      "ground_truth_blend": {
+        "name": "Predictive Processing & Free Energy Principle",
+        "domain": "Theoretical Neurobiology",
+        "isomorphism": "Descending corticocortical projections convey top-down generative predictions; ascending projections transmit only prediction error residuals.",
+        "emergent_property": "Unified explanation of perception and motor action (active inference) as dual minimization of variational free energy.",
+        "falsifiable_test": "Mismatch negativity (MMN) electrophysiology in auditory cortex response to oddball deviant tones."
+      },
+      "expected_topology": {
+        "type": "cross_domain_bridge",
+        "min_fiedler_rank": 3,
+        "expect_lambda2_gain": true
+      }
+    },
+    {
+      "id": "hopfield_networks",
+      "concept_u": {
+        "name": "Ising Spin Glass Model",
+        "domain": "Statistical Mechanics",
+        "mode": "SYSTEMS",
+        "description": "Lattice of interacting binary magnetic spin dipoles seeking thermodynamic equilibrium at minimum Hamiltonian energy."
+      },
+      "concept_v": {
+        "name": "Content-Addressable Associative Memory",
+        "domain": "Cognitive Science",
+        "mode": "ANALOGICAL",
+        "description": "Retrieval of complete stored memories from incomplete, noisy, or corrupted sensory cues."
+      },
+      "ground_truth_blend": {
+        "name": "Hopfield Recurrent Attractor Network",
+        "domain": "Computational Neuroscience",
+        "isomorphism": "Binary neuron firing states (+1, -1) map to Ising spins; synaptic Hebbian weights map to magnetic exchange coupling constants J_ij.",
+        "emergent_property": "Lyapunov energy function ensuring monotonic convergence into stable local energy minima (attractor basins) storing target patterns.",
+        "falsifiable_test": "Storage capacity testing up to the theoretical limit of p_max ~ 0.14N patterns before catastrophic spin-glass retrieval breakdown."
+      },
+      "expected_topology": {
+        "type": "cross_domain_bridge",
+        "min_fiedler_rank": 3,
+        "expect_lambda2_gain": true
+      }
+    }
+  ],
+  "control_redundant_pairs": [
+    {
+      "id": "sgd_backprop",
+      "concept_u": {
+        "name": "Backpropagation Algorithm",
+        "domain": "Machine Learning",
+        "mode": "CONVERGENT",
+        "description": "Application of calculus chain rule to compute loss gradients with respect to neural network weights."
+      },
+      "concept_v": {
+        "name": "Stochastic Gradient Descent (SGD)",
+        "domain": "Machine Learning",
+        "mode": "CONVERGENT",
+        "description": "Iterative optimization stepping in the negative gradient direction using mini-batches."
+      },
+      "expected_topology": {
+        "type": "intra_domain_redundant",
+        "min_fiedler_rank": 0,
+        "expect_lambda2_gain": false
+      }
+    },
+    {
+      "id": "dna_rna",
+      "concept_u": {
+        "name": "DNA Transcription",
+        "domain": "Molecular Biology",
+        "mode": "CONVERGENT",
+        "description": "Synthesis of RNA molecules from DNA templates by RNA polymerase."
+      },
+      "concept_v": {
+        "name": "RNA Translation",
+        "domain": "Molecular Biology",
+        "mode": "CONVERGENT",
+        "description": "Decoding of mRNA transcripts into amino acid polypeptide chains by ribosomes."
+      },
+      "expected_topology": {
+        "type": "intra_domain_redundant",
+        "min_fiedler_rank": 0,
+        "expect_lambda2_gain": false
+      }
+    }
+  ],
+  "cognitive_topologies": {
+    "two_silo_benchmark": {
+      "description": "Two distinct clusters (Silo A: Physics/Fluids vs. Silo B: Neural Networks) connected only within themselves. Demonstrates COMPARTMENTALIZED regime with near-zero lambda_2.",
+      "nodes_silo_a": [
+        "Navier-Stokes Equations",
+        "Boundary Layer Theory",
+        "Reynolds Number",
+        "Continuity Equation"
+      ],
+      "nodes_silo_b": [
+        "Deep Neural Networks",
+        "Automatic Differentiation",
+        "Gradient Descent",
+        "Activation Functions"
+      ]
+    }
+  }
+}

@@ -170,3 +170,42 @@ class TestD3Export:
         assert len(d3["nodes"]) == 2
         assert len(d3["links"]) == 1
         assert d3["nodes"][0]["thinkingMode"] == "CONVERGENT"
+
+
+class TestConceptSynthesizerAndFusion:
+    def test_fuse_concepts_creates_semantic_blend(self, graph):
+        n1 = graph.add_concept("Navier-Stokes Equations", "Fluid Mechanics", ThinkingMode.SYSTEMS)
+        n2 = graph.add_concept("Deep Neural Networks", "Machine Learning", ThinkingMode.CONVERGENT)
+
+        fusion = graph.fuse_concepts(str(n1.id), str(n2.id))
+        assert fusion is not None
+        assert fusion.is_fusion is True
+        assert len(fusion.name) > 0
+        assert len(fusion.domain) > 0
+        assert fusion.description is not None
+        assert fusion.emergent_property is not None
+        assert fusion.isomorphism_mapping is not None
+        assert fusion.falsifiable_test is not None
+        assert str(fusion.id) in graph._nodes
+
+        # Verify edges from fusion to parents exist
+        d3 = graph.to_d3_json()
+        fusion_d3_nodes = [n for n in d3["nodes"] if n["id"] == str(fusion.id)]
+        assert len(fusion_d3_nodes) == 1
+        assert fusion_d3_nodes[0]["type"] == "fusion"
+        assert fusion_d3_nodes[0]["emergentProperty"] is not None
+
+    def test_synthesizer_direct(self):
+        from backend.core.synthesizer import ConceptSynthesizer
+        syn = ConceptSynthesizer()
+        res = syn.synthesize(
+            {"name": "Shannon Entropy", "domain": "Information Theory", "thinkingMode": "CONVERGENT"},
+            {"name": "Quantum Superposition", "domain": "Quantum Mechanics", "thinkingMode": "SYSTEMS"},
+            fiedler_gap=0.35,
+            theoretical_drop=0.41,
+        )
+        assert len(res.name) > 0
+        assert "Entropy" in res.name or "Quantum" in res.name or "Information" in res.domain or "Unified" in res.name
+        assert len(res.emergent_property) > 0
+        assert len(res.isomorphism_mapping) > 0
+        assert len(res.falsifiable_test) > 0

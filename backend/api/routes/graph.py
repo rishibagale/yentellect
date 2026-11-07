@@ -23,6 +23,13 @@ class FuseRequest(BaseModel):
     session_b_id: str = Field(..., description="Second session UUID to fuse")
 
 
+class SynthesizeRequest(BaseModel):
+    user_id: UUID = Field(..., description="User UUID")
+    node_u_id: str = Field(..., description="First concept node UUID to combine")
+    node_v_id: str = Field(..., description="Second concept node UUID to combine")
+    coarsen: bool = Field(default=False, description="Whether to execute degree-preserving coarsening (u (+) v)")
+
+
 @router.get("/nearest/{session_id}")
 async def get_nearest_sessions(
     session_id: str,
@@ -140,6 +147,10 @@ async def fuse_sessions(
             "fusion_concept_id": str(fusion.id),
             "name": fusion.name,
             "domain": fusion.domain,
+            "description": fusion.description,
+            "emergentProperty": fusion.emergent_property,
+            "isomorphismMapping": fusion.isomorphism_mapping,
+            "falsifiableTest": fusion.falsifiable_test,
             "is_fusion": True,
             "fusion_parent_ids": fusion.fusion_parent_ids,
             "thinkingMode": fusion.thinking_mode_association.value,
@@ -152,4 +163,62 @@ async def fuse_sessions(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fuse sessions",
+        )
+
+
+@router.post("/synthesize")
+async def synthesize_concepts(
+    req: SynthesizeRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Synthesize two concepts using Fauconnier & Turner's 4-Space Conceptual Blending
+    and Spectral Graph Theory.
+    """
+    safe_user_id = require_user_id(req.user_id, current_user)
+    try:
+        graph = KnowledgeGraph(safe_user_id, db)
+        fusion = graph.fuse_concepts(req.node_u_id, req.node_v_id)
+        if not fusion:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not synthesize concepts. Verify both concept IDs exist."
+            )
+
+        # Optional coarsening
+        theoretical_drop = 0.0
+        new_diagnostics = None
+        if req.coarsen:
+            try:
+                from backend.orchestrator import CognitiveGraphOrchestrator
+                orch = CognitiveGraphOrchestrator(initial_graph=graph.to_networkx())
+                new_diag, theoretical_drop = orch.merge_concepts(req.node_u_id, req.node_v_id, merged_node=str(fusion.id))
+                new_diagnostics = {
+                    "regime": new_diag.regime.value,
+                    "lambda2": round(new_diag.observables.lambda_2, 5),
+                    "entropy": round(new_diag.observables.H_c, 5),
+                    "theoreticalDrop": round(theoretical_drop, 5),
+                }
+            except Exception as e:
+                logger.warning(f"Coarsening calculation failed: {e}")
+
+        return {
+            "fusionConceptId": str(fusion.id),
+            "name": fusion.name,
+            "domain": fusion.domain,
+            "description": fusion.description,
+            "emergentProperty": fusion.emergent_property,
+            "isomorphismMapping": fusion.isomorphism_mapping,
+            "falsifiableTest": fusion.falsifiable_test,
+            "thinkingMode": fusion.thinking_mode_association.value,
+            "fusionParentIds": fusion.fusion_parent_ids,
+            "coarsening": new_diagnostics,
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Failed to synthesize concepts")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to synthesize concepts",
         )

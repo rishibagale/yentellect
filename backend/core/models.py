@@ -111,6 +111,10 @@ class ConceptNode(BaseModel):
     vector: Optional[List[float]] = Field(default=None, description="512-dim VSA vector for this concept")
     is_fusion: bool = Field(default=False, description="True if this concept was created by fusing two sessions")
     fusion_parent_ids: Optional[List[str]] = Field(default=None, description="Session IDs that were fused to create this concept")
+    description: Optional[str] = Field(default=None, description="Detailed explanation of the concept")
+    emergent_property: Optional[str] = Field(default=None, description="Emergent property if synthesized/fused")
+    isomorphism_mapping: Optional[str] = Field(default=None, description="Relational isomorphism if fused")
+    falsifiable_test: Optional[str] = Field(default=None, description="Empirical test or falsification condition")
 
 
 class GraphEdge(BaseModel):

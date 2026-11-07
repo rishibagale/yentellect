@@ -180,19 +180,54 @@ export default function NodeDetailPanel({
               </div>
             )}
 
-            {/* Fusion-specific */}
+            {/* Fusion & Conceptual Blend Details */}
             {isFusion && (
               <div className="space-y-3">
+                {node.description && (
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-mono">
+                      Theoretical Description
+                    </span>
+                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                      {node.description}
+                    </p>
+                  </div>
+                )}
+                {node.emergentProperty && (
+                  <div className="px-3 py-2.5 rounded-lg bg-purple-950/40 border border-purple-500/30 space-y-1">
+                    <span className="text-[10px] uppercase font-mono font-bold text-purple-300">
+                      ◈ Emergent Property (u ⊕ v)
+                    </span>
+                    <p className="text-[11px] text-purple-200 leading-relaxed">
+                      {node.emergentProperty}
+                    </p>
+                  </div>
+                )}
+                {node.isomorphismMapping && (
+                  <div className="px-3 py-2.5 rounded-lg bg-blue-950/40 border border-blue-500/30 space-y-1">
+                    <span className="text-[10px] uppercase font-mono font-bold text-blue-300">
+                      ⟷ Structural Isomorphism
+                    </span>
+                    <p className="text-[11px] text-blue-200 leading-relaxed">
+                      {node.isomorphismMapping}
+                    </p>
+                  </div>
+                )}
+                {node.falsifiableTest && (
+                  <div className="px-3 py-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 space-y-1">
+                    <span className="text-[10px] uppercase font-mono font-bold text-emerald-300">
+                      🔬 Falsifiable Test / Experiment
+                    </span>
+                    <p className="text-[11px] text-emerald-200 leading-relaxed">
+                      {node.falsifiableTest}
+                    </p>
+                  </div>
+                )}
                 <div>
-                  <span className="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-mono">Fusion of</span>
+                  <span className="text-[10px] uppercase tracking-wider text-[var(--text-dim)] font-mono">Parents</span>
                   <p className="text-xs text-[#C4B5FD] mt-1">
-                    {node.fusionParentIds?.length || 0} parent sessions combined via VSA binding
+                    {node.fusionParentIds?.length || 2} parent concepts synthesized via Fauconnier &amp; Turner Conceptual Blending
                   </p>
-                </div>
-                <div className="px-3 py-2 rounded-lg bg-[#A855F7]/10 border border-[#A855F7]/20">
-                  <span className="text-[10px] text-[#C4B5FD]">
-                    This concept emerged from binding two session vectors in the Vector Symbolic Architecture.
-                  </span>
                 </div>
               </div>
             )}

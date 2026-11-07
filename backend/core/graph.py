@@ -25,6 +25,7 @@ from .models import (
 )
 from ..db.database import DatabaseManager
 from .vsa import bind, similarity, get_mode_vector
+from .synthesizer import ConceptSynthesizer
 
 
 class KnowledgeGraph:
@@ -365,6 +366,10 @@ class KnowledgeGraph:
                 "type": "fusion" if node.is_fusion else "concept",
                 "sessionId": node.session_id,
                 "fusionParentIds": node.fusion_parent_ids,
+                "description": node.description,
+                "emergentProperty": node.emergent_property,
+                "isomorphismMapping": node.isomorphism_mapping,
+                "falsifiableTest": node.falsifiable_test,
             })
             # Session→concept edges
             if node.session_id and node.session_id not in seen_sessions:
@@ -706,12 +711,32 @@ class KnowledgeGraph:
         mode_a = meta_a.get("mode_target", "CONVERGENT") if meta_a else "CONVERGENT"
         mode_b = meta_b.get("mode_target", "DIVERGENT") if meta_b else "DIVERGENT"
         
-        # Create fusion concept
-        concept_name = f"Fusion: {mode_a} + {mode_b}"
+        # Create fusion concept via semantic synthesizer
+        parent_concepts_a = self._find_concepts_by_session(session_a_id)
+        parent_concepts_b = self._find_concepts_by_session(session_b_id)
+
+        node_u = parent_concepts_a[0] if parent_concepts_a else {
+            "name": (meta_a.get("summary", {}) if isinstance(meta_a.get("summary"), dict) else {}).get("title") or meta_a.get("mode_target", mode_a).capitalize() + " Session",
+            "domain": meta_a.get("mode_target", "General").capitalize(),
+            "thinkingMode": mode_a,
+        }
+        node_v = parent_concepts_b[0] if parent_concepts_b else {
+            "name": (meta_b.get("summary", {}) if isinstance(meta_b.get("summary"), dict) else {}).get("title") or meta_b.get("mode_target", mode_b).capitalize() + " Session",
+            "domain": meta_b.get("mode_target", "General").capitalize(),
+            "thinkingMode": mode_b,
+        }
+
+        synthesizer = ConceptSynthesizer()
+        blend = synthesizer.synthesize(node_u, node_v)
+
         fusion_concept = ConceptNode(
-            name=concept_name,
-            domain="fusion",
-            thinking_mode_association=ThinkingMode(mode_a),
+            name=blend.name,
+            domain=blend.domain,
+            description=blend.description,
+            emergent_property=blend.emergent_property,
+            isomorphism_mapping=blend.isomorphism_mapping,
+            falsifiable_test=blend.falsifiable_test,
+            thinking_mode_association=blend.thinking_mode,
             session_id=None,
             vector=fusion_vector,
             is_fusion=True,
@@ -721,15 +746,55 @@ class KnowledgeGraph:
         self._save_concept(fusion_concept)
         
         # Create edges from fusion concept to parent concepts
-        parent_concepts_a = self._find_concepts_by_session(session_a_id)
-        parent_concepts_b = self._find_concepts_by_session(session_b_id)
-        
         for pc in parent_concepts_a + parent_concepts_b:
             try:
                 self.strengthen_edge(str(fusion_concept.id), str(pc.id), amount=0.3)
             except Exception:
                 pass
         
+        return fusion_concept
+
+    def fuse_concepts(self, concept_u_id: str, concept_v_id: str) -> Optional[ConceptNode]:
+        """
+        Synthesize two concepts directly using Fauconnier & Turner Conceptual Blending
+        and VSA binding.
+        """
+        node_u = self.get_concept(concept_u_id)
+        node_v = self.get_concept(concept_v_id)
+        if not node_u or not node_v:
+            return None
+
+        # VSA vector binding
+        vec_u = node_u.vector or get_mode_vector(node_u.thinking_mode_association.value)
+        vec_v = node_v.vector or get_mode_vector(node_v.thinking_mode_association.value)
+        fusion_vector = bind(vec_u, vec_v) if vec_u and vec_v else None
+
+        synthesizer = ConceptSynthesizer()
+        blend = synthesizer.synthesize(node_u, node_v)
+
+        fusion_concept = ConceptNode(
+            name=blend.name,
+            domain=blend.domain,
+            description=blend.description,
+            emergent_property=blend.emergent_property,
+            isomorphism_mapping=blend.isomorphism_mapping,
+            falsifiable_test=blend.falsifiable_test,
+            thinking_mode_association=blend.thinking_mode,
+            session_id=None,
+            vector=fusion_vector,
+            is_fusion=True,
+            fusion_parent_ids=[str(node_u.id), str(node_v.id)],
+        )
+        self._nodes[str(fusion_concept.id)] = fusion_concept
+        self._save_concept(fusion_concept)
+
+        # Connect fusion concept to both parent concepts
+        try:
+            self.strengthen_edge(str(fusion_concept.id), str(node_u.id), amount=0.5)
+            self.strengthen_edge(str(fusion_concept.id), str(node_v.id), amount=0.5)
+        except Exception:
+            pass
+
         return fusion_concept
 
     def _get_session_vector(self, session_id: str) -> Optional[List[float]]:

@@ -32,6 +32,10 @@ from backend.orchestrator import (
     OrchestratorConfig,
     CognitiveGraphOrchestrator,
 )
+from .synthesizer import (
+    ConceptSynthesizer,
+    SynthesizedConceptResult,
+)
 
 __all__ = [
     "ThinkingMode",
@@ -50,4 +54,6 @@ __all__ = [
     "BridgeRecommendation",
     "OrchestratorConfig",
     "CognitiveGraphOrchestrator",
+    "ConceptSynthesizer",
+    "SynthesizedConceptResult",
 ]

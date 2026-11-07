@@ -9,7 +9,9 @@ import { similarity } from "@/lib/combination/vsa";
 import { getModeVector } from "@/lib/combination/modeVectors";
 import {
   fuseSessions,
+  synthesizeConcepts,
   type FusionResponse,
+  type SynthesizedConceptResponse,
   type D3GraphData,
   type CognitiveRegime,
 } from "@/lib/api";
@@ -313,6 +315,7 @@ export default function KnowledgeGraph({
   data,
   height,
   onStartSession,
+  userId,
   onNodeClick,
   className = "",
 }: KnowledgeGraphProps) {
@@ -326,6 +329,8 @@ export default function KnowledgeGraph({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [fusing, setFusing] = useState(false);
   const [lastFusion, setLastFusion] = useState<FusionResponse | null>(null);
+  const [synthesisResult, setSynthesisResult] = useState<SynthesizedConceptResponse | null>(null);
+  const [copiedSynthesis, setCopiedSynthesis] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [showSpectralHUD, setShowSpectralHUD] = useState(false);
   const [labelMode, setLabelMode] = useState<"smart" | "all" | "none">("smart");
@@ -574,16 +579,30 @@ export default function KnowledgeGraph({
     const ids = Array.from(selectedIds);
     setFusing(true);
     try {
-      const result = await fuseSessions(ids[0], ids[1]);
-      setLastFusion(result);
-      setSelectedIds(new Set());
-      setTimeout(() => setLastFusion(null), 4000);
+      if (userId) {
+        const result = await synthesizeConcepts(userId, ids[0], ids[1], true);
+        setSynthesisResult(result);
+        setSelectedIds(new Set());
+      } else {
+        const result = await fuseSessions(ids[0], ids[1]);
+        setLastFusion(result);
+        setSelectedIds(new Set());
+        setTimeout(() => setLastFusion(null), 5000);
+      }
     } catch (err) {
-      console.error("Fusion failed:", err);
+      console.warn("Concept synthesis API failed, attempting session fusion fallback:", err);
+      try {
+        const result = await fuseSessions(ids[0], ids[1]);
+        setLastFusion(result);
+        setSelectedIds(new Set());
+        setTimeout(() => setLastFusion(null), 5000);
+      } catch (innerErr) {
+        console.error("All fusion methods failed:", innerErr);
+      }
     } finally {
       setFusing(false);
     }
-  }, [selectedIds]);
+  }, [selectedIds, userId]);
 
   const linkDirectionalParticles = useCallback((link: any) => {
     if (link.__type === "spectral_bridge") return 4;
@@ -765,8 +784,105 @@ export default function KnowledgeGraph({
         })}
       </div>
 
-      {/* Fusion Notification */}
-      {lastFusion && (
+      {/* Emergent Conceptual Blend Modal Card */}
+      {synthesisResult && (
+        <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-slate-900/95 border border-purple-500/50 rounded-2xl shadow-2xl p-6 font-mono text-slate-200 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-purple-500/30 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse" />
+                <span className="text-[11px] uppercase font-bold text-purple-300">
+                  Emergent Conceptual Blend (u ⊕ v)
+                </span>
+              </div>
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-purple-950/80 border border-purple-500/40 text-purple-300">
+                {synthesisResult.domain}
+              </span>
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-white tracking-wide">
+                {synthesisResult.name}
+              </h3>
+              {synthesisResult.description && (
+                <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                  {synthesisResult.description}
+                </p>
+              )}
+            </div>
+
+            {synthesisResult.emergentProperty && (
+              <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-500/30 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300">
+                  ◈ Emergent Property
+                </span>
+                <p className="text-xs text-purple-100 leading-relaxed">
+                  {synthesisResult.emergentProperty}
+                </p>
+              </div>
+            )}
+
+            {synthesisResult.isomorphismMapping && (
+              <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-500/30 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300">
+                  ⟷ Structural Isomorphism Mapping
+                </span>
+                <p className="text-xs text-blue-100 leading-relaxed">
+                  {synthesisResult.isomorphismMapping}
+                </p>
+              </div>
+            )}
+
+            {synthesisResult.falsifiableTest && (
+              <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                  🔬 Falsifiable Test / Benchmark
+                </span>
+                <p className="text-xs text-emerald-100 leading-relaxed">
+                  {synthesisResult.falsifiableTest}
+                </p>
+              </div>
+            )}
+
+            {synthesisResult.coarsening && (
+              <div className="grid grid-cols-2 gap-2 text-[10px] p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400">
+                <div>
+                  <span className="text-slate-500 block">Entropy Reduction (ΔH_c):</span>
+                  <span className="text-emerald-400 font-semibold">-{synthesisResult.coarsening.theoreticalDrop} bits</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Spectral Connectivity (λ₂):</span>
+                  <span className="text-purple-300 font-semibold">{synthesisResult.coarsening.lambda2}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+              <button
+                onClick={() => {
+                  const md = `### Concept Synthesis: ${synthesisResult.name} (${synthesisResult.domain})\n> **Emergent Property**: ${synthesisResult.emergentProperty || ""}\n\n- **Description**: ${synthesisResult.description || ""}\n- **Structural Isomorphism**: ${synthesisResult.isomorphismMapping || ""}\n- **Falsifiable Test**: ${synthesisResult.falsifiableTest || ""}\n`;
+                  navigator.clipboard.writeText(md);
+                  setCopiedSynthesis(true);
+                  setTimeout(() => setCopiedSynthesis(false), 2000);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 transition cursor-pointer flex items-center gap-1.5"
+              >
+                {copiedSynthesis ? "✓ Copied Markdown" : "📋 Copy Synthesis Markdown"}
+              </button>
+
+              <button
+                onClick={() => setSynthesisResult(null)}
+                className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-xs text-white font-semibold transition cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fusion Notification (Fallback) */}
+      {lastFusion && !synthesisResult && (
         <div className="absolute top-14 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-purple-950/80 border border-purple-500/40 text-purple-200 text-xs font-mono font-medium z-30 shadow-2xl animate-pulse">
           Synthesis created: {lastFusion.name}
         </div>
@@ -781,7 +897,7 @@ export default function KnowledgeGraph({
             disabled={fusing}
             className="px-3 py-1 rounded-md bg-purple-600 hover:bg-purple-500 text-white font-medium transition cursor-pointer disabled:opacity-50"
           >
-            {fusing ? "Fusing…" : "Fuse (u ⊕ v)"}
+            {fusing ? "Synthesizing…" : "Synthesize Concepts (u ⊕ v)"}
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
