@@ -1,0 +1,45 @@
+{
+  "verified": true,
+  "raw_data_clusters": [
+    "cluster_genomics",
+    "cluster_deep_learning",
+    "cluster_thermodynamics"
+  ],
+  "fiedler_recommendation": {
+    "node_u": "Guide RNA Spacer Targeting",
+    "node_v": "Carnot Cycle Efficiency Limit",
+    "fiedler_gap": 0.383801,
+    "cross_domains": "Genomics <-> Thermodynamics"
+  },
+  "llm_synthesis": {
+    "name": "Carnot-Guided RNA Thermodynamic Efficiency",
+    "domain": "Thermodynamic Genomic Engineering",
+    "description": "The blend treats guide RNA spacer targeting as a reversible information engine that converts chemical free\u2011energy gradients into sequence\u2011specific binding work. By mapping the cyclic isothermal\u2011adiabatic steps of a Carnot engine onto the hybridisation\u2011dehybridisation cycle of CRISPR complexes, a universal efficiency bound for target recognition emerges, analogous to the Carnot limit. The paradigm predicts that maximal targeting specificity is achieved when the free\u2011energy drop across the binding cycle equals the thermodynamic limit set by the cellular temperature gradient.",
+    "emergentProperty": "A Carnot\u2011type upper bound on CRISPR targeting efficiency that couples information entropy reduction (target discrimination) to thermodynamic free\u2011energy consumption, defining a maximal specificity\u2011per\u2011energy ratio unattainable by any guide RNA design.",
+    "isomorphismMapping": "Guide RNA complementarity \u2194 Isothermal heat exchange; Binding free\u2011energy \u0394G \u2194 Work output W; Off\u2011target dissociation \u2194 Adiabatic expansion; Temperature of cellular environment (T_cell) \u2194 Hot reservoir Th; Effective mismatch temperature (T_mismatch) \u2194 Cold reservoir Tc; Efficiency \u03b7 = (specificity gain)/(\u0394G) \u2194 Carnot efficiency \u03b7_C = 1 - Tc/Th; Reversibility of binding cycle \u2194 Reversible Carnot cycle.",
+    "falsifiableTest": "Design a library of guide RNAs spanning a wide \u0394G spectrum and measure (i) on\u2011target cleavage rate, (ii) off\u2011target binding frequency, and (iii) cellular temperature. Compute empirical efficiency \u03b7_emp = (\u0394Information_gain)/(\u0394G). Verify whether \u03b7_emp \u2264 1 - (T_mismatch/T_cell) holds across all designs; systematic violation would falsify the Carnot\u2011guided efficiency bound.",
+    "thinkingMode": "SYSTEMS",
+    "theoreticalEntropyDrop": 0.45,
+    "fiedlerGap": 0.3838005793037611
+  },
+  "vsa_binding": {
+    "dimension": 512,
+    "norm": 1.0,
+    "sim_u": 0.3147,
+    "sim_v": -0.5022
+  },
+  "entropy_coarsening_verification": {
+    "H_c_before": 2.965794,
+    "H_c_after": 2.75833,
+    "empirical_drop": 0.207464,
+    "theoretical_drop": 0.207464,
+    "absolute_error": 1.6653345369377348e-16
+  },
+  "regime_healing": {
+    "initial_regime": "COMPARTMENTALIZED",
+    "final_regime": "COMPARTMENTALIZED",
+    "initial_lambda_2": 0.002678,
+    "final_lambda_2": 0.11919,
+    "delta_lambda_2": 0.116512
+  }
+}

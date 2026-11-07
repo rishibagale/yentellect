@@ -72,28 +72,42 @@ class GroqClient:
                 pass
     
     def chat_completion(self, messages: List[Dict[str, str]], 
-                        model: str = "llama-3.3-70b-versatile",
+                        model: Optional[str] = None,
                         temperature: float = 0.7,
-                        max_tokens: int = 1024) -> str:
+                        max_tokens: int = 1500) -> str:
         """
         Get chat completion from Groq.
         
-        Falls back to mock response if API key not available.
+        Falls back to available models or mock response if API key not available.
         """
         self._ensure_client()
+        target_model = model or os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
         
         if self._client:
-            try:
-                response = self._client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                )
-                return response.choices[0].message.content
-            except Exception:
-                logger.warning("Groq API call failed; using fallback response", exc_info=True)
-                return self._mock_response(messages)
+            # Candidate models in preference order
+            candidate_models = [target_model]
+            for fallback in ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "llama-3.3-70b-versatile"]:
+                if fallback not in candidate_models:
+                    candidate_models.append(fallback)
+
+            last_err = None
+            for m in candidate_models:
+                try:
+                    response = self._client.chat.completions.create(
+                        model=m,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    content = response.choices[0].message.content
+                    if content:
+                        return content
+                except Exception as exc:
+                    last_err = exc
+                    continue
+
+            logger.warning(f"Groq API call failed across candidate models ({last_err}); using fallback response", exc_info=True)
+            return self._mock_response(messages)
         
         # Mock response for development without API key
         return self._mock_response(messages)

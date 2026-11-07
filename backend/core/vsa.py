@@ -83,6 +83,12 @@ def bundle(a: Vector, b: Vector) -> Vector:
     return [x + y for x, y in zip(a, b)]
 
 
+def normalize(v: Vector) -> Vector:
+    """Normalize vector to unit length."""
+    norm = math.sqrt(sum(x * x for x in v)) or 1.0
+    return [x / norm for x in v]
+
+
 def similarity(a: Vector, b: Vector) -> float:
     """Cosine similarity."""
     if len(a) != len(b):

@@ -141,9 +141,8 @@ Construct an emergent conceptual blend that bridges these two domains."""
                 ]
                 response = client.chat_completion(
                     messages=messages,
-                    model="llama-3.3-70b-versatile",
                     temperature=0.7,
-                    max_tokens=800,
+                    max_tokens=1500,
                 )
                 raw_json_str = response.strip()
             except Exception as exc:
@@ -206,3 +205,4 @@ Construct an emergent conceptual blend that bridges these two domains."""
             "emergent_property": f"Cross-domain feedback coupling enabling multi-scale prediction across {domain_u} and {domain_v}.",
             "falsifiable_test": f"Verification of predictive consistency against dual-domain benchmarks under boundary constraints.",
         }
+
