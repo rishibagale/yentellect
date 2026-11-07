@@ -13,11 +13,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import type { WorkDoc, DocKind } from "@/lib/workbench/db";
 import type { TabMeta } from "@/lib/workbench/tabs";
 import type { ThinkingMode } from "@/lib/modes";
 import { isMacOS } from "@/lib/workbench/commands";
+import { getGraph, type D3GraphData } from "@/lib/api";
 import DocEditorPane from "./DocEditorPane";
+
+const KnowledgeGraph = dynamic(() => import("@/components/KnowledgeGraph"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex-1 flex items-center justify-center text-xs font-mono text-[var(--text-dim)]">
+      Initializing 3D Cognitive Lattice…
+    </div>
+  ),
+});
+
+const NodeDetailPanel = dynamic(() => import("@/components/NodeDetailPanel"), {
+  ssr: false,
+});
 
 interface EditorAreaProps {
   onOpenPalette: () => void;
@@ -40,6 +55,7 @@ interface EditorAreaProps {
   onRenameTab?: (id: string, title: string) => void;
   onLoadDemo?: () => void;
   onOpenImport?: () => void;
+  onOpenGraphTab?: () => void;
 }
 
 const KIND_LABEL: Record<DocKind, string> = {
@@ -48,6 +64,7 @@ const KIND_LABEL: Record<DocKind, string> = {
   note: "Note",
   article: "Article",
   dataset: "Dataset",
+  graph: "Graph",
 };
 
 type ImportTab = "link" | "file" | "paste";
@@ -70,6 +87,7 @@ export default function EditorArea({
   onRenameTab,
   onLoadDemo,
   onOpenImport,
+  onOpenGraphTab,
 }: EditorAreaProps) {
   const [draft, setDraft] = useState("");
   const [importTab, setImportTab] = useState<ImportTab>("link");
@@ -82,6 +100,21 @@ export default function EditorArea({
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isGraphTab =
+    activeTabId === "system:knowledge-graph" ||
+    tabs.find((t) => t.id === activeTabId)?.kind === "graph";
+
+  const [graphData, setGraphData] = useState<D3GraphData | null>(null);
+  const [selectedGraphNode, setSelectedGraphNode] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (isGraphTab && !graphData) {
+      getGraph()
+        .then((d) => setGraphData(d))
+        .catch((err) => console.warn("Failed to load graph data for editor tab:", err));
+    }
+  }, [isGraphTab, graphData]);
 
   const loading = importStatus === "loading";
 
@@ -184,6 +217,7 @@ export default function EditorArea({
         ) : (
           tabs.map((tab) => {
             const isActive = tab.id === activeTabId;
+            const isGraph = tab.id === "system:knowledge-graph" || tab.kind === "graph";
             return (
               <div
                 key={tab.id}
@@ -223,13 +257,16 @@ export default function EditorArea({
                   />
                 ) : (
                   <span
-                    className="max-w-[24ch] truncate cursor-pointer select-none"
+                    className="flex items-center gap-1.5 max-w-[24ch] truncate cursor-pointer select-none"
                     onDoubleClick={() => {
-                      setEditingTabId(tab.id);
-                      setNewTitle(tab.title);
+                      if (!isGraph) {
+                        setEditingTabId(tab.id);
+                        setNewTitle(tab.title);
+                      }
                     }}
                   >
-                    {tab.title || "(untitled)"}
+                    {isGraph && <span className="text-xs text-[var(--accent)]">◈</span>}
+                    <span>{tab.title || (isGraph ? "Knowledge Graph" : "(untitled)")}</span>
                   </span>
                 )}
                 <button
@@ -565,6 +602,20 @@ export default function EditorArea({
             )}
           </div>
         </div>
+      ) : isGraphTab ? (
+        <div className="flex-1 min-h-0 relative w-full h-full overflow-hidden bg-[#0b0e14]">
+          <KnowledgeGraph
+            data={graphData}
+            onNodeClick={(node) => setSelectedGraphNode(node)}
+          />
+          {selectedGraphNode && (
+            <NodeDetailPanel
+              node={selectedGraphNode}
+              onClose={() => setSelectedGraphNode(null)}
+              recommendedBridge={graphData?.recommendedBridge}
+            />
+          )}
+        </div>
       ) : doc ? (
         <DocEditorPane
           key={doc.id}
@@ -589,7 +640,7 @@ export default function EditorArea({
             Import research papers, write notes with LaTeX math, and uncover structural analogies and systemic dynamics.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mb-4">
             {onLoadDemo && (
               <button
                 type="button"
@@ -625,6 +676,25 @@ export default function EditorArea({
                 Automatically formats title, abstract, and text
               </span>
             </button>
+
+            {onOpenGraphTab && (
+              <button
+                type="button"
+                onClick={onOpenGraphTab}
+                className="group flex flex-col items-start p-3.5 rounded-xl border border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-500/60 text-left transition-all shadow-xs"
+              >
+                <div className="flex items-center justify-between w-full mb-1">
+                  <span className="text-xs font-semibold text-purple-400">Knowledge Graph</span>
+                  <span className="text-[11px] text-purple-400 opacity-60 group-hover:opacity-100 transition-opacity">◈</span>
+                </div>
+                <span className="text-[11px] text-[var(--text)] font-medium line-clamp-1">
+                  3D Cognitive Network
+                </span>
+                <span className="text-[10px] text-[var(--text-dim)] mt-0.5">
+                  Spectral observables & Fiedler bridges
+                </span>
+              </button>
+            )}
           </div>
 
           <button

@@ -17,7 +17,15 @@ import type { LensThread } from "@/lib/workbench/lens-thread";
 
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
 
-function GraphTab({ thread, doc }: { thread?: LensThread | null; doc?: WorkDoc | null }) {
+function GraphTab({
+  thread,
+  doc,
+  onOpenGraphTab,
+}: {
+  thread?: LensThread | null;
+  doc?: WorkDoc | null;
+  onOpenGraphTab?: () => void;
+}) {
   const kept = useMemo(() => thread?.connections.filter((c) => c.status === "kept") ?? [], [thread?.connections]);
   const graphData = useMemo(() => {
     const nodes = new Map<string, any>();
@@ -41,7 +49,7 @@ function GraphTab({ thread, doc }: { thread?: LensThread | null; doc?: WorkDoc |
       className="h-full flex flex-col overflow-hidden bg-[var(--bg-1)]"
     >
       <div className="px-3 py-2 text-[11px] uppercase tracking-[0.08em] text-[var(--text-dim)] shrink-0">
-        Graph (2D)
+        Cognitive Graph (2D)
       </div>
       <div className="flex-1 min-h-0">
         {kept.length === 0 ? (
@@ -71,6 +79,7 @@ export default function SidePanelView({
   openDoc,
   onDeleteDoc,
   thread,
+  onOpenGraphTab,
 }: {
   activity: Activity;
   betaModes: boolean;
@@ -80,8 +89,9 @@ export default function SidePanelView({
   openDoc: (doc: WorkDoc) => void;
   onDeleteDoc?: (id: string) => void;
   thread?: LensThread | null;
+  onOpenGraphTab?: () => void;
 }) {
-  if (activity === "graph") return <GraphTab thread={thread} doc={doc} />;
+  if (activity === "graph") return <GraphTab thread={thread} doc={doc} onOpenGraphTab={onOpenGraphTab} />;
 
   if (activity !== "settings") return <ExplorerPanel doc={doc} docs={docs} openDoc={openDoc} onDeleteDoc={onDeleteDoc} />;
 

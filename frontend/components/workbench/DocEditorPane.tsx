@@ -21,6 +21,7 @@ const KIND_LABEL: Record<WorkDoc["kind"], string> = {
   note: "Note",
   article: "Article",
   dataset: "Dataset",
+  graph: "Graph",
 };
 
 /**

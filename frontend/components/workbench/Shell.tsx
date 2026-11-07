@@ -55,6 +55,7 @@ function ShellInner() {
     selectTab,
     closeTab,
     renameTab,
+    openGraphTab,
     closeImport,
     submitImport,
     submitFileImport,
@@ -122,7 +123,12 @@ function ShellInner() {
       <div className="flex-1 flex min-h-0 relative">
         <ActivityBar
           activity={layout.activity}
-          onSelect={setActivity}
+          onSelect={(a) => {
+            setActivity(a);
+            if (a === "graph") {
+              openGraphTab();
+            }
+          }}
           onOpenPalette={() => setPaletteOpen(true)}
         />
         
@@ -184,8 +190,9 @@ function ShellInner() {
                     doc={doc}
                     docs={library}
                     openDoc={openDoc}
-                  onDeleteDoc={removeDoc}
+                    onDeleteDoc={removeDoc}
                     thread={thread}
+                    onOpenGraphTab={openGraphTab}
                   />
                 </div>
                 <Splitter
@@ -211,6 +218,7 @@ function ShellInner() {
                   onRenameTab={renameTab}
                   onLoadDemo={loadDemo}
                   onOpenImport={openImport}
+                  onOpenGraphTab={openGraphTab}
                   importOpen={importOpen}
                   importStatus={importStatus}
                   importError={importError}

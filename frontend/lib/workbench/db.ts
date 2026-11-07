@@ -5,7 +5,7 @@
 import Dexie, { type EntityTable, liveQuery, type Observable } from "dexie";
 import type { ImportedDoc } from "./import-client";
 
-export type DocKind = "paper" | "concept" | "note" | "article" | "dataset";
+export type DocKind = "paper" | "concept" | "note" | "article" | "dataset" | "graph";
 
 export interface WorkDoc {
   id: string;

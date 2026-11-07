@@ -38,7 +38,8 @@ function isDocKind(value: unknown): value is DocKind {
     value === "concept" ||
     value === "note" ||
     value === "article" ||
-    value === "dataset"
+    value === "dataset" ||
+    value === "graph"
   );
 }
 

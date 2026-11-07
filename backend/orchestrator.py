@@ -13,7 +13,10 @@ from typing import Hashable
 import math
 import networkx as nx
 import numpy as np
-from scipy.linalg import eigh
+try:
+    from scipy.linalg import eigh
+except ImportError:
+    from numpy.linalg import eigh  # type: ignore
 
 from backend.graph import (
     GraphObservables,

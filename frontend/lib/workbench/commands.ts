@@ -57,6 +57,7 @@ export interface CommandContext {
   openActivity: (a: Activity) => void;
   openImport: () => void;
   createDoc: (kind: "concept" | "note", title?: string) => void;
+  openGraphTab?: () => void;
   loadDemo?: () => void;
   showShortcuts?: () => void;
 }
@@ -242,6 +243,15 @@ export function buildCommands(ctx: CommandContext): WorkbenchCommand[] {
       hint: "Interactive Socratic trainer",
       keywords: ["session", "start", "dialogue", "chat", "socratic", "train", "tutor", "exercise"],
       run: () => ctx.navigate("/session"),
+    }),
+    cmd("open-graph-tab", "Open Knowledge Graph in editor tab", "Navigation & Views", {
+      icon: "🕸️",
+      hint: `${mod}+G`,
+      keywords: ["graph", "knowledge", "spectral", "3d", "network", "tab", "topology", "observables", "fiedler"],
+      run: () => {
+        if (ctx.openGraphTab) ctx.openGraphTab();
+        else triggerCustom("open-graph-tab");
+      },
     }),
     cmd("toggle-explorer", "Toggle document sidebar / library", "Navigation & Views", {
       icon: "📁",

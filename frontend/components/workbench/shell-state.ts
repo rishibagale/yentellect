@@ -82,6 +82,16 @@ export function useShellState() {
   /** Docs opened in this session, so a just-created doc shows immediately. */
   const openedRef = useRef(new Map<string, WorkDoc>());
 
+  /** Open Knowledge Graph in a dedicated editor tab */
+  const openGraphTab = useCallback(() => {
+    const meta: TabMeta = {
+      id: "system:knowledge-graph",
+      title: "Knowledge Graph",
+      kind: "graph",
+    };
+    setTabState((prev) => openTabState(prev, meta));
+  }, []);
+
   /** Open a document in a tab and focus it. */
   const openDoc = useCallback((doc: WorkDoc) => {
     openedRef.current.set(doc.id, doc);
@@ -345,6 +355,7 @@ export function useShellState() {
     openImport,
     createDoc,
     loadDemo,
+    openGraphTab,
   };
 
   /** Tab labels prefer the library's live title, falling back to the saved one. */
@@ -386,6 +397,7 @@ export function useShellState() {
     closeTab,
     renameTab,
     loadDemo,
+    openGraphTab,
     removeDoc,
   };
 }
