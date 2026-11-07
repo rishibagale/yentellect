@@ -101,6 +101,31 @@ export interface SessionEndResponse {
   session_duration: number;
 }
 
+export type CognitiveRegime =
+  | "INACTIVE"
+  | "FIXATED"
+  | "COMPARTMENTALIZED"
+  | "RIGID_ROUTINE"
+  | "INTEGRATED";
+
+export interface GraphDiagnostics {
+  regime: CognitiveRegime;
+  H_c: number;
+  H_c_norm: number;
+  h_rate: number;
+  h_rate_norm: number;
+  lambda_2: number;
+  num_components: number;
+}
+
+export interface RecommendedBridge {
+  node_u: string;
+  node_v: string;
+  node_u_name: string;
+  node_v_name: string;
+  fiedler_gap: number;
+}
+
 export interface D3GraphData {
   nodes: Array<{
     id: string;
@@ -124,8 +149,10 @@ export interface D3GraphData {
     weight: number;
     connectionCount: number;
     lastActivated: string;
-    type?: "reinforcement" | "produced" | "fusion" | "similarity";
+    type?: "reinforcement" | "produced" | "fusion" | "similarity" | "spectral_bridge";
   }>;
+  diagnostics?: GraphDiagnostics | null;
+  recommendedBridge?: RecommendedBridge | null;
 }
 
 export interface SessionMetrics {

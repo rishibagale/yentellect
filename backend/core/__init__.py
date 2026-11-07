@@ -19,6 +19,19 @@ from .models import (
     SessionState,
     TurnRecord,
 )
+from backend.graph import (
+    GraphObservables,
+    adjacency_with_self_loop_stubs,
+    compute_observables,
+    coarsen_nodes,
+)
+from backend.orchestrator import (
+    CognitiveRegime,
+    StepDiagnostics,
+    BridgeRecommendation,
+    OrchestratorConfig,
+    CognitiveGraphOrchestrator,
+)
 
 __all__ = [
     "ThinkingMode",
@@ -28,4 +41,13 @@ __all__ = [
     "CognitiveProfile",
     "SessionState",
     "TurnRecord",
+    "GraphObservables",
+    "adjacency_with_self_loop_stubs",
+    "compute_observables",
+    "coarsen_nodes",
+    "CognitiveRegime",
+    "StepDiagnostics",
+    "BridgeRecommendation",
+    "OrchestratorConfig",
+    "CognitiveGraphOrchestrator",
 ]

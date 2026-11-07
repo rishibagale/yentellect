@@ -2,10 +2,12 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { tokens } from "@/lib/tokens";
+import type { RecommendedBridge } from "@/lib/api";
 
 interface NodeDetailPanelProps {
   node: any | null;
   onClose: () => void;
+  recommendedBridge?: RecommendedBridge | null;
 }
 
 function friendlyModeName(mode?: string) {
@@ -43,7 +45,11 @@ function cleanConceptName(rawName?: string): string {
   return name;
 }
 
-export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps) {
+export default function NodeDetailPanel({
+  node,
+  onClose,
+  recommendedBridge,
+}: NodeDetailPanelProps) {
   if (!node) return null;
 
   const isSession = node.type === "session" || node.id?.startsWith?.("session-");
@@ -56,6 +62,19 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
   const cleanTitle = cleanConceptName(titleCandidate) || (isSession ? "Session Detail" : "Concept Detail");
 
   const summaryText = cleanConceptName(node.summary || (isSession && node.name !== cleanTitle ? node.name : ""));
+
+  const isBridgeU =
+    recommendedBridge &&
+    (node.id === recommendedBridge.node_u ||
+      cleanTitle.toLowerCase() === recommendedBridge.node_u_name.toLowerCase());
+  const isBridgeV =
+    recommendedBridge &&
+    (node.id === recommendedBridge.node_v ||
+      cleanTitle.toLowerCase() === recommendedBridge.node_v_name.toLowerCase());
+  const isBridgeEndpoint = isBridgeU || isBridgeV;
+  const bridgeCounterpart = isBridgeU
+    ? recommendedBridge?.node_v_name
+    : recommendedBridge?.node_u_name;
 
   return (
     <AnimatePresence>
@@ -139,6 +158,23 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
                 {node.isolated && (
                   <div className="px-3 py-2 rounded-lg bg-[#EF4444]/10 border border-[#EF4444]/20">
                     <span className="text-[10px] text-[#FCA5A5]">Isolated concept — needs reinforcement</span>
+                  </div>
+                )}
+                {isBridgeEndpoint && (
+                  <div className="px-3 py-2.5 rounded-lg bg-[#10B981]/15 border border-[#10B981]/30 space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                      <span className="text-[10px] uppercase font-mono font-bold text-[#34D399]">
+                        Spectral Bridge Candidate
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#A7F3D0] leading-relaxed">
+                      Located at an extremum of the Fiedler vector. Bridging with{" "}
+                      <strong className="text-white font-mono font-semibold">
+                        {bridgeCounterpart}
+                      </strong>{" "}
+                      (gap: {recommendedBridge?.fiedler_gap.toFixed(3)}) will maximally heal graph compartmentalization and raise spectral connectivity λ₂.
+                    </p>
                   </div>
                 )}
               </div>

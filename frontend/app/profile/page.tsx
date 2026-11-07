@@ -199,7 +199,11 @@ function ProfileContent() {
             userId={userId}
             onNodeClick={setSelectedNode}
           />
-          <NodeDetailPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
+          <NodeDetailPanel
+            node={selectedNode}
+            onClose={() => setSelectedNode(null)}
+            recommendedBridge={graphData?.recommendedBridge}
+          />
         </div>
       </main>
     </div>

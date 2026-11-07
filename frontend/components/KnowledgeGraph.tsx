@@ -7,7 +7,52 @@ import SpriteText from "three-spritetext";
 import { tokens } from "@/lib/tokens";
 import { similarity } from "@/lib/combination/vsa";
 import { getModeVector } from "@/lib/combination/modeVectors";
-import { fuseSessions, type FusionResponse } from "@/lib/api";
+import { fuseSessions, type FusionResponse, type D3GraphData, type CognitiveRegime } from "@/lib/api";
+
+function regimeConfig(regime?: CognitiveRegime) {
+  switch (regime) {
+    case "INTEGRATED":
+      return {
+        name: "Integrated Regime",
+        color: "#10B981",
+        badgeBg: "rgba(16, 185, 129, 0.15)",
+        badgeBorder: "rgba(16, 185, 129, 0.4)",
+        desc: "Optimal algebraic mixing and balanced conceptual salience.",
+      };
+    case "COMPARTMENTALIZED":
+      return {
+        name: "Compartmentalized Regime",
+        color: "#F59E0B",
+        badgeBg: "rgba(245, 158, 11, 0.15)",
+        badgeBorder: "rgba(245, 158, 11, 0.4)",
+        desc: "Weakly bridged conceptual silos detected. Spectral bridge recommended.",
+      };
+    case "FIXATED":
+      return {
+        name: "Fixated Regime",
+        color: "#EF4444",
+        badgeBg: "rgba(239, 68, 68, 0.15)",
+        badgeBorder: "rgba(239, 68, 68, 0.4)",
+        desc: "Salience concentrated heavily in few dominant hubs.",
+      };
+    case "RIGID_ROUTINE":
+      return {
+        name: "Rigid Routine Regime",
+        color: "#8B5CF6",
+        badgeBg: "rgba(139, 92, 246, 0.15)",
+        badgeBorder: "rgba(139, 92, 246, 0.4)",
+        desc: "High connectivity but deterministic, rigid state transitions.",
+      };
+    default:
+      return {
+        name: "Inactive Regime",
+        color: "#64748B",
+        badgeBg: "rgba(100, 116, 139, 0.15)",
+        badgeBorder: "rgba(100, 116, 139, 0.4)",
+        desc: "Awaiting active concept activations.",
+      };
+  }
+}
 
 function modeColor(mode?: string): string {
   const key = (mode || "").toUpperCase();
@@ -252,7 +297,7 @@ const DEMO_LINKS = [
 /* ── Component ───────────────────────────────────────────── */
 
 interface KnowledgeGraphProps {
-  data?: { nodes: Array<any>; links: Array<any> } | null;
+  data?: D3GraphData | null;
   height?: number;
   onStartSession?: () => void;
   userId?: string;
@@ -270,6 +315,7 @@ export default function KnowledgeGraph({
   const [fusing, setFusing] = useState(false);
   const [lastFusion, setLastFusion] = useState<FusionResponse | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [showSpectralHUD, setShowSpectralHUD] = useState(false);
 
   const isEmpty = !data || (data.nodes?.length ?? 0) === 0;
 
@@ -336,6 +382,21 @@ export default function KnowledgeGraph({
         } catch (err) {
           console.warn("[VSA Edge] Failed to create similarity edge:", err);
         }
+      }
+    }
+
+    // Add recommended spectral bridge edge if provided
+    if (data?.recommendedBridge) {
+      const u = data.recommendedBridge.node_u;
+      const v = data.recommendedBridge.node_v;
+      const nodeExists = (id: string) => graphNodes.some((n) => n.id === id);
+      if (nodeExists(u) && nodeExists(v)) {
+        graphLinks.push({
+          source: u,
+          target: v,
+          weight: Math.max(0.3, Math.min(1.0, data.recommendedBridge.fiedler_gap)),
+          __type: "spectral_bridge",
+        });
       }
     }
 
@@ -456,6 +517,7 @@ export default function KnowledgeGraph({
 
   const linkDirectionalParticles = useCallback(
     (link: any) => {
+      if (link.__type === "spectral_bridge") return 4;
       if (link.__type === "similarity") return 1;
       return link.weight > 0.5 ? 3 : 2;
     },
@@ -464,6 +526,7 @@ export default function KnowledgeGraph({
 
   const linkParticleColor = useCallback(
     (link: any) => {
+      if (link.__type === "spectral_bridge") return "#10B981";
       if (link.__type === "fusion") return "#A855F7";
       if (link.__type === "produced") return "#00E5FF";
       if (link.__type === "similarity") return "#00E5FF";
@@ -585,13 +648,19 @@ export default function KnowledgeGraph({
           nodeThreeObject={nodeThreeObject}
           nodeThreeObjectExtend={false}
           nodeRelSize={1}
-          linkWidth={0.6}
+          linkWidth={(link: any) => (link.__type === "spectral_bridge" ? 1.5 : 0.6)}
           linkOpacity={0.35}
-          linkColor={linkParticleColor}
+          linkColor={(link: any) =>
+            link.__type === "spectral_bridge" ? "#10B981" : linkParticleColor(link)
+          }
           linkDirectionalParticles={linkDirectionalParticles}
-          linkDirectionalParticleWidth={2}
+          linkDirectionalParticleWidth={(link: any) =>
+            link.__type === "spectral_bridge" ? 2.5 : 2
+          }
           linkDirectionalParticleColor={linkParticleColor}
-          linkDirectionalParticleSpeed={0.004}
+          linkDirectionalParticleSpeed={(link: any) =>
+            link.__type === "spectral_bridge" ? 0.007 : 0.004
+          }
           linkCurvature={0.15}
           linkDirectionalArrowLength={0}
           d3VelocityDecay={0.3}
@@ -607,8 +676,90 @@ export default function KnowledgeGraph({
         />
       </div>
 
+      {/* Spectral Diagnostics HUD in Top-Left */}
+      {data?.diagnostics && (
+        <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-2 max-w-xs md:max-w-sm">
+          {(() => {
+            const reg = regimeConfig(data.diagnostics?.regime);
+            return (
+              <div
+                className="bg-[var(--bg-1)]/90 backdrop-blur-md border rounded-xl p-2.5 shadow-lg transition-all"
+                style={{ borderColor: reg.badgeBorder }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full animate-pulse"
+                      style={{ backgroundColor: reg.color }}
+                    />
+                    <span className="text-xs font-mono font-semibold" style={{ color: reg.color }}>
+                      {reg.name}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowSpectralHUD(!showSpectralHUD)}
+                    className="text-[10px] font-mono text-[var(--text-dim)] hover:text-white px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 transition cursor-pointer"
+                  >
+                    {showSpectralHUD ? "Hide Observables" : "Observables"}
+                  </button>
+                </div>
+
+                {showSpectralHUD && (
+                  <div className="mt-2.5 pt-2.5 border-t border-[var(--border)] text-[10px] font-mono space-y-2">
+                    <p className="text-[var(--text-dim)] text-[11px] leading-snug">
+                      {reg.desc}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-[var(--text-dim)]">
+                      <div>
+                        <span>Gap (λ₂): </span>
+                        <span className="text-[var(--text)] font-semibold">
+                          {data.diagnostics.lambda_2.toFixed(3)}
+                        </span>
+                      </div>
+                      <div>
+                        <span>Components: </span>
+                        <span className="text-[var(--text)] font-semibold">
+                          {data.diagnostics.num_components}
+                        </span>
+                      </div>
+                      <div>
+                        <span>H_c: </span>
+                        <span className="text-[var(--text)] font-semibold">
+                          {data.diagnostics.H_c.toFixed(2)} bits
+                        </span>
+                      </div>
+                      <div>
+                        <span>h_rate: </span>
+                        <span className="text-[var(--text)] font-semibold">
+                          {data.diagnostics.h_rate.toFixed(2)} bits
+                        </span>
+                      </div>
+                    </div>
+
+                    {data.recommendedBridge && (
+                      <div className="mt-2 p-2 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 text-[#A7F3D0]">
+                        <div className="font-semibold text-[#34D399] flex items-center gap-1.5 mb-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                          Spectral Bridge Recommendation
+                        </div>
+                        <div className="text-[10px] truncate">
+                          {data.recommendedBridge.node_u_name} ↔ {data.recommendedBridge.node_v_name}
+                        </div>
+                        <div className="text-[9px] text-[#A7F3D0]/80 mt-0.5">
+                          Fiedler gap: {data.recommendedBridge.fiedler_gap.toFixed(3)} (maximizes λ₂)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {/* Legend */}
-      <div className="absolute bottom-3 right-3 text-[9px] font-mono text-[var(--text-dim)] space-y-1 z-10">
+      <div className="absolute bottom-3 right-3 text-[9px] font-mono text-[var(--text-dim)] space-y-1 z-10 bg-[var(--bg-1)]/80 backdrop-blur-md p-2.5 rounded-xl border border-[var(--border)]">
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-[#6C63FF]" />
           <span>Concept</span>
@@ -624,6 +775,12 @@ export default function KnowledgeGraph({
           />
           <span>Fusion</span>
         </div>
+        {data?.recommendedBridge && (
+          <div className="flex items-center gap-1.5 pt-0.5 border-t border-[var(--border)]">
+            <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+            <span className="text-[#34D399]">Spectral Bridge</span>
+          </div>
+        )}
       </div>
 
       {/* Sparse state */}

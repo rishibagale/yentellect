@@ -18,6 +18,7 @@ from typing import Optional, List, Tuple, Dict, Any
 from datetime import datetime, timedelta
 from collections import Counter
 import json
+import networkx as nx
 
 from .models import (
     ThinkingMode, ConceptNode, GraphEdge, CognitiveProfile
@@ -455,10 +456,66 @@ class KnowledgeGraph:
                 link["type"] = "fusion"
             d3_links.append(link)
         
+        # Multiscale Random-Walk Observables & Spectral Bridge via CognitiveGraphOrchestrator
+        diagnostics_data = None
+        recommended_bridge_data = None
+        try:
+            orch = self.get_orchestrator()
+            diag = orch.snapshot()
+            diagnostics_data = {
+                "regime": diag.regime.value,
+                "H_c": round(diag.observables.H_c, 4),
+                "H_c_norm": round(diag.H_c_norm, 4),
+                "h_rate": round(diag.observables.h_rate, 4),
+                "h_rate_norm": round(diag.h_rate_norm, 4),
+                "lambda_2": round(diag.observables.lambda_2, 4),
+                "num_components": diag.num_components,
+            }
+            bridge = orch.recommend_spectral_bridge()
+            if bridge:
+                u_node = self._nodes.get(str(bridge.node_u))
+                v_node = self._nodes.get(str(bridge.node_v))
+                recommended_bridge_data = {
+                    "node_u": str(bridge.node_u),
+                    "node_v": str(bridge.node_v),
+                    "node_u_name": u_node.name if u_node else str(bridge.node_u),
+                    "node_v_name": v_node.name if v_node else str(bridge.node_v),
+                    "fiedler_gap": round(bridge.fiedler_gap, 4),
+                }
+        except Exception:
+            pass
+
         return {
             "nodes": d3_nodes,
-            "links": d3_links
+            "links": d3_links,
+            "diagnostics": diagnostics_data,
+            "recommendedBridge": recommended_bridge_data,
         }
+
+    def to_networkx(self) -> nx.Graph:
+        """Convert current KnowledgeGraph to NetworkX graph."""
+        G = nx.Graph()
+        for node_id, node in self._nodes.items():
+            G.add_node(node_id, name=node.name, domain=node.domain)
+        for (s_id, t_id), edge in self._edges.items():
+            G.add_edge(s_id, t_id, weight=float(edge.weight))
+        return G
+
+    def get_orchestrator(self, config: Optional[Any] = None) -> Any:
+        """Create a CognitiveGraphOrchestrator for this knowledge graph."""
+        from backend.orchestrator import CognitiveGraphOrchestrator, OrchestratorConfig
+        cfg = config if isinstance(config, OrchestratorConfig) else OrchestratorConfig()
+        return CognitiveGraphOrchestrator(self.to_networkx(), config=cfg)
+
+    def get_cognitive_diagnostics(self) -> Any:
+        """Compute multiscale random-walk observables and cognitive regime."""
+        orch = self.get_orchestrator()
+        return orch.snapshot()
+
+    def recommend_spectral_bridge(self) -> Optional[Any]:
+        """Find non-adjacent concepts across bottleneck cut using Fiedler harmonic potential."""
+        orch = self.get_orchestrator()
+        return orch.recommend_spectral_bridge()
     
     def _is_isolated(self, node_id: str) -> bool:
         """Check if a node is isolated (degree < 2)."""
