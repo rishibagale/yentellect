@@ -62,7 +62,7 @@ def get_dashboard(
         fingerprint = _build_fingerprint(user, all_scores, metrics)
 
         # Recent sessions (last 5)
-        recent = _build_recent_sessions(sessions, metrics)
+        recent = _build_recent_sessions(sessions, metrics)[:5]
 
         # Daily suggestion
         suggestion = _get_daily_suggestion(fingerprint, sessions)
@@ -249,13 +249,22 @@ def _build_fingerprint(user: dict, scores: dict, metrics: list) -> dict:
 
 
 def _build_recent_sessions(sessions: list, metrics: list) -> list:
-    """Build session summary list from sessions + metrics."""
+    """Build session summary list from sessions + metrics, filtering abandoned ghost sessions."""
     metric_map = {}
     for m in metrics:
         metric_map[m["session_id"]] = m
 
     result = []
-    for s in sessions[:20]:  # Last 20
+    for s in sessions:
+        # Filter out abandoned ghost sessions (active status with <= 1 turn and no recorded metrics)
+        is_abandoned_ghost = (
+            s.get("status") == "active"
+            and (s.get("turn_count", 0) <= 1)
+            and s["session_id"] not in metric_map
+        )
+        if is_abandoned_ghost:
+            continue
+
         m = metric_map.get(s["session_id"])
 
         import json

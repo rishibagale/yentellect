@@ -599,41 +599,50 @@ class KnowledgeGraph:
         return profile
     
     def _save_concept(self, node: ConceptNode) -> None:
-        """Save a concept node to database."""
+        """Save a concept node to database (upsert)."""
         try:
-            self.db.update_concept_node(
+            vec_list = [round(v, 6) for v in node.vector] if node.vector else None
+            res = self.db.update_concept_node(
                 str(node.id),
                 confidence_score=node.confidence_score,
                 last_reinforced=node.last_reinforced.isoformat(),
                 session_count=node.session_count,
                 thinking_mode_association=node.thinking_mode_association.value,
                 session_id=node.session_id,
-                vector=json.dumps([round(v, 6) for v in node.vector]) if node.vector else None,
+                vector=vec_list,
                 is_fusion=node.is_fusion,
-                fusion_parent_ids=json.dumps(node.fusion_parent_ids) if node.fusion_parent_ids else None,
+                fusion_parent_ids=node.fusion_parent_ids,
             )
-        except Exception:
-            # Fall back to insert
-            pass
-    
-    def _save_edge(self, edge: GraphEdge) -> None:
-        """Save an edge to database."""
-        try:
-            # Upsert edge
-            with self.db.get_db() as conn:
-                conn.execute(
-                    """INSERT OR REPLACE INTO graph_edges
-                       (edge_id, user_id, source_id, target_id, weight,
-                        connection_count, last_activated, created_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (str(uuid.uuid4()), self.user_id,
-                     str(edge.source_id), str(edge.target_id),
-                     edge.weight, edge.connection_count,
-                     edge.last_activated.isoformat(),
-                     datetime.utcnow().isoformat())
+            if res is None:
+                # Concept does not exist yet — insert it!
+                self.db.save_concept_node(
+                    concept_id=str(node.id),
+                    user_id=self.user_id,
+                    name=node.name,
+                    domain=node.domain,
+                    thinking_mode_association=node.thinking_mode_association.value,
+                    session_id=node.session_id,
+                    vector=vec_list,
+                    is_fusion=node.is_fusion,
+                    fusion_parent_ids=node.fusion_parent_ids,
                 )
         except Exception:
-            pass
+            logger.warning("Failed to save concept node %s", node.id, exc_info=True)
+    
+    def _save_edge(self, edge: GraphEdge) -> None:
+        """Save an edge to database (upsert)."""
+        try:
+            self.db.save_edge(
+                edge_id=str(uuid.uuid4()),
+                user_id=self.user_id,
+                source_id=str(edge.source_id),
+                target_id=str(edge.target_id),
+                weight=edge.weight,
+                connection_count=edge.connection_count,
+                last_activated=edge.last_activated.isoformat() if hasattr(edge.last_activated, "isoformat") else str(edge.last_activated),
+            )
+        except Exception:
+            logger.warning("Failed to save edge %s -> %s", edge.source_id, edge.target_id, exc_info=True)
 
     def persist_similarity_edges(self, similarities: List[Dict[str, Any]], threshold: float = 0.3) -> int:
         """

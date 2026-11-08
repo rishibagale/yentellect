@@ -294,6 +294,28 @@ class SupabaseDatabaseManager:
             self._check_response(r, "get_user_edges")
             return self._json_or_none(r) or []
 
+    def save_edge(self, edge_id: str, user_id: str, source_id: str,
+                  target_id: str, weight: float, connection_count: int,
+                  last_activated: str = None) -> Dict[str, Any]:
+        now = datetime.utcnow().isoformat()
+        payload = {
+            "edge_id": edge_id, "user_id": user_id,
+            "source_id": source_id, "target_id": target_id,
+            "weight": weight, "connection_count": connection_count,
+            "last_activated": last_activated or now, "created_at": now,
+        }
+        headers = _headers()
+        headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+        with httpx.Client() as client:
+            r = client.post(
+                f"{_base()}/graph_edges",
+                headers=headers,
+                json=payload,
+            )
+            self._check_response(r, "save_edge")
+            row = self._json_or_none(r)
+            return row[0] if isinstance(row, list) and row else payload
+
     def save_session_metrics(self, metric_id: str, session_id: str,
                              modes_activated: List[str],
                              concepts_added: int, bridges_formed: int,

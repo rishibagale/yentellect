@@ -448,6 +448,11 @@ class DatabaseManager:
         if not updates:
             return None
         
+        if "vector" in updates and isinstance(updates["vector"], (list, tuple)):
+            updates["vector"] = json.dumps([round(v, 6) for v in updates["vector"]])
+        if "fusion_parent_ids" in updates and isinstance(updates["fusion_parent_ids"], (list, tuple)):
+            updates["fusion_parent_ids"] = json.dumps(updates["fusion_parent_ids"])
+        
         set_clause = ", ".join(f"{k} = ?" for k in updates)
         values = list(updates.values()) + [concept_id]
         
@@ -500,6 +505,33 @@ class DatabaseManager:
                 (user_id,)
             )
             return [dict(row) for row in cursor.fetchall()]
+
+    def save_edge(self, edge_id: str, user_id: str, source_id: str,
+                  target_id: str, weight: float, connection_count: int,
+                  last_activated: str = None) -> Dict[str, Any]:
+        """
+        Upsert a graph edge for a user.
+        """
+        if self._using_supabase and self._impl is not None:
+            return self._impl.save_edge(edge_id, user_id, source_id, target_id, weight, connection_count, last_activated)
+        now = datetime.utcnow().isoformat()
+        last_act = last_activated or now
+        with self.get_db() as conn:
+            conn.execute(
+                """INSERT INTO graph_edges (edge_id, user_id, source_id, target_id, weight, connection_count, last_activated, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(user_id, source_id, target_id) DO UPDATE SET
+                   weight = excluded.weight,
+                   connection_count = excluded.connection_count,
+                   last_activated = excluded.last_activated""",
+                (edge_id, user_id, source_id, target_id, weight, connection_count, last_act, now)
+            )
+            cursor = conn.execute(
+                "SELECT * FROM graph_edges WHERE user_id = ? AND source_id = ? AND target_id = ?",
+                (user_id, source_id, target_id)
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else {}
     
     def save_session_metrics(self, metric_id: str, session_id: str,
                              modes_activated: List[str],

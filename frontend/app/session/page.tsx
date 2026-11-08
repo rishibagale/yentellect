@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { startSession, ThinkingMode, getSession, type SessionDetailResponse } from "@/lib/api";
@@ -47,6 +47,8 @@ function SessionContent() {
   const { user, isLoading } = useSupabase();
   const [userId, setUserId] = useState<string | null>(null);
   const [opening, setOpening] = useState("");
+  const [promptInput, setPromptInput] = useState("");
+  const [isStarting, setIsStarting] = useState(false);
   const [sessionData, setSessionData] = useState<{
     session_id: string;
     response: string;
@@ -84,6 +86,7 @@ function SessionContent() {
           predicted_mode: s.predicted_mode,
           confidence: first?.confidence || 0,
         });
+        setOpening(first?.user_input || "");
         setInitialTurns(data.turns);
         setUserId(user.id);
         setReadOnly(true);
@@ -95,48 +98,50 @@ function SessionContent() {
     return () => { cancelled = true; };
   }, [viewingSessionId, user]);
 
+  const handleStart = useCallback(async (initialPrompt: string) => {
+    if (!initialPrompt.trim() || isStarting) return;
+    setIsStarting(true);
+    setError(null);
+    try {
+      const data = await startSession(initialPrompt.trim());
+      setOpening(initialPrompt.trim());
+      setSessionData({
+        session_id: data.session_id,
+        response: data.response,
+        predicted_mode: data.predicted_mode,
+        confidence: data.confidence,
+      });
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("yentellect_session_id", data.session_id);
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to start session");
+    } finally {
+      setIsStarting(false);
+    }
+  }, [isStarting]);
+
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
       router.replace("/auth/login?redirect=/session");
       return;
     }
-    // If viewing an existing session, don't start a new one
+    setUserId(user.id);
     if (viewingSessionId) return;
+
     let pendingOpening = "";
     if (typeof window !== "undefined") {
       pendingOpening = sessionStorage.getItem("yentellect_opening") || "";
       sessionStorage.removeItem("yentellect_session_id");
       sessionStorage.removeItem("yentellect_opening");
     }
-    startInitiatedRef.current = false;
-    setUserId(user.id);
-    setOpening(pendingOpening);
-  }, [isLoading, router, user, viewingSessionId]);
-
-  useEffect(() => {
-    if (!userId) return;
-    if (startInitiatedRef.current) return;
-    if (viewingSessionId) return;
-    startInitiatedRef.current = true;
-    setError(null);
-    startSession(opening)
-      .then((data) => {
-        setSessionData({
-          session_id: data.session_id,
-          response: data.response,
-          predicted_mode: data.predicted_mode,
-          confidence: data.confidence,
-        });
-        if (typeof window !== "undefined") {
-          sessionStorage.setItem("yentellect_session_id", data.session_id);
-        }
-      })
-      .catch((err) => {
-        startInitiatedRef.current = false;
-        setError(err?.message || "Failed to start session");
-      });
-  }, [userId, opening, retryKey, viewingSessionId]);
+    // Only auto-start if an explicit opening prompt was queued (e.g. from workbench)
+    if (pendingOpening.trim() && !startInitiatedRef.current) {
+      startInitiatedRef.current = true;
+      handleStart(pendingOpening.trim());
+    }
+  }, [isLoading, router, user, viewingSessionId, handleStart]);
 
   if (error) {
     return (
@@ -152,8 +157,111 @@ function SessionContent() {
     );
   }
 
-  if (!userId || !sessionData) {
-    return <LoadingState message={viewingSessionId ? "Loading session..." : "Initializing your session..."} />;
+  if (!userId) {
+    return <LoadingState message="Connecting..." />;
+  }
+
+  if (viewingSessionId && !sessionData) {
+    return <LoadingState message="Loading session transcript..." />;
+  }
+
+  if (!sessionData) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[var(--bg-0)] text-slate-100">
+        <Header />
+        <main className="flex-1 px-4 py-8 max-w-3xl w-full mx-auto flex flex-col justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="glass-card p-6 md:p-8 rounded-2xl border border-[var(--border)] shadow-xl"
+          >
+            <div className="flex items-center gap-3.5 mb-5">
+              <div className="w-11 h-11 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center text-[var(--accent)] shrink-0">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-[var(--text)]">Start Cognitive Dialogue</h1>
+                <p className="text-xs text-[var(--text-dim)] mt-0.5">Formulate a hypothesis or research topic to begin Socratic inquiry across cognitive modes.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-[var(--text-dim)] mb-2 font-medium">
+                  What question or concept are you exploring today?
+                </label>
+                <textarea
+                  value={promptInput}
+                  onChange={(e) => setPromptInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      if (promptInput.trim() && !isStarting) {
+                        handleStart(promptInput.trim());
+                      }
+                    }
+                  }}
+                  placeholder="e.g., How can we combine sparse graph attention with thermodynamic free energy models to bound catastrophic forgetting?"
+                  rows={4}
+                  className="w-full bg-[var(--bg-1)] border border-[var(--border)] rounded-xl p-3.5 text-sm text-[var(--text)] placeholder:text-[var(--text-dim)]/50 focus:outline-none focus:border-[var(--accent)] transition resize-none leading-relaxed"
+                />
+              </div>
+
+              <div>
+                <span className="text-[11px] uppercase tracking-wider text-[var(--text-dim)] block mb-2 font-medium">
+                  Suggested Explorations
+                </span>
+                <div className="flex flex-col gap-1.5">
+                  {[
+                    "Explore how transformer attention models relate to biological memory consolidation.",
+                    "Analogical mapping: How does thermodynamic entropy compare to information loss in deep learning?",
+                    "Critically audit my assumptions regarding sparse graph representation learning.",
+                  ].map((s, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setPromptInput(s)}
+                      className="text-left text-xs text-[var(--text-dim)] hover:text-[var(--text)] bg-[var(--bg-1)]/60 hover:bg-[var(--bg-2)] border border-[var(--border)]/60 rounded-lg px-3 py-2 transition"
+                    >
+                      💡 {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-[11px] text-[var(--text-dim)]">
+                  Press <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-2)] border border-[var(--border)] text-[10px] font-mono">⌘/Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-2)] border border-[var(--border)] text-[10px] font-mono">Enter</kbd> to begin
+                </span>
+                <button
+                  type="button"
+                  disabled={!promptInput.trim() || isStarting}
+                  onClick={() => handleStart(promptInput.trim())}
+                  className="px-5 py-2.5 rounded-xl bg-[var(--accent)] text-[var(--bg-0)] text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isStarting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-[var(--bg-0)] border-t-transparent rounded-full animate-spin" />
+                      <span>Initializing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Begin Dialogue</span>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </main>
+      </div>
+    );
   }
 
   return (

@@ -33,11 +33,42 @@ from .signals import BehavioralSignalExtractor
 from .classifier import ThinkingModeClassifier
 from .graph import KnowledgeGraph
 from .prompts import get_prompt, EXTRACT_CONCEPTS_PROMPT
-from .vsa import compute_session_vector, compute_enriched_session_vector
+from .vsa import (
+    compute_session_vector,
+    compute_enriched_session_vector,
+    random_vector,
+    bundle,
+    normalize,
+    similarity,
+    _hash_seed,
+)
 from ..db.database import DatabaseManager, init_db
 
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_llm_json(raw: str) -> Optional[dict]:
+    """Extract valid JSON from LLM response, stripping code blocks and preambles."""
+    if not raw or not isinstance(raw, str):
+        return None
+    raw = raw.strip()
+    import re
+    # Check for markdown code fences (```json ... ``` or ``` ... ```)
+    fence_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', raw)
+    if fence_match:
+        try:
+            return json.loads(fence_match.group(1).strip())
+        except Exception:
+            pass
+    # Check for raw JSON object {...}
+    brace_match = re.search(r'\{[\s\S]*\}', raw)
+    if brace_match:
+        try:
+            return json.loads(brace_match.group(0))
+        except Exception:
+            pass
+    return None
 
 
 # Session state names
@@ -419,135 +450,192 @@ class SessionManager:
             mode_scores = {m: 0.5 for m in ["CONVERGENT","DIVERGENT","ANALOGICAL","METACOGNITIVE","SYSTEMS","DMN"]}
         overall_score = sum(mode_scores.values()) / len(mode_scores) if mode_scores else 0.5
 
+        # Compute session vector from signals early
+        signal_dicts = [sv.model_dump() for sv in signal_history] if signal_history else []
+        session_vec = compute_enriched_session_vector(modes_activated, signal_dicts)
+
         concepts_added = 0
         bridges_formed = 0
         narrative_summary = ""
+        session_title = ""
 
-        # Generate LLM summary and extract concepts from session transcript
+        # 1. Reconstruct complete dialogue transcript without omitting turns
+        turns = self.db.get_session_turns(session_id)
+        transcript_lines = []
+        for t in turns[-10:]:
+            u_in = (t.get("user_input") or "").strip()
+            a_res = (t.get("response") or "").strip()
+            if u_in:
+                transcript_lines.append(f"User: {u_in}")
+            if a_res:
+                transcript_lines.append(f"Assistant: {a_res}")
+        transcript = "\n\n".join(transcript_lines)
+
+        # 2. Extract concepts and summary from transcript via LLM
+        extracted_concepts = []
         try:
-            turns = self.db.get_session_turns(session_id)
-            transcript = "\n".join(
-                f"{'User' if i % 2 == 0 else 'Assistant'}: {t['user_input'] if i % 2 == 0 else t.get('response', '')}"
-                for i, t in enumerate(turns[-10:])
-            )
-            extraction_response = self.llm.chat_completion(
-                messages=[
-                    {"role": "system", "content": EXTRACT_CONCEPTS_PROMPT},
-                    {"role": "user", "content": f"Session mode: {mode_target.value}\n\nTranscript:\n{transcript}"},
-                ],
-                temperature=0.3,
-                max_tokens=800,
-            )
-            import re
-            json_match = re.search(r'\{[\s\S]*\}', extraction_response)
-            if json_match:
-                extraction = json.loads(json_match.group())
-                session_summary_obj = extraction.get("session_summary", {})
-                narrative_summary = session_summary_obj.get("narrative", "")
-                session_title = session_summary_obj.get("title", "")
-                extracted_concepts = extraction.get("new_concepts", [])
-            else:
-                extracted_concepts = []
+            if transcript:
+                extraction_response = self.llm.chat_completion(
+                    messages=[
+                        {"role": "system", "content": EXTRACT_CONCEPTS_PROMPT},
+                        {"role": "user", "content": f"Session mode: {mode_target.value}\n\nTranscript:\n{transcript}"},
+                    ],
+                    temperature=0.3,
+                    max_tokens=800,
+                )
+                parsed = _parse_llm_json(extraction_response)
+                if parsed and isinstance(parsed, dict):
+                    session_summary_obj = parsed.get("session_summary", {})
+                    if isinstance(session_summary_obj, dict):
+                        narrative_summary = str(session_summary_obj.get("narrative", "")).strip()
+                        session_title = str(session_summary_obj.get("title", "")).strip()
+                    raw_concepts = parsed.get("new_concepts", [])
+                    if isinstance(raw_concepts, list):
+                        extracted_concepts = raw_concepts
         except Exception:
-            logger.warning("LLM concept extraction failed; using fallback", exc_info=True)
-            extracted_concepts = []
+            logger.warning("LLM concept extraction failed; proceeding with fallback", exc_info=True)
 
-        # Determine clean session title
+        # 3. Determine clean session title
         if not session_title:
-            turns = self.db.get_session_turns(session_id, limit=1)
-            if turns:
-                session_title = turns[0]["user_input"].split("\n")[0].strip()[:80]
+            for t in turns:
+                u_in = (t.get("user_input") or "").strip()
+                if u_in:
+                    first_line = u_in.split("\n")[0].strip()
+                    if len(first_line) > 70:
+                        first_line = first_line[:70].strip()
+                    session_title = first_line
+                    break
         if not session_title:
             session_title = f"{mode_target.value.capitalize()} Exploration"
 
-        # Create concept nodes via KnowledgeGraph
+        if not narrative_summary:
+            narrative_summary = f"Explored {session_title} through {mode_target.value.lower()} dialogue across {turn_count} turns."
+
+        # 4. Create and persist concept nodes with 512-D VSA embeddings
         graph = KnowledgeGraph(user_id, self.db)
+        added_concepts: list[ConceptNode] = []
+
         try:
             if extracted_concepts:
-                for ec in extracted_concepts[:3]:
-                    raw_name = ec.get("name", "").strip()
+                for ec in extracted_concepts[:4]:
+                    if not isinstance(ec, dict):
+                        continue
+                    raw_name = str(ec.get("name", "")).strip()
                     for m in ["CONVERGENT", "DIVERGENT", "ANALOGICAL", "METACOGNITIVE", "SYSTEMS", "DMN"]:
                         if raw_name.upper().startswith(f"{m}:"):
                             raw_name = raw_name[len(m)+1:].strip()
-                    
+                    raw_name = raw_name.strip(" '\"`.:;-")
+                    if not raw_name or len(raw_name) < 2:
+                        continue
+                    if len(raw_name) > 60:
+                        raw_name = raw_name[:60].strip()
+
                     concept_mode = mode_target
-                    mode_str = ec.get("thinking_mode", "").upper().strip()
+                    mode_str = str(ec.get("thinking_mode", "")).upper().strip()
                     if mode_str in [m.value for m in ThinkingMode]:
                         concept_mode = ThinkingMode(mode_str)
 
+                    domain = str(ec.get("domain", "General")).strip()[:100] or "General"
+
                     concept = graph.add_concept(
-                        name=raw_name or "Research Concept",
-                        domain=ec.get("domain", "General")[:100],
+                        name=raw_name,
+                        domain=domain,
                         thinking_mode=concept_mode,
                     )
+                    # Generate deterministic VSA vector blended with session context
+                    concept_seed = _hash_seed(f"{domain.lower()}:{raw_name.lower()}")
+                    concept_base = random_vector(512, seed=concept_seed)
+                    blended = normalize(bundle(concept_base, [0.66 * x for x in session_vec]))
+
+                    concept.session_id = session_id
+                    concept.vector = blended
+                    graph._save_concept(concept)
+                    added_concepts.append(concept)
                     concepts_added += 1
-            else:
-                turns = self.db.get_session_turns(session_id, limit=1)
-                goal = turns[0]["user_input"][:80].strip() if turns else ""
-                clean_name = goal.split("\n")[0].strip() if goal else "Research Concept"
-                for m in ["CONVERGENT", "DIVERGENT", "ANALOGICAL", "METACOGNITIVE", "SYSTEMS", "DMN"]:
-                    if clean_name.upper().startswith(f"{m}:"):
-                        clean_name = clean_name[len(m)+1:].strip()
-                if len(clean_name) > 60:
-                    clean_name = clean_name[:60] + "..."
+
+            if not added_concepts and turns:
+                first_turn_text = next(((t.get("user_input") or "").strip() for t in turns if (t.get("user_input") or "").strip()), "")
+                if first_turn_text:
+                    clean_name = first_turn_text.split("\n")[0].strip()
+                    for m in ["CONVERGENT", "DIVERGENT", "ANALOGICAL", "METACOGNITIVE", "SYSTEMS", "DMN"]:
+                        if clean_name.upper().startswith(f"{m}:"):
+                            clean_name = clean_name[len(m)+1:].strip()
+                    clean_name = clean_name.strip(" '\"`.:;-")
+                    if len(clean_name) > 50:
+                        clean_name = clean_name[:50].strip()
+                else:
+                    clean_name = f"{mode_target.value.capitalize()} Topic"
 
                 concept = graph.add_concept(
                     name=clean_name or "Research Concept",
                     domain="General",
                     thinking_mode=mode_target,
                 )
-                concepts_added = 1
+                concept_seed = _hash_seed(f"general:{clean_name.lower()}")
+                concept_base = random_vector(512, seed=concept_seed)
+                concept.session_id = session_id
+                concept.vector = normalize(bundle(concept_base, [0.66 * x for x in session_vec]))
+                graph._save_concept(concept)
+                added_concepts.append(concept)
+                concepts_added += 1
 
-            # Compute concept VSA vectors and link to session
-            signal_dicts = [sv.model_dump() for sv in signal_history]
-            session_vec = compute_enriched_session_vector(modes_activated, signal_dicts)
-            for node in graph._nodes.values():
-                if str(node.id) == str(concept.id):
-                    node.session_id = session_id
-                    node.vector = session_vec
-                    self.db.update_concept_node(
-                        str(node.id), session_id=session_id,
-                        vector=json.dumps([round(v, 6) for v in session_vec])
-                    )
-                    break
+            # 5. Form Graph Edges:
+            # (a) Intra-session associative co-occurrence binding
+            for i in range(len(added_concepts)):
+                for j in range(i + 1, len(added_concepts)):
+                    c1, c2 = added_concepts[i], added_concepts[j]
+                    if str(c1.id) != str(c2.id):
+                        graph.strengthen_edge(str(c1.id), str(c2.id), amount=0.35)
+                        bridges_formed += 1
 
-            # Strengthen edges between the new concept and related concepts
-            related_nodes = [
+            # (b) Cross-modal & semantic bridges via VSA cosine similarity
+            existing_other_nodes = [
                 n for n in graph._nodes.values()
-                if str(n.id) != str(concept.id)
-                and n.thinking_mode_association == mode_target
+                if all(str(n.id) != str(ac.id) for ac in added_concepts)
             ]
-            for related in related_nodes[:3]:
-                graph.strengthen_edge(str(concept.id), str(related.id), amount=0.15)
-                bridges_formed += 1
-        except Exception:
-            logger.warning("Failed to update knowledge graph", exc_info=True)
-        
-        # Compute and persist VSA session vector
-        try:
-            if not signal_dicts:
-                signal_dicts = [sv.model_dump() for sv in signal_history]
-            if 'session_vec' not in dir():
-                session_vec = compute_enriched_session_vector(modes_activated, signal_dicts)
-            self.db.update_session(
-                session_id,
-                vector=json.dumps([round(v, 6) for v in session_vec])
-            )
-        except Exception:
-            logger.warning("Failed to compute session vector", exc_info=True)
 
-        # Write narrative summary and clean title to session
+            for new_c in added_concepts:
+                if not existing_other_nodes or not new_c.vector:
+                    continue
+                similarities = []
+                for other in existing_other_nodes:
+                    other_vec = other.vector
+                    if not other_vec:
+                        other_seed = _hash_seed(f"{other.domain.lower()}:{other.name.lower()}")
+                        other_vec = random_vector(512, seed=other_seed)
+                    sim = similarity(new_c.vector, other_vec)
+                    similarities.append((other, sim))
+
+                similarities.sort(key=lambda x: x[1], reverse=True)
+                for top_other, sim_score in similarities[:2]:
+                    is_cross_mode = top_other.thinking_mode_association != new_c.thinking_mode_association
+                    boost = 0.25 if is_cross_mode else 0.15
+                    amount = max(0.1, boost * (1.0 + max(0.0, sim_score)))
+                    graph.strengthen_edge(str(new_c.id), str(top_other.id), amount=amount)
+                    bridges_formed += 1
+        except Exception:
+            logger.warning("Failed to update knowledge graph nodes and edges", exc_info=True)
+
+        # 6. Persist session vector and rich summary
         summary_payload = {
             "title": session_title,
             "topic": session_title,
             "narrative": narrative_summary,
             "modes_activated": modes_activated,
             "concepts_added": concepts_added,
+            "bridges_formed": bridges_formed,
         }
         try:
-            self.db.update_session(session_id, summary=json.dumps(summary_payload))
+            self.db.update_session(
+                session_id,
+                status="completed",
+                ended_at=end_time.isoformat(),
+                turn_count=turn_count,
+                summary=json.dumps(summary_payload),
+                vector=json.dumps([round(v, 6) for v in session_vec])
+            )
         except Exception:
-            pass
+            logger.warning("Failed to update completed session %s", session_id, exc_info=True)
 
         # Only save metrics for meaningful sessions (>= 2 turns)
         if turn_count >= 2:

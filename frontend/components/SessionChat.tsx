@@ -119,8 +119,9 @@ export default function SessionChat({
 }: SessionChatProps) {
   const [messages, setMessages] = useState<Message[]>(() => {
     const list: Message[] = [];
-    if (initialMessage)
-      list.push({ role: "user", content: initialMessage, timestamp: Date.now() });
+    const firstUserInput = initialMessage || (readOnly && initialTurns.length > 0 ? initialTurns[0].user_input : "");
+    if (firstUserInput)
+      list.push({ role: "user", content: firstUserInput, timestamp: Date.now() });
     list.push({
       role: "assistant",
       content: initialResponse,
