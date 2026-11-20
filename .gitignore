@@ -9,17 +9,26 @@ venv/
 env/
 ENV/
 
-# Environment variables
+# Environment variables (strict recursive ignore, preserving examples)
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.*
+!**/.env.example
+
+# Credentials & Certificates
+*.pem
+*.key
+*.cert
+*.crt
+service-account*.json
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 *~
 
 # OS
@@ -37,10 +46,13 @@ logs/
 *.sqlite
 *.sqlite3
 
-# Test coverage
+# Test coverage & evaluation scratch
 .coverage
 htmlcov/
 .pytest_cache/
+eval-*.txt
+eval_*.txt
+*.eval.json
 
 # Build
 dist/

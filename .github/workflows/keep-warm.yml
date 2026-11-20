@@ -8,7 +8,11 @@ on:
 
 jobs:
   ping:
+    # Only run in the primary repository or when a custom health URL variable is provided
+    if: github.repository == 'rishibagale/yentellect' || vars.RENDER_HEALTH_URL != ''
     runs-on: ubuntu-latest
     steps:
       - name: Ping health endpoint
-        run: curl -sSf --max-time 10 https://yentellect.onrender.com/health || echo "Ping failed (expected if service is cold-starting)"
+        run: |
+          TARGET="${{ vars.RENDER_HEALTH_URL || 'https://yentellect.onrender.com/health' }}"
+          curl -sSf --max-time 10 "$TARGET" || echo "Ping failed (expected if service is cold-starting)"

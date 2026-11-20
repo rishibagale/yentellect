@@ -31,7 +31,7 @@ export async function GET(request: Request) {
           user.email?.split("@")[0] ||
           "User";
 
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com";
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
         fetch(`${apiBase}/profile/create`, {
           method: "POST",
           headers: {

@@ -123,11 +123,8 @@ function SessionContent() {
 
   useEffect(() => {
     if (isLoading) return;
-    if (!user) {
-      router.replace("/auth/login?redirect=/session");
-      return;
-    }
-    setUserId(user.id);
+    const currentId = user?.id || "00000000-0000-4000-8000-000000000001";
+    setUserId(currentId);
     if (viewingSessionId) return;
 
     let pendingOpening = "";

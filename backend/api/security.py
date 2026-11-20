@@ -116,19 +116,33 @@ def clear_failed_attempts(ip_address: str) -> None:
     _failed_login_attempts.pop(ip_address, None)
 
 
+GUEST_USER_ID = "00000000-0000-4000-8000-000000000001"
+
+
 async def get_current_user(authorization: str | None = Header(default=None)) -> CurrentUser:
     """Validate a Supabase access token and return its user identity.
 
-    The backend never trusts user IDs sent by the browser. Every protected route
-    derives ownership from the verified Supabase `sub`/user id.
+    Supports zero-login guest mode and offline local SQLite execution.
     """
+    supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+    api_key = os.getenv("SUPABASE_SERVICE_KEY", "") or os.getenv("SUPABASE_ANON_KEY", "")
 
-    if not authorization:
-        raise _auth_error()
+    # Guest mode or unconfigured cloud auth -> local guest user
+    if not authorization or authorization.strip() in ("Bearer guest_token", "Bearer guest"):
+        return CurrentUser(id=GUEST_USER_ID, email="guest@local")
 
     scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token.strip() or len(token) > 8192:
+    token_clean = token.strip()
+    if token_clean in ("guest_token", "guest"):
+        return CurrentUser(id=GUEST_USER_ID, email="guest@local")
+
+    if scheme.lower() != "bearer" or not token_clean or len(token_clean) > 8192:
+        if not supabase_url or not api_key:
+            return CurrentUser(id=GUEST_USER_ID, email="guest@local")
         raise _auth_error()
+
+    if not supabase_url or not api_key:
+        return CurrentUser(id=GUEST_USER_ID, email="guest@local")
 
     supabase_url, api_key = _supabase_auth_config()
     try:

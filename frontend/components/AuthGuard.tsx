@@ -16,17 +16,17 @@ export function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
-      // Auth pages are exempt: they are where a signed-out user is *supposed*
-      // to be (redirecting a login page to itself would corrupt the `redirect`
-      // param and strand the user after login). "/" is deliberately NOT exempt
-      // — it is the auth-only workbench, so middleware and this backstop both
-      // send signed-out visitors to login.
-      const onAuthPage =
+      // Guest-accessible pages: Workbench (/) and Socratic dialogue (/session)
+      // allow immediate scientific research without requiring an account.
+      // Auth pages (/auth/*) are also exempt.
+      const onExemptPage =
+        pathname === "/" ||
+        pathname.startsWith("/session") ||
         pathname.startsWith("/auth/login") ||
         pathname.startsWith("/auth/signup") ||
         pathname.startsWith("/auth/callback") ||
         pathname.startsWith("/auth/reset-password");
-      if (onAuthPage) return;
+      if (onExemptPage) return;
       const redirectUrl = `/auth/login?redirect=${encodeURIComponent(pathname)}`;
       router.replace(redirectUrl);
     }

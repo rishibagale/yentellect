@@ -35,8 +35,8 @@ Use: `https://cog-research.vercel.app`
 
 Trigger a manual redeploy in Render Dashboard → **"Manual Deploy"** → **"Deploy latest commit"**.
 
-If the dashboard still fails with `Network is unreachable` to `db.ygapudtdgcslbqhibgjl.supabase.co`, the Render egress path cannot reach the current Supabase host. Use this exact workaround:
-1. In Render, edit the backend env var `SUPABASE_DB_URL` and replace `db.ygapudtdgcslbqhibgjl.supabase.co` with the IPv4 pooler host from your Supabase project settings.
+If the dashboard still fails with `Network is unreachable` to `db.<project-ref>.supabase.co`, the Render egress path cannot reach the current Supabase host. Use this exact workaround:
+1. In Render, edit the backend env var `SUPABASE_DB_URL` and replace `db.<project-ref>.supabase.co` with the IPv4 pooler host from your Supabase project settings.
 2. Keep port `5432`.
 3. Redeploy.
 

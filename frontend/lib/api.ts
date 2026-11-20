@@ -9,7 +9,7 @@
 
 import { createClient } from "@/utils/supabase/client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export type ThinkingMode =
   | "CONVERGENT"
@@ -250,20 +250,28 @@ export interface SessionHistoryResponse {
 
 async function getAccessToken(): Promise<string> {
   const supabase = createClient();
-  const { data, error } = await supabase.auth.getSession();
-  if (error || !data.session?.access_token) {
-    throw new Error("Please sign in again.");
+  const { data } = await supabase.auth.getSession();
+  if (data.session?.access_token) {
+    return data.session.access_token;
   }
-  return data.session.access_token;
+  return "guest_token";
 }
 
 async function getCurrentUserId(): Promise<string> {
   const supabase = createClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user?.id) {
-    throw new Error("Please sign in again.");
+  const { data } = await supabase.auth.getUser();
+  if (data.user?.id) {
+    return data.user.id;
   }
-  return data.user.id;
+  if (typeof window !== "undefined") {
+    let guestId = localStorage.getItem("yentellect_guest_id");
+    if (!guestId) {
+      guestId = "00000000-0000-4000-8000-000000000001";
+      localStorage.setItem("yentellect_guest_id", guestId);
+    }
+    return guestId;
+  }
+  return "00000000-0000-4000-8000-000000000001";
 }
 
 async function getSafeApiError(response: Response): Promise<string> {

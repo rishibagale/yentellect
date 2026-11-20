@@ -35,6 +35,8 @@ export const metadata: Metadata = {
   title: "Research Workbench",
   description:
     "A research workbench: import papers, apply lenses, keep the connections that matter.",
+  manifest: "/manifest.json",
+  themeColor: "#0c0d12",
 };
 
 /* Body scrolls normally: document-flow routes (/history, /profile,

@@ -76,13 +76,21 @@ export default function TitleBar({ onOpenPalette, onToggleLens, lensOpen }: Titl
 
       {/* Right: Quick Actions */}
       <div className="flex items-center gap-2 shrink-0">
-        {userIdentifier && (
+        {userIdentifier ? (
           <span
             className="text-[11px] text-[var(--text-dim)] max-w-[130px] truncate hidden lg:inline-block px-1"
             title={user?.email ?? undefined}
           >
             {userIdentifier}
           </span>
+        ) : (
+          <a
+            href="/auth/login"
+            className="text-[11px] text-[var(--accent)] hover:underline hidden sm:inline-block px-1"
+            title="Sign in to sync your research across devices"
+          >
+            Sign in
+          </a>
         )}
 
         {onToggleLens && (

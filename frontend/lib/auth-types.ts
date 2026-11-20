@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/client";
 import type { Provider } from "@supabase/supabase-js";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://yentellect.onrender.com";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface AuthUser {
   id: string;

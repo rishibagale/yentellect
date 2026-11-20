@@ -1,0 +1,17 @@
+{
+  "name": "Yentellect Research Workbench",
+  "short_name": "Yentellect",
+  "description": "Socratic Research Workbench & Cognitive Modeling Platform for STEM Researchers",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0d12",
+  "theme_color": "#0c0d12",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

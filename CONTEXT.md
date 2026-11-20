@@ -206,7 +206,7 @@ Port `8000` is free for the backend (the retired Node `puter_test` playground th
 `frontend/.env.local` (gitignored, NEVER committed) currently holds:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://ygapudtdgcslbqhibgjl.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_0a24AEe8x7IDz0VD0jWlAg_sZF0hgo2
 GROQ_API_KEY=gsk_...   # live Groq key (Render backend has the same key as a dashboard env var)
 LENS_PROVIDER=groq
